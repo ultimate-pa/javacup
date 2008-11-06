@@ -501,8 +501,7 @@ public class lalr_state {
 		      other_act = our_act_row.under_term[t];
 
 		      /* if the other act was not a shift */
-		      if ((other_act.kind() != parse_action.SHIFT) && 
-			  (other_act.kind() != parse_action.NONASSOC))
+		      if (other_act.kind() != parse_action.SHIFT)
 		        {
 		        /* if we have lower index hence priority, replace it*/
 		          if (itm.the_production().index() < 
