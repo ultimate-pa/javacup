@@ -267,6 +267,16 @@ public class emit {
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+  
+  public static String stackelem(int index, boolean is_java15)
+    {
+      String access;
+      if (index==0)
+	access = emit.pre("stack") + ".peek()";
+      else
+	access = emit.pre("stack") + ".elementAt(" + emit.pre("top") + "-" + index + ")";
+      return is_java15 ? access : "((java_cup.runtime.Symbol) "+access+")";
+    }
 
   /** Emit code for the symbol constant class, optionally including non terms,
    *  if they have been requested.  
@@ -345,12 +355,15 @@ public class emit {
    * @param out        stream to produce output on.
    * @param start_prod the start production of the grammar.
    */
-  protected static void emit_action_code(PrintWriter out, production start_prod)
+  protected static void emit_action_code(PrintWriter out, production start_prod, boolean is_java15)
     throws internal_error
     {
       production prod;
 
       long start_time = System.currentTimeMillis();
+
+      /* Stack generic parameter and optional casts depending on Java Version */
+      String genericArg = is_java15 ? "<java_cup.runtime.Symbol>" : "           ";
 
       /* class header */
       out.println();
@@ -381,11 +394,13 @@ public class emit {
       /* action method head */
       out.println();
       out.println("  /** Method with the actual generated action code. */");
+      if (is_java15)
+	out.println("  @SuppressWarnings({ \"unused\", \"unchecked\" })");
       out.println("  public final java_cup.runtime.Symbol " + 
 		     pre("do_action") + "(");
       out.println("    int                        " + pre("act_num,"));
       out.println("    java_cup.runtime.lr_parser " + pre("parser,"));
-      out.println("    java.util.Stack            " + pre("stack,"));
+      out.println("    java.util.Stack"+genericArg+" " + pre("stack,"));
       out.println("    int                        " + pre("top)"));
       out.println("    throws java.lang.Exception");
       out.println("    {");
@@ -420,14 +435,13 @@ public class emit {
            * TUM 20060608 intermediate result patch
            */
           String result = "null";
-          if (prod instanceof action_production) {
+          if (prod instanceof action_production)
+            {
               int lastResult = ((action_production)prod).getIndexOfIntermediateResult();
-              if (lastResult!=-1) {
+              if (lastResult!=-1)
+        	{
                   result =  "(" + prod.lhs().the_symbol().stack_type() + ") " +
-                      "((java_cup.runtime.Symbol) " + emit.pre("stack") + 
-                      // TUM 20050917
-                      ((lastResult==1)?".peek()":(".elementAt(" + emit.pre("top") + "-" + (lastResult-1) + ")"))+
-                      ").value";
+                      stackelem(lastResult - 1, is_java15)+".value";
               }
           }
 
@@ -454,26 +468,15 @@ public class emit {
 	    int index = prod.rhs_length() - i - 1; // last rhs is on top.
             // set comment to inform about where the intermediate result came from
 	    out.println("              " + "// propagate RESULT from " +s.name());
-//            // look out, whether the intermediate result is null or not
-//	    out.println("              " + "if ( " +
-//	      "((java_cup.runtime.Symbol) " + emit.pre("stack") + 
-//			// TUM 20050917
-//			((index==0)?".peek()":(".elementAt(" + emit.pre("top") + "-" + index + ")"))+
-//			").value != null )");
-
-// TUM 20060608: even when its null: who cares?
 
 	    // store the intermediate result into RESULT
             out.println("                " + "RESULT = " +
 	      "(" + prod.lhs().the_symbol().stack_type() + ") " +
-	      "((java_cup.runtime.Symbol) " + emit.pre("stack") + 
-			// TUM 20050917
-			((index==0)?".peek()":(".elementAt(" + emit.pre("top") + "-" + index + ")"))+
-			").value;");
+	      stackelem(index, is_java15) + ".value;");
             break;
 	  }
 
-        /* if there is an action string, emit it */
+	  /* if there is an action string, emit it */
           if (prod.action() != null && prod.action().code_string() != null &&
               !prod.action().equals(""))
             out.println(prod.action().code_string());
@@ -485,33 +488,17 @@ public class emit {
          /* Create the code that assigns the left and right values of
             the new Symbol that the production is reducing to */
 	  if (emit.lr_values()) {	    
-	    int loffset;
 	    String leftstring, rightstring;
-	    // TUM 20050917
-            //int roffset = 0;
-	    rightstring = "((java_cup.runtime.Symbol)" + emit.pre("stack") + 
-		// TUM 20050917
-		//".elementAt(" + emit.pre("top") + "-" + roffset + "))"+
-		".peek()"+
-                // TUM 20060327 removed .right
-		")"; 	  
-	    if (prod.rhs_length() == 0) 
+	    rightstring = stackelem(0, is_java15);
+	    if (prod.rhs_length() == 0)
 	      leftstring = rightstring;
-	    else {
-	      loffset = prod.rhs_length() - 1;
-	      leftstring = "((java_cup.runtime.Symbol)" + emit.pre("stack") + 
-		  // TUM 20050917
-		  ((loffset==0)?(".peek()"):(".elementAt(" + emit.pre("top") + "-" + loffset + ")")) +
-                  // TUM 20060327 removed .left
-		  ")";
-	    }
-//	    out.println("              " + pre("result") + " = new java_cup.runtime.Symbol(" + 
+	    else
+	      leftstring = stackelem(prod.rhs_length() - 1, is_java15);
 	    out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
                         "\""+ 	prod.lhs().the_symbol().name() +"\","+ 
 			prod.lhs().the_symbol().index()  +
 			", " + leftstring + ", " + rightstring + ", RESULT);");
 	  } else {
-//	    out.println("              " + pre("result") + " = new java_cup.runtime.Symbol(" + 
 	    out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
 		"\""+ 	prod.lhs().the_symbol().name() +  "\","+ 
 			prod.lhs().the_symbol().index() + 
@@ -584,7 +571,7 @@ public class emit {
       /* do the top of the table */
       out.println();
       out.println("  /** Production table. */");
-      out.println("  protected static final short _production_table[][] = ");
+      out.println("  private static final short _production_table[][] = ");
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, prod_table);
       out.println(");");
@@ -689,7 +676,7 @@ public class emit {
       /* finish off the init of the table */
       out.println();
       out.println("  /** Parse-action table. */");
-      out.println("  protected static final short[][] _action_table = "); 
+      out.println("  private static final short[][] _action_table = "); 
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, action_table);
       out.println(");");
@@ -751,7 +738,7 @@ public class emit {
       /* emit the table. */
       out.println();
       out.println("  /** <code>reduce_goto</code> table. */");
-      out.println("  protected static final short[][] _reduce_table = "); 
+      out.println("  private static final short[][] _reduce_table = "); 
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, reduce_goto_table);
       out.println(");");
@@ -834,7 +821,8 @@ public class emit {
     int                start_st,
     production         start_prod,
     boolean            compact_reduces,
-    boolean            suppress_scanner)
+    boolean            suppress_scanner,
+    boolean            is_java15)
     throws internal_error
     {
       long start_time = System.currentTimeMillis();
@@ -902,7 +890,10 @@ public class emit {
       out.println("  public java_cup.runtime.Symbol do_action(");
       out.println("    int                        act_num,");
       out.println("    java_cup.runtime.lr_parser parser,");
-      out.println("    java.util.Stack            stack,");
+      if (is_java15)
+	out.println("    java.util.Stack<java_cup.runtime.Symbol> stack,");
+      else
+	out.println("    java.util.Stack            stack,");
       out.println("    int                        top)");
       out.println("    throws java.lang.Exception");
       out.println("  {");
@@ -967,7 +958,7 @@ public class emit {
       out.println("}");
 
       /* put out the action code class */
-      emit_action_code(out, start_prod);
+      emit_action_code(out, start_prod, is_java15);
 
       parser_time = System.currentTimeMillis() - start_time;
     }

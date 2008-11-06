@@ -390,30 +390,21 @@ public class production {
   protected String make_declaration(
 				    String  labelname,
 				    String  stack_type,
-				    int     offset)
+				    int     offset, boolean is_java15)
     {
       String ret;
 
       /* Put in the left/right value labels */
       if (emit.lr_values())
-        ret = "\t\tint " + labelname + "left = ((java_cup.runtime.Symbol)" + 
-	  emit.pre("stack") + 
- 	    // TUM 20050917
-	    ((offset==0)?".peek()":(".elementAt(" + emit.pre("top") + "-" + offset + ")"))+
-	    ").left;\n" +
-	  "\t\tint " + labelname + "right = ((java_cup.runtime.Symbol)" + 
-	  emit.pre("stack") +
- 	    // TUM 20050917
-	    ((offset==0)?".peek()":(".elementAt(" + emit.pre("top") + "-" + offset + ")"))+
-	    ").right;\n";
+        ret = "\t\tint " + labelname + "left = " + 
+	  emit.stackelem(offset, is_java15)+".left;\n" +
+	  "\t\tint " + labelname + "right = " + 
+	  emit.stackelem(offset, is_java15)+".right;\n";
       else ret = "";
 
       /* otherwise, just declare label. */
 	return ret + "\t\t" + stack_type + " " + labelname + " = (" + stack_type + 
-	  ")((" + "java_cup.runtime.Symbol) " + emit.pre("stack") + 
-	    // TUM 20050917
-	    ((offset==0)?".peek()":(".elementAt(" + emit.pre("top") + "-" + offset + ")"))+
-	    ").value;\n";
+	  ")" + emit.stackelem(offset, is_java15) + ".value;\n";
 
     }
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -447,7 +438,7 @@ public class production {
 		{
 		  declaration = declaration + 
 		    make_declaration(part.label(), part.the_symbol().stack_type(), 
-				     rhs_len-pos-1);
+				     rhs_len-pos-1, Main.opt_java15);
 		}
 	    }
 	}

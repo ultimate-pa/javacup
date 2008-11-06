@@ -92,6 +92,8 @@ public class Main {
   /** User option -- do we compact tables by making most common reduce the 
       default action */
   protected static boolean opt_compact_red  = false;
+  /** User option -- use java 1.5 syntax (generics, annotations) */
+  protected static boolean opt_java15       = false;
   /** User option -- should we include non terminal symbol numbers in the 
       symbol constant class. */
   protected static boolean include_non_terms = false;
@@ -347,6 +349,7 @@ public class Main {
 		usage("-expect must be followed by a decimal integer");
 	      }
 	    }
+	  else if (argv[i].equals("-java15"))       opt_java15 = true;
 	  else if (argv[i].equals("-compact_red"))  opt_compact_red = true;
 	  else if (argv[i].equals("-nosummary"))    no_summary = true;
 	  else if (argv[i].equals("-nowarn"))       emit.nowarn = true;
@@ -622,7 +625,7 @@ public class Main {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
 		  start_state.index(), emit.start_production, opt_compact_red,
-		  suppress_scanner);
+		  suppress_scanner, opt_java15);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/

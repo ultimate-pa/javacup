@@ -1,5 +1,8 @@
 ------------------------------------------------------------------------
 
+Added new switch -java15 to emit Java 1.5 compatible code with generic
+Stack parameter and SuppressWarnings annotation. 
+
 Fix operator precedences:  Report shift/reduce-conflicts unless both rules
 have a precedence and this resolves the conflict.  Report non-assoc conflicts
 immediately and not at run-time.
