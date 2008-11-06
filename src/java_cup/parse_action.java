@@ -42,11 +42,6 @@ public class parse_action {
   /** Constants for action type -- reduce action. */
   public static final int REDUCE = 2;
 
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Constants for action type -- reduce action. */
-  public static final int NONASSOC = 3;
-
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/

@@ -572,7 +572,7 @@ public class lalr_state {
   /** Procedure that attempts to fix a shift/reduce error by using
    * precedences.  --frankf 6/26/96
    *  
-   *  if a production (also called rule) or the lookahead terminal
+   *  if a production (also called rule) and the lookahead terminal
    *  has a precedence, then the table can be fixed.  if the rule
    *  has greater precedence than the terminal, a reduce by that rule
    *  in inserted in the table.  If the terminal has a higher precedence, 
@@ -580,7 +580,7 @@ public class lalr_state {
    *  of the precedence is used to determine what to put in the table:
    *  if the precedence is left associative, the action is to reduce. 
    *  if the precedence is right associative, the action is to shift.
-   *  if the precedence is non associative, then it is a syntax error.
+   *  if the precedence is non associative, then it is a shift/reduce error.
    *
    *  @param p           the production
    *  @param term_index  the index of the lokahead terminal
@@ -598,8 +598,10 @@ public class lalr_state {
 
       terminal term = terminal.find(term_index);
 
-      /* if the production has a precedence number, it can be fixed */
-      if (p.precedence_num() > assoc.no_prec) {
+      /* if both production and terminal have a precedence number, 
+       * it can be fixed */
+      if (p.precedence_num() > assoc.no_prec
+	  && term.precedence_num() > assoc.no_prec) {
 
 	/* if production precedes terminal, put reduce in table */
 	if (p.precedence_num() > term.precedence_num()) {
@@ -632,22 +634,14 @@ public class lalr_state {
 	  }
 
 	  /* if it is nonassoc, we're not allowed to have two nonassocs
-	     of equal precedence in a row, so put in NONASSOC */
+	     of equal precedence in a row */
 	  else if (term.precedence_side() == assoc.nonassoc) {
-            table_row.under_term[term_index] = new nonassoc_action();
-	    return true;
+	    return false;
 	  } else {
 	    /* something really went wrong */
 	    throw new internal_error("Unable to resolve conflict correctly");
 	  }
 	}
-      }
-      /* check if terminal has precedence, if so, shift, since 
-	 rule does not have precedence */
-      else if (term.precedence_num() > assoc.no_prec) {
-	 table_row.under_term[term_index] = 
-	   insert_shift(table_row.under_term[term_index],act);
-	 return true;
       }
        
       /* otherwise, neither the rule nor the terminal has a precedence,

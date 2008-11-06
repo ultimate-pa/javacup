@@ -665,10 +665,8 @@ public class emit {
 			temp_table[nentries++] = (short) j;
 			temp_table[nentries++] = (short) (-(red+1));
 		      }
-		    } else if (act.kind() == parse_action.NONASSOC)
-		      {
-			/* do nothing, since we just want a syntax error */
-		      }
+		    } 
+
 		  /* shouldn't be anything else */
 		  else
 		    throw new internal_error("Unrecognized action code " + 
