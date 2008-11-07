@@ -111,7 +111,7 @@ public class lalr_state {
       lalr_state state = _all_kernels.get(key);
       if (state != null)
 	{
-	  //state.propagate_lookaheads(kernel);
+	  state.propagate_lookaheads(kernel);
 	}
       else
 	{
