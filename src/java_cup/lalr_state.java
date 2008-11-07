@@ -1,15 +1,19 @@
 
 package java_cup;
 
-import java.util.Hashtable;
-import java.util.Enumeration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Stack;
+import java.util.Map.Entry;
 
 /** This class represents a state in the LALR viable prefix recognition machine.
- *  A state consists of an LALR item set and a set of transitions to other 
- *  states under terminal and non-terminal symbols.  Each state represents
- *  a potential configuration of the parser.  If the item set of a state 
- *  includes an item such as: <pre>
+ *  A state consists of a mapping from LR items to a set of terminals and 
+ *  of transitions to other states under terminal and non-terminal symbols.
+ *  Each state represents a potential configuration of the parser.  If the item 
+ *  set of a state includes an item such as: <pre>
  *    [A ::= B * C d E , {a,b,c}]
  *  </pre> 
  *  this indicates that when the parser is in this state it is currently 
@@ -41,8 +45,7 @@ import java.util.Stack;
  *  replaced all the symbols from the the input corresponding to the RHS with 
  *  the symbol on the LHS.
  *
- * @see     java_cup.lalr_item
- * @see     java_cup.lalr_item_set
+ * @see     java_cup.lr_item
  * @see     java_cup.lalr_transition
  * @version last updated: 7/3/96
  * @author  Frank Flannery
@@ -53,44 +56,81 @@ public class lalr_state {
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
-       
+
+  private static class propagate_info {
+    private lalr_state _state;
+    private lr_item _itm;
+    
+    /**
+     * @return the state
+     */
+    public lalr_state state()
+      {
+        return _state;
+      }
+
+    /**
+     * @return the itm
+     */
+    public lr_item itm()
+      {
+        return _itm;
+      }
+
+    public propagate_info(lalr_state state, lr_item itm)
+      {
+	super();
+	this._state = state;
+	this._itm = itm;
+      }
+  }
+
   /** Constructor for building a state from a set of items.
    * @param itms the set of items that makes up this state.
    */
-  public lalr_state(lalr_item_set itms) throws internal_error
+  private lalr_state(Map<lr_item, terminal_set> kernel)
    {
      /* don't allow null or duplicate item sets */
-     if (itms == null)
-       throw new internal_error(
+     if (kernel == null)
+       throw new AssertionError(
 	 "Attempt to construct an LALR state from a null item set");
-
-     if (find_state(itms) != null)
-       throw new internal_error(
-	 "Attempt to construct a duplicate LALR state");
 
      /* assign a unique index */
       _index = next_index++;
 
      /* store the items */
-     _items = itms;
-
-     /* add to the global collection, keyed with its item set */
-     _all.put(_items,this);
+     _items = new HashMap<lr_item, terminal_set>();
+     _items.putAll(kernel);
    }
+  
+  public static lalr_state get_lalr_state(
+      Stack<lalr_state> work_stack, 
+      HashMap<lr_item, terminal_set> kernel)
+    {
+      Collection<lr_item> key = kernel.keySet();
+      lalr_state state = _all_kernels.get(key);
+      if (state != null)
+	{
+	  //state.propagate_lookaheads(kernel);
+	}
+      else
+	{
+	  state = new lalr_state(kernel);
+	  _all_kernels.put(key, state);
+	  work_stack.push(state);
+	}
+      return state;
+    }
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
   /** Collection of all states. */
-  protected static Hashtable _all = new Hashtable();
-
-  /** Collection of all states. */
-  public static Enumeration all() {return _all.elements();}
+  public static Collection<lalr_state> all() {return _all_kernels.values();}
 
   //Hm Added clear  to clear all static fields
   public static void clear() {
-      _all.clear();
       _all_kernels.clear();
       next_index=0;
   }
@@ -98,7 +138,7 @@ public class lalr_state {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Indicate total number of states there are. */
-  public static int number() {return _all.size();}
+  public static int number() {return _all_kernels.size();}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -106,24 +146,8 @@ public class lalr_state {
    *  unclosed, set of items -- which uniquely define the state).  This table 
    *  stores state objects using (a copy of) their kernel item sets as keys. 
    */
-  protected static Hashtable _all_kernels = new Hashtable();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Find and return state with a given a kernel item set (or null if not 
-   *  found).  The kernel item set is the subset of items that were used to
-   *  originally create the state.  These items are formed by "shifting the
-   *  dot" within items of other states that have a transition to this one.
-   *  The remaining elements of this state's item set are added during closure.
-   * @param itms the kernel set of the state we are looking for. 
-   */
-  public static lalr_state find_state(lalr_item_set itms)
-    {
-      if (itms == null) 
-  	return null;
-      else
-  	return (lalr_state)_all.get(itms);
-    }
+  protected static HashMap<Collection<lr_item>,lalr_state> _all_kernels = 
+    new HashMap<Collection<lr_item>, lalr_state>();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -135,11 +159,15 @@ public class lalr_state {
   /*-----------------------------------------------------------*/
 
   /** The item set for this state. */
-  protected lalr_item_set _items;
+  protected HashMap<lr_item, terminal_set> _items;
 
   /** The item set for this state. */
-  public lalr_item_set items() {return _items;}
+  public Map<lr_item, terminal_set> items() {return _items;}
 
+  /** List of propagations for each itm. */
+  private HashMap<lr_item, ArrayList<propagate_info>> _propagations =
+    new HashMap<lr_item, ArrayList<propagate_info>>();
+  
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** List of transitions out of this state. */
@@ -163,70 +191,140 @@ public class lalr_state {
   /** Helper routine for debugging -- produces a dump of the given state
     * onto System.out.
     */
-  protected static void dump_state(lalr_state st) throws internal_error
+  void dump_state()
     {
-      lalr_item_set itms;
-      lalr_item itm;
-      production_part part;
-
-      if (st == null) 
+      System.out.println("lalr_state [" + index() + "] {");
+      for (Entry<lr_item, terminal_set> itm : items().entrySet() )
 	{
-	  System.out.println("NULL lalr_state");
-	  return;
-	}
-
-      System.out.println("lalr_state [" + st.index() + "] {");
-      itms = st.items();
-      for (Enumeration e = itms.all(); e.hasMoreElements(); )
-	{
-	  itm = (lalr_item)e.nextElement();
 	  System.out.print("  [");
-	  System.out.print(itm.the_production().lhs().the_symbol().name());
+	  System.out.print(itm.getKey().the_production().lhs().the_symbol().name());
 	  System.out.print(" ::= ");
-	  for (int i = 0; i<itm.the_production().rhs_length(); i++)
+	  for (int i = 0; i<itm.getKey().the_production().rhs_length(); i++)
 	    {
-	      if (i == itm.dot_pos()) System.out.print("(*) ");
-	      part = itm.the_production().rhs(i);
+	      if (i == itm.getKey().dot_pos()) System.out.print("(*) ");
+	      production_part part = itm.getKey().the_production().rhs(i);
 	      if (part.is_action()) 
 		System.out.print("{action} ");
 	      else
 		System.out.print(((symbol_part)part).the_symbol().name() + " ");
 	    }
-	  if (itm.dot_at_end()) System.out.print("(*) ");
+	  if (itm.getKey().dot_at_end()) System.out.print("(*) ");
 	  System.out.println("]");
 	}
       System.out.println("}");
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Propagate lookahead sets through the constructed viable prefix 
-   *  recognizer.  When the machine is constructed, each item that results
-      in the creation of another such that its lookahead is included in the
-      other's will have a propagate link set up for it.  This allows additions
-      to the lookahead of one item to be included in other items that it 
-      was used to directly or indirectly create.
-   */
-  protected static void propagate_all_lookaheads() throws internal_error
-    {
-      /* iterate across all states */
-      for (Enumeration st = all(); st.hasMoreElements(); )
-	{
-	  /* propagate lookaheads out of that state */
-	  ((lalr_state)st.nextElement()).propagate_lookaheads();
-	}
     }
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
 
+  /** Compute the closure of the set using the LALR closure rules.  Basically
+   *  for every item of the form: <pre>
+   *    [L ::= a *N alpha, l] 
+   *  </pre>
+   *  (where N is a a non terminal and alpha is a string of symbols) make 
+   *  sure there are also items of the form:  <pre>
+   *    [N ::= *beta, first(alpha l)] 
+   *  </pre>
+   *  corresponding to each production of N.  Items with identical cores but 
+   *  differing lookahead sets are merged by creating a new item with the same 
+   *  core and the union of the lookahead sets (the LA in LALR stands for 
+   *  "lookahead merged" and this is where the merger is).  This routine 
+   *  assumes that nullability and first sets have been computed for all 
+   *  productions before it is called.
+   */
+  public void compute_closure()
+    {
+      terminal_set  new_lookaheads;
+      boolean       need_prop;
+
+      /* each current element needs to be considered */
+      Stack<lr_item> consider = new Stack<lr_item>();
+      consider.addAll(_items.keySet());
+
+      /* repeat this until there is nothing else to consider */
+      while (consider.size() > 0)
+	{
+	  /* get one item to consider */
+	  lr_item itm = consider.pop(); 
+
+	  /* do we have a dot before a non terminal */
+	  non_terminal nt = itm.dot_before_nt();
+	  if (nt != null)
+	    {
+	      lr_item nextitm = itm.shift_core();
+	      /* create the lookahead set based on first symbol after dot */
+	      new_lookaheads = nextitm.calc_lookahead();
+
+	      /* are we going to need to propagate our lookahead to new item */
+	      need_prop = nextitm.is_nullable();
+	      if (need_prop)
+		new_lookaheads.add(_items.get(itm));
+	      
+	      /* create items for each production of that non term */
+	      for (production prod : nt.productions() )
+		{
+		  /* create new item with dot at start and that lookahead */
+		  lr_item new_itm = prod.item();
+		  if (_items.containsKey(new_itm))
+		    {
+		      add_lookaheads(new_itm, new_lookaheads);
+		    }
+		  else
+		    {
+		      _items.put(new_itm, new_lookaheads);
+		      /* that may need further closure, consider it also */ 
+		      consider.push(new_itm);
+		    }
+		  
+		  /* if propagation is needed link to that item */
+		  if (need_prop)
+		    add_propagate(itm, this, new_itm);
+		} 
+	    } 
+	} 
+    }
+
+  /** Propagate lookahead sets through the constructed viable prefix 
+   *  recognizer.  When the machine is constructed, each item that results
+      in the creation of another such that its lookahead is included in the
+      other's propagate info.  This allows additions
+      to the lookahead of one item to be included in other items that it 
+      was used to directly or indirectly create.
+   */
+  private void add_propagate(lr_item itm, lalr_state new_st, lr_item new_itm)
+    {
+      ArrayList<propagate_info> props = _propagations.get(itm);
+      if (props == null)
+	{
+	  props = new ArrayList<propagate_info>();
+	  _propagations.put(itm, props);
+	}
+      props.add(new propagate_info(new_st, new_itm));
+    }
+
+  private void add_lookaheads(lr_item new_core, terminal_set new_lookaheads)
+    {
+      Stack<propagate_info> work = new Stack<propagate_info>();
+      work.add(new propagate_info(this, new_core));
+      while (!work.isEmpty())
+	{
+	  propagate_info prop = work.pop();
+	  terminal_set old_lookaheads = prop.state().items().get(prop.itm());
+	  if (!new_lookaheads.is_subset_of(old_lookaheads))
+	    {
+	      old_lookaheads.add(new_lookaheads);
+	      if (prop.state()._propagations.containsKey(prop.itm()))
+		work.addAll(prop.state()._propagations.get(prop.itm()));
+	    }
+	}
+    }
+
   /** Add a transition out of this state to another.
    * @param on_sym the symbol the transition is under.
    * @param to_st  the state the transition goes to.
    */
   public void add_transition(symbol on_sym, lalr_state to_st) 
-    throws internal_error
     {
       lalr_transition trans;
 
@@ -276,160 +374,95 @@ public class lalr_state {
    */
 
   public static lalr_state build_machine(production start_prod) 
-    throws internal_error
     {
-      lalr_state    start_state;
-      lalr_item_set start_items;
-      lalr_item_set new_items;
-      lalr_item_set linked_items;
-      lalr_item_set kernel;
-      Stack         work_stack = new Stack();
-      lalr_state    st, new_st;
-      symbol_set    outgoing;
-      lalr_item     itm, new_itm, existing, fix_itm;
-      symbol        sym, sym2;
-      Enumeration   i, s, fix;
+      lalr_state        start_state;
+      Stack<lalr_state> work_stack = new Stack<lalr_state>();
 
       /* sanity check */
-      if (start_prod == null)
-	throw new internal_error(
- 	  "Attempt to build viable prefix recognizer using a null production");
+      assert start_prod != null:
+ 	  "Attempt to build viable prefix recognizer using a null production";
 
-      /* build item with dot at front of start production and EOF lookahead */
-      start_items = new lalr_item_set();
-
-      itm = new lalr_item(start_prod);
-      itm.lookahead().add(terminal.EOF);
-
-      start_items.add(itm);
-
-      /* create copy the item set to form the kernel */
-      kernel = new lalr_item_set(start_items);
-
-      /* create the closure from that item set */
-      start_items.compute_closure();
-
-      /* build a state out of that item set and put it in our work set */
-      start_state = new lalr_state(start_items);
-      work_stack.push(start_state);
-
-      /* enter the state using the kernel as the key */
-      _all_kernels.put(kernel, start_state);
+	{
+	  /* build item with dot at front of start production and EOF lookahead */	
+	  HashMap<lr_item, terminal_set> start_items = new HashMap<lr_item, terminal_set>();
+	  terminal_set lookahead = new terminal_set();
+	  lookahead.add(terminal.EOF);
+	  lr_item core = start_prod.item();
+	  start_items.put(core, lookahead);
+	  start_state = get_lalr_state(work_stack, start_items);
+	}
 
       /* continue looking at new states until we have no more work to do */
       while (!work_stack.empty())
 	{
 	  /* remove a state from the work set */
-	  st = (lalr_state)work_stack.pop();
-
-	  /* gather up all the symbols that appear before dots */
-	  outgoing = new symbol_set();
-	  for (i = st.items().all(); i.hasMoreElements(); )
-	    {
-	      itm = (lalr_item)i.nextElement();
-
-	      /* add the symbol before the dot (if any) to our collection */
-	      sym = itm.symbol_after_dot();
-	      if (sym != null) outgoing.add(sym);
-	    }
-
-	  /* now create a transition out for each individual symbol */
-	  for (s = outgoing.all(); s.hasMoreElements(); )
-	    {
-	      sym = (symbol)s.nextElement();
-
-	      /* will be keeping the set of items with propagate links */
-	      linked_items = new lalr_item_set();
-
-	      /* gather up shifted versions of all the items that have this
-		 symbol before the dot */
-	      new_items = new lalr_item_set();
-	      for (i = st.items().all(); i.hasMoreElements();)
-		{
-		  itm = (lalr_item)i.nextElement();
-
-		  /* if this is the symbol we are working on now, add to set */
-		  sym2 = itm.symbol_after_dot();
-		  if (sym.equals(sym2))
-		    {
-		      /* add to the kernel of the new state */
-		      new_items.add(itm.shift());
-
-		      /* remember that itm has propagate link to it */
-		      linked_items.add(itm);
-		    }
-		}
-
-	      /* use new items as state kernel */
-	      kernel = new lalr_item_set(new_items);
-
-	      /* have we seen this one already? */
-	      new_st = (lalr_state)_all_kernels.get(kernel);
-
-	      /* if we haven't, build a new state out of the item set */
-	      if (new_st == null)
-		{
-	          /* compute closure of the kernel for the full item set */
-	          new_items.compute_closure();
-
-		  /* build the new state */
-		  new_st = new lalr_state(new_items);
-
-		  /* add the new state to our work set */
-		  work_stack.push(new_st);
-
-		  /* put it in our kernel table */
-		  _all_kernels.put(kernel, new_st);
-		}
-	      /* otherwise relink propagation to items in existing state */
-	      else 
-		{
-		  /* walk through the items that have links to the new state */
-		  for (fix = linked_items.all(); fix.hasMoreElements(); )
-		    {
-		      fix_itm = (lalr_item)fix.nextElement();
-
-		      /* look at each propagate link out of that item */
-		      for (int l =0; l < fix_itm.propagate_items().size(); l++)
-			{
-			  /* pull out item linked to in the new state */
-			  new_itm = 
-			    (lalr_item)fix_itm.propagate_items().elementAt(l);
-
-			  /* find corresponding item in the existing state */
-			  existing = new_st.items().find(new_itm);
-
-			  /* fix up the item so it points to the existing set */
-			  if (existing != null)
-			    fix_itm.propagate_items().setElementAt(existing ,l);
-			}
-		    }
-		}
-
-	      /* add a transition from current state to that state */
-	      st.add_transition(sym, new_st);
-	    }
+	  lalr_state st = (lalr_state) work_stack.pop();
+	  st.compute_closure();
+	  st.compute_successors(work_stack);
 	}
-
-      /* all done building states */
-
-      /* propagate complete lookahead sets throughout the states */
-      propagate_all_lookaheads();
-
+      
       return start_state;
     }
+  
+  private void compute_successors(Stack<lalr_state> work_stack) 
+    {
+      /* gather up all the symbols that appear before dots */
+      HashSet<symbol> outgoing = new HashSet<symbol>();
+      for (lr_item itm : _items.keySet() )
+	{
+	  /* add the symbol after the dot (if any) to our collection */
+	  symbol sym = itm.symbol_after_dot();
+	  if (sym != null)
+	    outgoing.add(sym);
+	}
+      
+      /* now create a transition out for each individual symbol */
+      for (symbol sym : outgoing )
+	{
+	  /* gather up shifted versions of all the items that have this
+		 symbol before the dot */
+	  HashMap<lr_item, terminal_set> new_items = new HashMap<lr_item, terminal_set>();
+	  for (lr_item itm : items().keySet())
+	    {
+	      /* if this is the symbol we are working on now, add to set */
+	      if (sym.equals(itm.symbol_after_dot()))
+		{
+		  /* add to the kernel of the new state */
+		  lr_item shift = itm.shift_core(); 
+		  new_items.put(shift, new terminal_set(items().get(itm)));
+		}
+	    }
 
+	  /* have we seen this one already? */
+	  lalr_state new_st = get_lalr_state(work_stack, new_items);
+	  for (lr_item itm : items().keySet())
+	    {
+	      /* if this is the symbol we are working on now, ...*/
+	      if (sym.equals(itm.symbol_after_dot()))
+		{
+		  /* ... remember that itm has propagate link to it */
+		  add_propagate(itm, new_st, itm.shift_core());
+		}
+	    }
+
+	  /* add a transition from current state to that state */
+	  add_transition(sym, new_st);
+	}
+    }
+ 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Propagate lookahead sets out of this state. This recursively 
    *  propagates to all items that have propagation links from some item 
    *  in this state. 
    */
-  protected void propagate_lookaheads() throws internal_error
+  protected void propagate_lookaheads(HashMap<lr_item, terminal_set> new_kernel)
     {
       /* recursively propagate out from each item in the state */
-      for (Enumeration itm = items().all(); itm.hasMoreElements(); )
-	((lalr_item)itm.nextElement()).propagate_lookaheads(null);
+      for (Entry<lr_item, terminal_set> entry : new_kernel.entrySet())
+	{
+	  add_lookaheads(entry.getKey(), entry.getValue());
+	}
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -458,11 +491,9 @@ public class lalr_state {
   public void build_table_entries(
     parse_action_table act_table, 
     parse_reduce_table reduce_table)
-    throws internal_error
     {
       parse_action_row our_act_row;
       parse_reduce_row our_red_row;
-      lalr_item        itm;
       parse_action     act, other_act;
       symbol           sym;
       terminal_set     conflict_set = new terminal_set();
@@ -472,21 +503,19 @@ public class lalr_state {
       our_red_row = reduce_table.under_state[index()];
 
       /* consider each item in our state */
-      for (Enumeration i = items().all(); i.hasMoreElements(); )
+      for (Entry<lr_item, terminal_set> itm : items().entrySet())
 	{
-	  itm = (lalr_item)i.nextElement();
-	 
 
 	  /* if its completed (dot at end) then reduce under the lookahead */
-	  if (itm.dot_at_end())
+	  if (itm.getKey().dot_at_end())
 	    {
-	      act = new reduce_action(itm.the_production());
+	      act = new reduce_action(itm.getKey().the_production());
 
 	      /* consider each lookahead symbol */
 	      for (int t = 0; t < terminal.number(); t++)
 		{
 		  /* skip over the ones not in the lookahead */
-		  if (!itm.lookahead().contains(t)) continue;
+		  if (!itm.getValue().contains(t)) continue;
 
 	          /* if we don't already have an action put this one in */
 	          if (our_act_row.under_term[t].kind() == 
@@ -504,23 +533,26 @@ public class lalr_state {
 		      if (other_act.kind() != parse_action.SHIFT)
 		        {
 		        /* if we have lower index hence priority, replace it*/
-		          if (itm.the_production().index() < 
+		          if (itm.getKey().the_production().index() < 
 			      ((reduce_action)other_act).reduce_with().index())
 			    {
 			      /* replace the action */
 			      our_act_row.under_term[t] = act;
 			    }
-		        } else {
+		        } 
+		      else
+			{
 			  /*  Check precedences,see if problem is correctable */
-			  if(fix_with_precedence(itm.the_production(), 
-						 t, our_act_row, act)) {
-			    term = null;
-			  }
+			  if(fix_with_precedence(itm.getKey().the_production(), 
+			      t, our_act_row, act)) 
+			    {
+			      term = null;
+			    }
 			}
-		      if(term!=null) {
-
-			conflict_set.add(term);
-		      }
+		      if(term!=null) 
+			{
+			  conflict_set.add(term);
+			}
 		    }
 		}
 	    }
@@ -592,8 +624,7 @@ public class lalr_state {
 			int              term_index,
 			parse_action_row table_row,
 			parse_action     act)
-
-      throws internal_error {
+      {
 
       terminal term = terminal.find(term_index);
 
@@ -634,11 +665,9 @@ public class lalr_state {
 
 	  /* if it is nonassoc, we're not allowed to have two nonassocs
 	     of equal precedence in a row */
-	  else if (term.precedence_side() == assoc.nonassoc) {
+	  else {
+	    assert term.precedence_side() == assoc.nonassoc;
 	    return false;
-	  } else {
-	    /* something really went wrong */
-	    throw new internal_error("Unable to resolve conflict correctly");
 	  }
 	}
       }
@@ -661,24 +690,19 @@ public class lalr_state {
 					parse_action a1,
 					parse_action a2,
 					int act_type) 
-      throws internal_error
     {
-      if ((a1.kind() == act_type) && (a2.kind() == act_type)) {
-	throw new internal_error("Conflict resolution of bogus actions");
-      } else if (a1.kind() == act_type) {
+      assert (a1.kind() == act_type) != (a2.kind() == act_type) : 
+	"Conflict resolution of bogus actions";
+      if (a1.kind() == act_type)
 	return a1;
-      } else if (a2.kind() == act_type) {
+      else
 	return a2;
-      } else {
-	throw new internal_error("Conflict resolution of bogus actions");
-      }
     }
 
     /* find the shift in the two actions */
     protected parse_action insert_shift(
 					parse_action a1,
 					parse_action a2) 
-      throws internal_error  
     {
       return insert_action(a1, a2, parse_action.SHIFT);
     }
@@ -687,7 +711,6 @@ public class lalr_state {
     protected parse_action insert_reduce(
 					parse_action a1,
 					parse_action a2) 
-      throws internal_error
     {
       return insert_action(a1, a2, parse_action.REDUCE);
     }
@@ -696,31 +719,23 @@ public class lalr_state {
 
   /** Produce warning messages for all conflicts found in this state.  */
   protected void report_conflicts(terminal_set conflict_set)
-    throws internal_error
     {
-      lalr_item    itm, compare;
-      symbol       shift_sym;
-
       boolean      after_itm;
 
       /* consider each element */
-      for (Enumeration itms = items().all(); itms.hasMoreElements(); )
+      for (Entry<lr_item,terminal_set> itm : items().entrySet())
 	{
-	  itm = (lalr_item)itms.nextElement();
-
 	  /* clear the S/R conflict set for this item */
 
 	  /* if it results in a reduce, it could be a conflict */
-	  if (itm.dot_at_end())
+	  if (itm.getKey().dot_at_end())
 	    {
 	      /* not yet after itm */
 	      after_itm = false;
 
 	      /* compare this item against all others looking for conflicts */
-	      for (Enumeration comps = items().all(); comps.hasMoreElements(); )
+	      for (Entry<lr_item,terminal_set> compare : items().entrySet())
 		{
-		  compare = (lalr_item)comps.nextElement();
-
 		  /* if this is the item, next one is after it */
 		  if (itm == compare) after_itm = true;
 
@@ -728,12 +743,12 @@ public class lalr_state {
 		  if (itm != compare)
 		    {
 		      /* is it a reduce */
-		      if (compare.dot_at_end())
+		      if (compare.getKey().dot_at_end())
 			{
 			  /* only look at reduces after itm */
 			  if (after_itm)
                             /* does the comparison item conflict? */
-                            if (compare.lookahead().intersects(itm.lookahead()))
+                            if (compare.getValue().intersects(itm.getValue()))
                               /* report a reduce/reduce conflict */
                               report_reduce_reduce(itm, compare);
 			}
@@ -741,8 +756,8 @@ public class lalr_state {
 		}
 	      /* report S/R conflicts under all the symbols we conflict under */
 	      for (int t = 0; t < terminal.number(); t++)
-		if (conflict_set.contains(t))
-		  report_shift_reduce(itm,t);
+		if (itm.getValue().contains(t))
+		  report_shift_reduce(itm.getKey(),t);
 	    }
 	}
     }
@@ -754,32 +769,36 @@ public class lalr_state {
    * @param itm1 first item in conflict.
    * @param itm2 second item in conflict.
    */
-  protected void report_reduce_reduce(lalr_item itm1, lalr_item itm2)
-    throws internal_error
+  protected void report_reduce_reduce(
+      Entry<lr_item,terminal_set> itm1,
+      Entry<lr_item,terminal_set> itm2)
     {
-      boolean comma_flag = false;
+      if (itm1.getKey().the_production().index() > itm2.getKey().the_production().index())
+	{
+	  Entry<lr_item,terminal_set> tmpitm = itm1;
+	  itm1 = itm2;
+	  itm2 = tmpitm;
+	}
       
-      String message = "*** Reduce/Reduce conflict found in state #"+index()+"\n" +
-      "  between " + itm1.to_simple_string() + "\n" +
-      "  and     " + itm2.to_simple_string() + "\n" +
-	  "  under symbols: {";
+      StringBuilder message = new StringBuilder();
+      message.append("*** Reduce/Reduce conflict found in state #").append(index()).append("\n")
+      	.append("  between ").append(itm1.getKey().toString()).append("\n")
+      	.append("  and     ").append(itm2.getKey().toString()).append("\n")
+	.append("  under symbols: {");
+      String comma = "";
       for (int t = 0; t < terminal.number(); t++)
 	{
-	  if (itm1.lookahead().contains(t) && itm2.lookahead().contains(t))
+	  if (itm1.getValue().contains(t) && itm2.getValue().contains(t))
 	    {
-	      if (comma_flag) message+=(", "); else comma_flag = true;
-	      message += (terminal.find(t).name());
+	      message.append(comma).append(terminal.find(t).name());
+	      comma = ", ";
 	    }
 	}
-      message += "}\n  Resolved in favor of ";
-      if (itm1.the_production().index() < itm2.the_production().index())
-	message+="the first production.\n";
-      else
-	message+="the second production.\n";
+      message.append("}\n  Resolved in favor of the first production.\n");
 
       /* count the conflict */
       emit.num_conflicts++;
-      ErrorManager.getManager().emit_warning(message);
+      ErrorManager.getManager().emit_warning(message.toString());
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -790,22 +809,18 @@ public class lalr_state {
    * @param conflict_sym the index of the symbol conflict occurs under.
    */
   protected void report_shift_reduce(
-    lalr_item red_itm, 
+    lr_item red_itm, 
     int       conflict_sym)
-    throws internal_error
     {
-      lalr_item    itm;
       symbol       shift_sym;
 
       /* emit top part of message including the reduce item */
       String message = "*** Shift/Reduce conflict found in state #"+index()+"\n" +
-      "  between " + red_itm.to_simple_string()+"\n";
+      "  between " + red_itm.toString()+"\n";
 
       /* find and report on all items that shift under our conflict symbol */
-      for (Enumeration itms = items().all(); itms.hasMoreElements(); )
+      for (lr_item itm : items().keySet())
 	{
-	  itm = (lalr_item)itms.nextElement();
-
 	  /* only look if its not the same item and not a reduce */
 	  if (itm != red_itm && !itm.dot_at_end())
 	    {
@@ -814,7 +829,7 @@ public class lalr_state {
 	      if (!shift_sym.is_non_term() && shift_sym.index() == conflict_sym)
 	        {
 		  /* yes, report on it */
-                  message += "  and     " + itm.to_simple_string()+"\n";
+                  message += "  and     " + itm.toString()+"\n";
 		}
 	    }
 	}
@@ -860,20 +875,25 @@ public class lalr_state {
   /** Convert to a string. */
   public String toString()
     {
-      String result;
+      StringBuilder result = new StringBuilder();
       lalr_transition tr;
 
       /* dump the item set */
-      result = "lalr_state [" + index() + "]: " + _items + "\n";
+      result.append("lalr_state [").append(index()).append("]: {\n");
+      for (Entry<lr_item,terminal_set> itm : items().entrySet()) 
+	{
+	  result.append("  [").append(itm.getKey()).append(", ");
+	  result.append(itm.getValue()).append("]\n");
+	}
+      result.append("}\n");
 
       /* do the transitions */
       for (tr = transitions(); tr != null; tr = tr.next())
 	{
-	  result += tr;
-	  result += "\n";
+	  result.append(tr).append("\n");
 	}
 
-      return result;
+      return result.toString();
     }
 
   /*-----------------------------------------------------------*/

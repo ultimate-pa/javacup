@@ -1,7 +1,6 @@
 
 package java_cup;
 
-import java.util.Enumeration; 
 import java.io.*;
 import java_cup.runtime.*;
 
@@ -153,7 +152,7 @@ public class Main {
    * @param argv an array of strings containing command line arguments.
    */
   public static void main(String argv[]) 
-    throws internal_error, java.io.IOException, java.lang.Exception
+    throws java.io.IOException, java.lang.Exception
     {
       boolean did_output = false;
 
@@ -494,14 +493,9 @@ public class Main {
    */
   protected static void check_unused()
     {
-      terminal term;
-      non_terminal nt;
-
       /* check for unused terminals */
-      for (Enumeration t = terminal.all(); t.hasMoreElements(); )
+      for (terminal term : terminal.all())
 	{
-	  term = (terminal)t.nextElement();
-
 	  /* don't issue a message for EOF */
 	  if (term == terminal.EOF) continue;
 
@@ -521,10 +515,8 @@ public class Main {
 	}
 
       /* check for unused non terminals */
-      for (Enumeration n = non_terminal.all(); n.hasMoreElements(); )
+      for (non_terminal nt : non_terminal.all())
 	{
-	  nt = (non_terminal)n.nextElement();
-
 	  /* is this one unused */
 	  if (nt.use_count() == 0)
 	    {
@@ -563,7 +555,7 @@ public class Main {
    *    <li> Checking for unreduced productions.
    *  </ul>
    */
-  protected static void build_parser() throws internal_error
+  protected static void build_parser()
     {
       /* compute nullability of all non terminals */
       if (opt_do_debug || print_progress) 
@@ -591,11 +583,9 @@ public class Main {
 	System.err.println("  Filling in tables...");
       action_table = new parse_action_table();
       reduce_table = new parse_reduce_table();
-      for (Enumeration st = lalr_state.all(); st.hasMoreElements(); )
+      for (lalr_state lst : lalr_state.all())
 	{
-	  lalr_state lst = (lalr_state)st.nextElement();
-	  lst.build_table_entries(
-			                      action_table, reduce_table);
+	  lst.build_table_entries(action_table, reduce_table);
 	}
 
       table_end = System.currentTimeMillis();
@@ -620,7 +610,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Call the emit routines necessary to write out the generated parser. */
-  protected static void emit_parser() throws internal_error
+  protected static void emit_parser()
     {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
@@ -811,7 +801,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Produce a human readable dump of the grammar. */
-  public static void dump_grammar() throws internal_error
+  public static void dump_grammar()
     {
       System.err.println("===== Terminals =====");
       for (int tidx=0, cnt=0; tidx < terminal.number(); tidx++, cnt++)
@@ -858,9 +848,8 @@ public class Main {
       lalr_state ordered[] = new lalr_state[lalr_state.number()];
 
       /* put the states in sorted order for a nicer display */
-      for (Enumeration s = lalr_state.all(); s.hasMoreElements(); )
+      for (lalr_state st : lalr_state.all())
 	{
-	  lalr_state st = (lalr_state)s.nextElement();
 	  ordered[st.index()] = st;
 	}
 

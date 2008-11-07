@@ -1,8 +1,8 @@
 
 package java_cup;
 
-import java.util.Hashtable;
-import java.util.Enumeration;
+import java.util.Collection;
+import java.util.HashMap;
 
 /** This class represents a production in the grammar.  It contains
  *  a LHS non terminal, and an array of RHS symbols.  As various 
@@ -58,7 +58,6 @@ public class production {
     production_part rhs_parts[], 
     int             rhs_l,
     String          action_str)
-    throws internal_error
     {
       int         i;
       action_part tail_action;
@@ -74,9 +73,8 @@ public class production {
 	_rhs_length = 0;
 	
       /* make sure we have a valid left-hand-side */
-      if (lhs_sym == null) 
-	throw new internal_error(
-	  "Attempt to construct a production with a null LHS");
+      assert lhs_sym != null : 
+	  "Attempt to construct a production with a null LHS";
 
       /* I'm not translating labels anymore, I'm adding code to declare
 	 labels as valid variables.  This way, the users code string is
@@ -154,7 +152,7 @@ public class production {
       _index = next_index++;
 
       /* put us in the global collection of productions */
-      _all.put(new Integer(_index),this);
+      _all.put(_index,this);
 
       /* put us in the production list of the lhs non terminal */
       lhs_sym.add_production(this);
@@ -167,7 +165,6 @@ public class production {
     non_terminal    lhs_sym, 
     production_part rhs_parts[], 
     int             rhs_l)
-    throws internal_error
     {
       this(lhs_sym,rhs_parts,rhs_l,null);
     }
@@ -183,7 +180,6 @@ public class production {
     String          action_str,
     int		    prec_num,
     int             prec_side)
-    throws internal_error
     {
       this(lhs_sym,rhs_parts,rhs_l,action_str);
       
@@ -202,7 +198,6 @@ public class production {
     int             rhs_l,
     int             prec_num,
     int             prec_side)
-    throws internal_error
     {
       this(lhs_sym,rhs_parts,rhs_l,null);
       /* set the precedence */
@@ -220,14 +215,14 @@ public class production {
   /** Table of all productions.  Elements are stored using their index as 
    *  the key.
    */
-  protected static Hashtable _all = new Hashtable();
+  protected static HashMap<Integer, production> _all = new HashMap<Integer, production>();
  
   /** Access to all productions. */
-  public static Enumeration all() {return _all.elements();}
+  public static Collection<production> all() {return _all.values();}
 
     /** Lookup a production by index. */
   public static production find(int indx) {
-    return (production) _all.get(new Integer(indx));
+    return _all.get(indx);
   }
 
   //Hm Added clear  to clear all static fields
@@ -277,13 +272,11 @@ public class production {
   protected production_part _rhs[];
 
   /** Access to the collection of parts for the right hand side. */
-  public production_part rhs(int indx) throws internal_error
+  public production_part rhs(int indx)
     {
-      if (indx >= 0 && indx < _rhs_length)
-	return _rhs[indx];
-      else
-	throw new internal_error(
-	  "Index out of range for right hand side of production");
+      assert indx >= 0 && indx < _rhs_length:
+	"Index out of range for right hand side of production";
+      return _rhs[indx];
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -313,6 +306,19 @@ public class production {
 
   /** Index number of the production. */
   public int index() {return _index;}
+
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** initial lr item corresponding to the production. */
+  protected lr_item _itm;
+
+  /** Index number of the production. */
+  public lr_item item() 
+    {
+      if (_itm == null)
+	_itm = new lr_item(this);
+      return _itm;
+    }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -420,29 +426,25 @@ public class production {
     int              rhs_len, 
     String           final_action)
     {
-      String declaration = "";
-
-      symbol_part part;
-      action_part act_part;
-      int         pos;
+      StringBuilder declaration = new StringBuilder();
 
       /* walk down the parts and extract the labels */
-      for (pos = 0; pos < rhs_len; pos++)
+      for (int pos = 0; pos < rhs_len; pos++)
 	{
 	  if (!rhs[pos].is_action())
 	    {
-	      part = (symbol_part)rhs[pos];
+	      symbol_part part = (symbol_part)rhs[pos];
 
 	      /* if it has a label, make declaration! */
 	      if (part.label() != null)
 		{
-		  declaration = declaration + 
+		  declaration.append(
 		    make_declaration(part.label(), part.the_symbol().stack_type(), 
-				     rhs_len-pos-1, Main.opt_java15);
+				     rhs_len-pos-1, Main.opt_java15));
 		}
 	    }
 	}
-      return declaration;
+      return declaration.toString();
     }
 
 
@@ -548,12 +550,9 @@ public class production {
      as they should be perfectly valid in this code string, since it
      was originally a code string in the parent, not on its own.
      frank 6/20/96 */
-  protected void remove_embedded_actions(
-	   
-            ) throws internal_error
+  protected void remove_embedded_actions()
     {
       non_terminal new_nt;
-      production   new_prod;
       String declare_str;
       int lastLocation = -1;
       /* walk over the production and process each action */
@@ -569,7 +568,7 @@ public class production {
 	    new_nt.is_embedded_action = true; /* 24-Mar-1998, CSA */
 
 	    /* create a new production with just the action */
-	    new_prod = new action_production(this, new_nt, null, 0, 
+	    new action_production(this, new_nt, null, 0, 
 		declare_str + ((action_part)rhs(act_loc)).code_string(), (lastLocation==-1)?-1:(act_loc-lastLocation));
 
 	    /* replace the action with the generated non terminal */
@@ -585,7 +584,7 @@ public class production {
    *  This results when the RHS is empty or contains only non terminals
    *  which themselves are nullable.
    */
-  public boolean check_nullable() throws internal_error
+  public boolean check_nullable()
     {
       production_part part;
       symbol          sym;
@@ -639,7 +638,7 @@ public class production {
    *  This assumes that nullability has already been computed for all non 
    *  terminals and productions. 
    */
-  public terminal_set check_first_set() throws internal_error
+  public terminal_set check_first_set()
     {
       int    part;
       symbol sym;
@@ -708,51 +707,18 @@ public class production {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Convert to a string. */
-  public String toString() 
-    {
-      String result;
-      
-      /* catch any internal errors */
-      try {
-        result = "production [" + index() + "]: "; 
-        result += ((lhs() != null) ? lhs().toString() : "$$NULL-LHS$$");
-        result += " :: = ";
-        for (int i = 0; i<rhs_length(); i++)
-	  result += rhs(i) + " ";
-        result += ";";
-        if (action()  != null && action().code_string() != null) 
-	  result += " {" + action().code_string() + "}";
-
-        if (nullable_known())
-	  if (nullable())
-	    result += "[NULLABLE]";
-	  else
-	    result += "[NOT NULLABLE]";
-      } catch (internal_error e) {
-	/* crash on internal error since we can't throw it from here (because
-	   superclass does not throw anything. */
-	e.crash();
-	result = null;
-      }
-
-      return result;
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** Convert to a simpler string. */
-  public String to_simple_string() throws internal_error
+  public String toString()
     {
-      String result;
+      StringBuilder result = new StringBuilder();
 
-      result = ((lhs() != null) ? lhs().the_symbol().name() : "NULL_LHS");
-      result += " ::= ";
+      result.append((lhs() != null) ? lhs().the_symbol().name() : "NULL_LHS");
+      result.append(" ::= ");
       for (int i = 0; i < rhs_length(); i++)
 	if (!rhs(i).is_action())
-	  result += ((symbol_part)rhs(i)).the_symbol().name() + " ";
+	  result.append(((symbol_part)rhs(i)).the_symbol().name()).append(" ");
 
-      return result;
+      return result.toString();
     }
 
   /*-----------------------------------------------------------*/

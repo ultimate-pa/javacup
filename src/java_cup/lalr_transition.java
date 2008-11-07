@@ -22,13 +22,10 @@ public class lalr_transition {
    * @param nxt     next transition in linked list.
    */
   public lalr_transition(symbol on_sym, lalr_state to_st, lalr_transition nxt)
-    throws internal_error
     {
       /* sanity checks */
-      if (on_sym == null)
-	throw new internal_error("Attempt to create transition on null symbol");
-      if (to_st == null)
-	throw new internal_error("Attempt to create transition to null state");
+      assert on_sym != null : "Attempt to create transition on null symbol";
+      assert to_st != null : "Attempt to create transition to null state";
 
       /* initialize */
       _on_symbol = on_sym;
@@ -42,7 +39,7 @@ public class lalr_transition {
    * @param on_sym  symbol we are transitioning on.
    * @param to_st   state we transition to.
    */
-  public lalr_transition(symbol on_sym, lalr_state to_st) throws internal_error
+  public lalr_transition(symbol on_sym, lalr_state to_st)
     {
       this(on_sym, to_st, null);
     }

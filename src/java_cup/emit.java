@@ -1,8 +1,7 @@
 package java_cup;
 
 import java.io.PrintWriter;
-import java.util.Stack;
-import java.util.Enumeration;
+import java.util.ArrayList;
 import java.util.Date;
 
 /** 
@@ -159,7 +158,7 @@ public class emit {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** List of imports (Strings containing class names) to go with actions. */
-  public static Stack import_list = new Stack();
+  public static ArrayList<String> import_list = new ArrayList<String>();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -219,7 +218,7 @@ public class emit {
   public static void clear () {
       _lr_values = true;
       action_code = null;
-      import_list = new Stack();
+      import_list.clear();
       init_code = null;
       not_reduced = 0;
       num_conflicts = 0;
@@ -287,8 +286,6 @@ public class emit {
   public static void symbols(PrintWriter out, 
 			     boolean emit_non_terms, boolean sym_interface)
     {
-      terminal term;
-      non_terminal nt;
       String class_or_interface = (sym_interface)?"interface":"class";
 
       long start_time = System.currentTimeMillis();
@@ -312,9 +309,8 @@ public class emit {
       out.println("  /* terminals */");
 
       /* walk over the terminals */              /* later might sort these */
-      for (Enumeration e = terminal.all(); e.hasMoreElements(); )
+      for (terminal term : terminal.all())
 	{
-	  term = (terminal)e.nextElement();
 
 	  /* output a constant decl for the terminal */
 	  out.println("  public static final int " + term.name() + " = " + 
@@ -328,10 +324,8 @@ public class emit {
           out.println("  /* non terminals */");
 
           /* walk over the non terminals */       /* later might sort these */
-          for (Enumeration e = non_terminal.all(); e.hasMoreElements(); )
+          for (non_terminal nt : non_terminal.all())
 	    {
-	      nt = (non_terminal)e.nextElement();
-
           // ****
           // TUM Comment: here we could add a typesafe enumeration
           // ****
@@ -356,10 +350,7 @@ public class emit {
    * @param start_prod the start production of the grammar.
    */
   protected static void emit_action_code(PrintWriter out, production start_prod, boolean is_java15)
-    throws internal_error
     {
-      production prod;
-
       long start_time = System.currentTimeMillis();
 
       /* Stack generic parameter and optional casts depending on Java Version */
@@ -418,14 +409,12 @@ public class emit {
       out.println("        {");
 
       /* emit action code for each production as a separate case */
-      for (Enumeration p = production.all(); p.hasMoreElements(); )
+      for (production prod : production.all())
 	{
-	  prod = (production)p.nextElement();
-
 	  /* case label */
           out.println("          /*. . . . . . . . . . . . . . . . . . . .*/");
           out.println("          case " + prod.index() + ": // " + 
-					  prod.to_simple_string());
+					  prod.toString());
 
 	  /* give them their own block to work in */
 	  out.println("            {");
@@ -546,27 +535,15 @@ public class emit {
    */
   protected static void emit_production_table(PrintWriter out)
     {
-      production all_prods[];
-      production prod;
-
       long start_time = System.currentTimeMillis();
-
-      /* collect up the productions in order */
-      all_prods = new production[production.number()];
-      for (Enumeration p = production.all(); p.hasMoreElements(); )
-	{
-	  prod = (production)p.nextElement();
-	  all_prods[prod.index()] = prod;
-	}
 
       // make short[][]
       short[][] prod_table = new short[production.number()][2];
-      for (int i = 0; i<production.number(); i++)
+      for (production prod : production.all())
 	{
-	  prod = all_prods[i];
 	  // { lhs symbol , rhs size }
-	  prod_table[i][0] = (short) prod.lhs().the_symbol().index();
-	  prod_table[i][1] = (short) prod.rhs_length();
+	  prod_table[prod.index()][0] = (short) prod.lhs().the_symbol().index();
+	  prod_table[prod.index()][1] = (short) prod.rhs_length();
 	}
       /* do the top of the table */
       out.println();
@@ -596,7 +573,6 @@ public class emit {
     PrintWriter        out, 
     parse_action_table act_tab,
     boolean            compact_reduces)
-    throws internal_error
     {
       parse_action_row row;
       parse_action     act;
@@ -656,8 +632,8 @@ public class emit {
 
 		  /* shouldn't be anything else */
 		  else
-		    throw new internal_error("Unrecognized action code " + 
-					     act.kind() + " found in parse table");
+		    assert false : "Unrecognized action code " + 
+					     act.kind() + " found in parse table";
 		}
 	    }
 
@@ -700,7 +676,6 @@ public class emit {
     parse_reduce_table red_tab)
     {
       lalr_state       goto_st;
-      parse_action     act;
 
       long start_time = System.currentTimeMillis();
 
@@ -823,7 +798,6 @@ public class emit {
     boolean            compact_reduces,
     boolean            suppress_scanner,
     boolean            is_java15)
-    throws internal_error
     {
       long start_time = System.currentTimeMillis();
 
@@ -838,8 +812,8 @@ public class emit {
       emit_package(out);
 
       /* user supplied imports */
-      for (int i = 0; i < import_list.size(); i++)
-	out.println("import " + import_list.elementAt(i) + ";");
+      for (String imp : import_list)
+	out.println("import " + imp + ";");
 
       /* class header */
       out.println();

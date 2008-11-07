@@ -26,7 +26,6 @@ public class terminal_set {
    * @param other the set we are cloning from.
    */
   public terminal_set(terminal_set other) 
-    throws internal_error
     {
       not_null(other);
       _elements = (BitSet)other._elements.clone();
@@ -54,10 +53,9 @@ public class terminal_set {
    *  one is found. 
    * @param obj the object we are testing.
    */
-  protected void not_null(Object obj) throws internal_error
+  protected void not_null(Object obj)
     {
-      if (obj == null) 
-	throw new internal_error("Null object used in set operation");
+      assert obj != null : "Null object used in set operation";
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -74,7 +72,6 @@ public class terminal_set {
    * @param sym the terminal symbol we are looking for.
    */
   public boolean contains(terminal sym) 
-    throws internal_error
     {
       not_null(sym); 
       return _elements.get(sym.index());
@@ -96,7 +93,6 @@ public class terminal_set {
    * @param other the set we are testing against.
    */
   public boolean is_subset_of(terminal_set other)
-    throws internal_error
     {
       not_null(other);
 
@@ -116,7 +112,6 @@ public class terminal_set {
    * @param other the set we are testing against.
    */
   public boolean is_superset_of(terminal_set other)
-    throws internal_error
     {
       not_null(other);
       return other.is_subset_of(this);
@@ -129,7 +124,6 @@ public class terminal_set {
    * @return true if this changes the set.
    */
   public boolean add(terminal sym) 
-    throws internal_error
     {
       boolean result;
 
@@ -151,7 +145,6 @@ public class terminal_set {
    * @param sym the terminal being removed.
    */
   public void remove(terminal sym) 
-    throws internal_error
     {
       not_null(sym); 
       _elements.clear(sym.index());
@@ -164,7 +157,6 @@ public class terminal_set {
    * @return true if this changes the set.
    */
   public boolean add(terminal_set other)
-    throws internal_error
     {
       not_null(other);
 
@@ -184,7 +176,6 @@ public class terminal_set {
    * @param other the other set in question.
    */
    public boolean intersects(terminal_set other)
-     throws internal_error
      {
        not_null(other);
 

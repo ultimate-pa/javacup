@@ -17,12 +17,11 @@ public class shift_action extends parse_action {
   /** Simple constructor. 
    * @param shft_to the state that this action shifts to.
    */
-  public shift_action(lalr_state shft_to) throws internal_error
+  public shift_action(lalr_state shft_to)
     {
       /* sanity check */
-      if (shft_to == null)
-	throw new internal_error(
-	  "Attempt to create a shift_action to a null state");
+      assert shft_to != null :
+	  "Attempt to create a shift_action to a null state";
 
       _shift_to = shft_to;
     }

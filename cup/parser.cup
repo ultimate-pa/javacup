@@ -97,7 +97,6 @@ import java.util.Stack;
 action code {:
   /** helper routine to clone a new production part adding a given label */
   protected production_part add_lab(production_part part, String lab)
-    throws internal_error
     {
       /* if there is no label, or this is an action, just return the original */
       if (lab == null || part.is_action()) return part;
@@ -314,7 +313,7 @@ import_spec ::=
 	import_id 
 	{: 
 	  /* save this import on the imports list */
-	  emit.import_list.push(multipart_name);
+	  emit.import_list.add(multipart_name);
 
 	  /* reset the accumulated multipart name */
 	  multipart_name = new String();

@@ -13,14 +13,12 @@ package java_cup;
  *  lalr_item, lalr_item_set, and lalr_start for full details on the meaning 
  *  and use of items.
  *
- * @see     java_cup.lalr_item
- * @see     java_cup.lalr_item_set
  * @see     java_cup.lalr_state
  * @version last updated: 11/25/95
  * @author  Scott Hudson
 */
 
-public class lr_item_core {
+public class lr_item {
    
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
@@ -30,20 +28,16 @@ public class lr_item_core {
    * @param prod production this item uses.
    * @param pos  position of the "dot" within the item.
    */
-  public lr_item_core(production prod, int pos) throws internal_error
+  public lr_item(production prod, int pos)
     {
-      symbol          after_dot = null;
       production_part part;
 
-      if (prod == null)
-	throw new internal_error(
-	  "Attempt to create an lr_item_core with a null production");
+      assert prod != null: "Attempt to create an lr_item_core with a null production";
 
       _the_production = prod;
 
-      if (pos < 0 || pos > _the_production.rhs_length())
-	throw new internal_error(
-	  "Attempt to create an lr_item_core with a bad dot position");
+      assert pos >= 0 && pos <= _the_production.rhs_length():
+	  "Attempt to create an lr_item_core with a bad dot position";
 
       _dot_pos = pos;
 
@@ -64,7 +58,7 @@ public class lr_item_core {
   /** Constructor for dot at start of right hand side. 
    * @param prod production this item uses.
    */
-  public lr_item_core(production prod) throws internal_error
+  public lr_item(production prod)
     {
       this(prod,0);
     }
@@ -74,7 +68,7 @@ public class lr_item_core {
   /*-----------------------------------------------------------*/
 
   /** The production for the item. */
-  protected production _the_production;
+  private production _the_production;
 
   /** The production for the item. */
   public production the_production() {return _the_production;}
@@ -85,8 +79,8 @@ public class lr_item_core {
    *  that the marker is before, so 0 indicates a dot at the beginning of 
    *  the RHS.
    */
-  protected int _dot_pos;
-
+  private int _dot_pos;
+  
   /** The position of the "dot" -- this indicates the part of the production 
    *  that the marker is before, so 0 indicates a dot at the beginning of 
    *  the RHS.
@@ -141,17 +135,20 @@ public class lr_item_core {
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
+  private lr_item _shifted;
+  
   /** Produce a new lr_item_core that results from shifting the dot one 
    *  position to the right. 
    */
-  public lr_item_core shift_core() throws internal_error
+  public lr_item shift_core()
     {
       if (dot_at_end()) 
-	throw new internal_error(
+	throw new AssertionError(
 	  "Attempt to shift past end of an lr_item_core");
 
-      return new lr_item_core(_the_production, _dot_pos+1);
+      if (_shifted == null)
+	_shifted = new lr_item(_the_production, _dot_pos+1);
+      return _shifted;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -159,7 +156,7 @@ public class lr_item_core {
   /** Equality comparison for the core only.  This is separate out because we 
    *  need separate access in a super class. 
    */
-  public boolean core_equals(lr_item_core other)
+  public boolean core_equals(lr_item other)
     {
       return other != null && 
 	     _the_production.equals(other._the_production) && 
@@ -169,17 +166,17 @@ public class lr_item_core {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Equality comparison. */
-  public boolean equals(lr_item_core other) {return core_equals(other);}
+  public boolean equals(lr_item other) {return core_equals(other);}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Generic equality comparison. */
   public boolean equals(Object other)
     {
-      if (!(other instanceof lr_item_core))
+      if (!(other instanceof lr_item))
 	return false;
       else
-	return equals((lr_item_core)other);
+	return equals((lr_item)other);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -210,10 +207,9 @@ public class lr_item_core {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Convert to a string (separated out from toString() so we can call it
-   *  from subclass that overrides toString()).
+  /** Convert to a string.
    */
-  public String to_simple_string() throws internal_error
+  public String toString()
     {
       String result;
       production_part part;
@@ -260,21 +256,86 @@ public class lr_item_core {
       return result;
     }
 
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Convert to a string */
-  public String toString() 
-    {
-      /* can't throw here since super class doesn't, so we crash instead */
-      try {
-        return to_simple_string();
-      } catch(internal_error e) {
-	e.crash();
-	return null;
-      }
-    }
-
   /*-----------------------------------------------------------*/
 
+  /** Calculate lookahead representing symbols that could appear after the
+   *   symbol that the dot is currently in front of.  Note: this routine must
+   *   not be invoked before first sets and nullability has been calculated
+   *   for all non terminals. 
+   */ 
+  public terminal_set calc_lookahead() 
+    {
+      terminal_set    result;
+      int             pos;
+      production_part part;
+      symbol          sym;
+
+      /* start with an empty result */
+      result = new terminal_set();
+
+      /* consider all nullable symbols after the one to the right of the dot */
+      for (pos = dot_pos(); pos < the_production().rhs_length(); pos++) 
+  	{
+  	   part = the_production().rhs(pos);
+
+  	   /* consider what kind of production part it is -- skip actions */ 
+  	   if (!part.is_action())
+  	     {
+  	       sym = ((symbol_part)part).the_symbol();
+
+  	       /* if its a terminal add it in and we are done */
+  	       if (!sym.is_non_term())
+  		 {
+  		   result.add((terminal)sym);
+  		   return result;
+  		 }
+  	       else
+  		 {
+  		   /* otherwise add in first set of the non terminal */
+  		   result.add(((non_terminal)sym).first_set());
+
+  		   /* if its nullable we continue adding, if not, we are done */
+  		   if (!((non_terminal)sym).nullable())
+  		     break;
+  		 }
+  	     }
+  	}
+      return result;
+    }
+
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** Determine if everything from the symbol one beyond the dot all the 
+   *  way to the  end of the right hand side is nullable.  This would indicate
+   *  that the lookahead of this item must be included in the lookaheads of
+   *  all items produced as a closure of this item.  Note: this routine should 
+   *  not be invoked until after first sets and nullability have been 
+   *  calculated for all non terminals. 
+   */
+  public boolean is_nullable()
+    {
+      production_part part;
+      symbol          sym;
+
+      /* walk down the rhs and bail if we get a non-nullable symbol */
+      for (int pos = dot_pos(); pos < the_production().rhs_length(); pos++)
+  	{
+  	  part = the_production().rhs(pos);
+
+  	  /* skip actions */
+  	  if (!part.is_action())
+  	    {
+  	      sym = ((symbol_part)part).the_symbol();
+
+  	      /* if its a terminal we fail */
+  	      if (!sym.is_non_term()) return false;
+
+  	      /* if its not nullable we fail */
+  	      if (!((non_terminal)sym).nullable()) return false;
+  	    }
+  	}
+
+      /* if we get here its all nullable */
+      return true;
+    }    
 }
-   

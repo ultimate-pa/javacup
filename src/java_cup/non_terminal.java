@@ -1,7 +1,10 @@
 package java_cup;
 
-import java.util.Hashtable;
-import java.util.Enumeration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /** This class represents a non-terminal symbol in the grammar.  Each
  *  non terminal has a textual name, an index, and a string which indicates
@@ -29,18 +32,13 @@ public class non_terminal extends symbol {
 
       /* add to set of all non terminals and check for duplicates */
       Object conflict = _all.put(nm,this);
-      if (conflict != null)
-	// can't throw an exception here because these are used in static
-	// initializers, so we crash instead
-	// was: 
-	// throw new internal_error("Duplicate non-terminal ("+nm+") created");
-	(new internal_error("Duplicate non-terminal ("+nm+") created")).crash();
+      assert conflict == null :	"Duplicate non-terminal ("+nm+") created";
 
       /* assign a unique index */
-      _index = next_index++;
+      _index = _all_by_index.size();
 
       /* add to by_index set */
-      _all_by_index.put(new Integer(_index), this);
+      _all_by_index.add(this);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -60,18 +58,17 @@ public class non_terminal extends symbol {
   /** Table of all non-terminals -- elements are stored using name strings 
    *  as the key 
    */
-  protected static Hashtable _all = new Hashtable();
+  protected static HashMap<String, non_terminal> _all = new HashMap<String, non_terminal>();
 
   //Hm Added clear  to clear all static fields
   public static void clear() {
       _all.clear();
       _all_by_index.clear();
-      next_index=0;
       next_nt=0;
   }
 
   /** Access to all non-terminals. */
-  public static Enumeration all() {return _all.elements();}
+  public static Collection<non_terminal> all() {return _all.values();}
 
   /** lookup a non terminal by name string */ 
   public static non_terminal find(String with_name)
@@ -85,25 +82,18 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Table of all non terminals indexed by their index number. */
-  protected static Hashtable _all_by_index = new Hashtable();
+  protected static ArrayList<non_terminal> _all_by_index = new ArrayList<non_terminal>();
 
   /** Lookup a non terminal by index. */
   public static non_terminal find(int indx)
     {
-      Integer the_indx = new Integer(indx);
-
-      return (non_terminal)_all_by_index.get(the_indx);
+      return _all_by_index.get(indx);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Total number of non-terminals. */
   public static int number() {return _all.size();}
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Static counter to assign unique indexes. */
-  protected static int next_index = 0;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -128,7 +118,7 @@ public class non_terminal extends symbol {
    *  the given string as a base for the name (or "NT$" if null is passed).
    * @param prefix base name to construct unique name from. 
    */
-  static non_terminal create_new(String prefix) throws internal_error
+  static non_terminal create_new(String prefix)
     {
       return create_new(prefix,null); // TUM 20060608 embedded actions patch
     }
@@ -136,26 +126,23 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** static routine for creating a new uniquely named hidden non-terminal */
-  static non_terminal create_new() throws internal_error
+  static non_terminal create_new()
     { 
       return create_new(null); 
     }
     /**
      * TUM 20060608 bugfix for embedded action codes
      */
-    static non_terminal create_new(String prefix, String type) throws internal_error{
+    static non_terminal create_new(String prefix, String type) {
         if (prefix==null) prefix = "NT$";
         return new non_terminal(prefix + next_nt++,type);
     }
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Compute nullability of all non-terminals. */
-  public static void compute_nullability() throws internal_error
+  public static void compute_nullability()
     {
       boolean      change = true;
-      non_terminal nt;
-      Enumeration  e;
-      production   prod;
 
       /* repeat this process until there is no change */
       while (change)
@@ -164,10 +151,8 @@ public class non_terminal extends symbol {
 	  change = false;
 
 	  /* consider each non-terminal */
-	  for (e=all(); e.hasMoreElements(); )
+	  for (non_terminal nt : all())
 	    {
-	      nt = (non_terminal)e.nextElement();
-
 	      /* only look at things that aren't already marked nullable */
 	      if (!nt.nullable())
 		{
@@ -181,9 +166,8 @@ public class non_terminal extends symbol {
 	}
       
       /* do one last pass over the productions to finalize all of them */
-      for (e=production.all(); e.hasMoreElements(); )
+      for (production prod : production.all())
 	{
-	  prod = (production)e.nextElement();
 	  prod.set_nullable(prod.check_nullable());
 	}
     }
@@ -193,14 +177,9 @@ public class non_terminal extends symbol {
   /** Compute first sets for all non-terminals.  This assumes nullability has
    *  already computed.
    */
-  public static void compute_first_sets() throws internal_error
+  public static void compute_first_sets()
     {
       boolean      change = true;
-      Enumeration  n;
-      Enumeration  p;
-      non_terminal nt;
-      production   prod;
-      terminal_set prod_first;
 
       /* repeat this process until we have no change */
       while (change)
@@ -209,17 +188,13 @@ public class non_terminal extends symbol {
 	  change = false;
 
 	  /* consider each non-terminal */
-	  for (n = all(); n.hasMoreElements(); )
+	  for (non_terminal nt : all() )
 	    {
-	      nt = (non_terminal)n.nextElement();
-
 	      /* consider every production of that non terminal */
-	      for (p = nt.productions(); p.hasMoreElements(); )
+	      for (production prod : nt.productions())
 		{
-		  prod = (production)p.nextElement();
-
 		  /* get the updated first of that production */
-		  prod_first = prod.check_first_set();
+		  terminal_set prod_first = prod.check_first_set();
 
 		  /* if this going to add anything, add it */
 		  if (!prod_first.is_subset_of(nt._first_set))
@@ -237,10 +212,10 @@ public class non_terminal extends symbol {
   /*-----------------------------------------------------------*/
 
   /** Table of all productions with this non terminal on the LHS. */
-  protected Hashtable _productions = new Hashtable(11);
+  protected Set<production> _productions = new HashSet<production>();
 
   /** Access to productions with this non terminal on the LHS. */
-  public Enumeration productions() {return _productions.elements();}
+  public Set<production> productions() {return _productions;}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -250,15 +225,14 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Add a production to our set of productions. */
-  public void add_production(production prod) throws internal_error
+  public void add_production(production prod)
     {
       /* catch improper productions */
-      if (prod == null || prod.lhs() == null || prod.lhs().the_symbol() != this)
-	throw new internal_error(
-	  "Attempt to add invalid production to non terminal production table");
+      assert (prod != null && prod.lhs() != null && prod.lhs().the_symbol() == this) :
+	  "Attempt to add invalid production to non terminal production table";
 
       /* add it to the table, keyed with itself */
-      _productions.put(prod,prod);
+      _productions.add(prod);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -290,12 +264,12 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Test to see if this non terminal currently looks nullable. */
-  protected boolean looks_nullable() throws internal_error
+  protected boolean looks_nullable()
     {
       /* look and see if any of the productions now look nullable */
-      for (Enumeration e = productions(); e.hasMoreElements(); )
+      for (production prod : productions())
 	/* if the production can go to empty, we are nullable */
-	if (((production)e.nextElement()).check_nullable())
+	if (prod.check_nullable())
 	  return true;
 
       /* none of the productions can go to empty, so we are not nullable */

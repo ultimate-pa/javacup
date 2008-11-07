@@ -1,8 +1,6 @@
 
 package java_cup;
 
-import java.util.Enumeration;
-
 /** This class represents the complete "action" table of the parser. 
  *  It has one row for each state in the parse machine, and a column for
  *  each terminal symbol.  Each entry in the table represents a shift,
@@ -58,18 +56,14 @@ public class parse_action_table {
    *  is never reduced.
    */
   public void check_reductions()
-    throws internal_error
     {
-      parse_action act;
-      production   prod;
-
       /* tabulate reductions -- look at every table entry */
       for (int row = 0; row < num_states(); row++)
 	{
 	  for (int col = 0; col < parse_action_row.size(); col++)
 	    {
 	      /* look at the action entry to see if its a reduce */
-	      act = under_state[row].under_term[col];
+	      parse_action act = under_state[row].under_term[col];
 	      if (act != null && act.kind() == parse_action.REDUCE)
 		{
 		  /* tell production that we used it */
@@ -79,10 +73,8 @@ public class parse_action_table {
 	}
 
       /* now go across every production and make sure we hit it */
-      for (Enumeration p = production.all(); p.hasMoreElements(); )
+      for (production prod : production.all())
 	{
-	  prod = (production)p.nextElement();
-
 	  /* if we didn't hit it give a warning */
 	  if (prod.num_reductions() == 0)
 	    {
@@ -94,7 +86,7 @@ public class parse_action_table {
 		{
 
 		  ErrorManager.getManager().emit_warning("*** Production \"" + 
-				  prod.to_simple_string() + "\" never reduced");
+				  prod.toString() + "\" never reduced");
 		}
 	    }
 	}

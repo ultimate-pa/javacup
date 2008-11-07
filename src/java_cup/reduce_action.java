@@ -17,12 +17,11 @@ public class reduce_action extends parse_action {
   /** Simple constructor. 
    * @param prod the production this action reduces with.
    */
-  public reduce_action(production prod ) throws internal_error
+  public reduce_action(production prod )
     {
       /* sanity check */
-      if (prod == null)
-	throw new internal_error(
-	  "Attempt to create a reduce_action with a null production");
+      assert prod != null :
+	  "Attempt to create a reduce_action with a null production";
 
       _reduce_with = prod;
     }

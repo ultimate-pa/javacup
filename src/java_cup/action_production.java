@@ -25,7 +25,6 @@ public class action_production extends production {
     int             rhs_len,
     String          action_str,
     int             indexOfIntermediateResult)
-    throws internal_error
     {
       super(lhs_sym, rhs_parts, rhs_len, action_str);
       _base_production = base;
