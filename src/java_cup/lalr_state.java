@@ -272,7 +272,7 @@ public class lalr_state {
 		    }
 		  else
 		    {
-		      _items.put(new_itm, new_lookaheads);
+		      _items.put(new_itm, new terminal_set(new_lookaheads));
 		      /* that may need further closure, consider it also */ 
 		      consider.push(new_itm);
 		    }
@@ -299,6 +299,12 @@ public class lalr_state {
 	{
 	  props = new ArrayList<propagate_info>();
 	  _propagations.put(itm, props);
+	}
+      else
+	{
+	  for (propagate_info prop : props)
+	    if (prop.state().equals(new_st) && prop.itm().equals(new_itm))
+	      return;
 	}
       props.add(new propagate_info(new_st, new_itm));
     }
@@ -428,8 +434,7 @@ public class lalr_state {
 	      if (sym.equals(itm.symbol_after_dot()))
 		{
 		  /* add to the kernel of the new state */
-		  lr_item shift = itm.shift_core(); 
-		  new_items.put(shift, new terminal_set(items().get(itm)));
+		  new_items.put(itm.shift_core(), new terminal_set(items().get(itm)));
 		}
 	    }
 
