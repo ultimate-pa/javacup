@@ -91,12 +91,11 @@
 package java_cup;
 import java_cup.runtime.*;
 import java.util.Hashtable;
-import java.util.Stack;
 /*----------------------------------------------------------------*/ 
 
 action code {:
   /** helper routine to clone a new production part adding a given label */
-  protected production_part add_lab(production_part part, String lab)
+  private production_part add_lab(production_part part, String lab)
     {
       /* if there is no label, or this is an action, just return the original */
       if (lab == null || part.is_action()) return part;
@@ -106,19 +105,19 @@ action code {:
     }
 
   /** max size of right hand side we will support */
-  protected final int MAX_RHS = 200;
+  private final int MAX_RHS = 200;
 
   /** array for accumulating right hand side parts */
-  protected production_part[] rhs_parts = new production_part[MAX_RHS];
+  private production_part[] rhs_parts = new production_part[MAX_RHS];
 
   /** where we are currently in building a right hand side */
-  protected int rhs_pos = 0;
+  private int rhs_pos = 0;
 
   /** start a new right hand side */
-  protected void new_rhs() {rhs_pos = 0; }
+  private void new_rhs() {rhs_pos = 0; }
 
   /** add a new right hand side part */
-  protected void add_rhs_part(production_part part) throws java.lang.Exception
+  private void add_rhs_part(production_part part) throws java.lang.Exception
     {
       if (rhs_pos >= MAX_RHS)
 	throw new Exception("Internal Error: Productions limited to " + 
@@ -128,34 +127,20 @@ action code {:
       rhs_pos++;
     }
 
-  /** string to build up multiple part names */
-  protected String multipart_name = new String();
-  protected Stack<String> multipart_names = new Stack<String>();
-  /** append a new name segment to the accumulated multipart name */
-
-//  TUM CHANGES
-//   protected void append_multipart(String name)
-//     {
-//       String dot = "";
-// 
-//       /* if we aren't just starting out, put on a dot */
-//       if (multipart_name.length() != 0)  dot = ".";
-// 
-//       multipart_name = multipart_name.concat(dot + name);
-//     }
-// TUM CHANGES
-
   /** table of declared symbols -- contains production parts indexed by name */
-  protected Hashtable<String, symbol_part> symbols = new Hashtable<String, symbol_part>();
+  private Hashtable<String, symbol_part> symbols = new Hashtable<String, symbol_part>();
 
   /** table of just non terminals -- contains non_terminals indexed by name */
-  protected Hashtable<String, non_terminal> non_terms = new Hashtable<String, non_terminal>();
+  private Hashtable<String, non_terminal> non_terms = new Hashtable<String, non_terminal>();
 
   /** declared start non_terminal */
-  protected non_terminal start_nt = null;
+  private non_terminal start_nt = null;
 
   /** left hand side non terminal of the current production */
-  protected non_terminal lhs_nt;
+  private non_terminal lhs_nt;
+  
+  /** Current symbol type */
+  String _cur_symbol_type;
 
   /** Current precedence number */
   int _cur_prec = 0;
@@ -218,7 +203,6 @@ init with {:
     symbolFactory = f;
     lexer = new Lexer(f); 
 :}
-/*lexer.init(); :};*/
 scan with {: 
     return lexer.next_token(); 
 :};
@@ -237,14 +221,15 @@ non terminal
   spec, package_spec, import_list, action_code_part, 
   code_parts, code_part, opt_semi, non_terminal,
   parser_code_part, symbol_list, start_spec, production_list, 
-  multipart_id, import_spec, import_id, init_code, scan_code, symbol, 
-  type_id, term_name_list, non_term_name_list, production, prod_part_list, 
+  import_spec, init_code, scan_code, symbol, 
+  term_name_list, non_term_name_list, production, prod_part_list, 
   prod_part, new_term_id, new_non_term_id, rhs_list, rhs, empty,
   precedence_list, preced, terminal_list, precedence_l, declares_term, 
   declares_non_term;
 
 non terminal String  nt_id, symbol_id, label_id, opt_label, terminal_id,
-                     term_id, robust_id, typearglist, typearguement, wildcard;
+                     term_id, robust_id, typearglist, typeargument, wildcard;
+non terminal StringBuilder multipart_id, import_id, type_id;
 
 /*----------------------------------------------------------------*/ 
 
@@ -284,13 +269,10 @@ spec ::=
 
 package_spec ::= 
 	PACKAGE
-	multipart_id
+	multipart_id:id
 	{:
 	  /* save the package name */
-	  emit.package_name = multipart_name;
-
-	  /* reset the accumulated multipart name */
-	  multipart_name = new String();
+	  emit.package_name = id.toString();
 	:}
 	SEMI
 	|
@@ -310,15 +292,12 @@ import_list ::=
 
 import_spec ::=
 	IMPORT 
-	import_id 
+	import_id:id 
+	SEMI
 	{: 
 	  /* save this import on the imports list */
-	  emit.import_list.add(multipart_name);
-
-	  /* reset the accumulated multipart name */
-	  multipart_name = new String();
+	  emit.import_list.add(id.toString());
 	:}
-	SEMI
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -386,15 +365,15 @@ symbol_list ::= symbol_list symbol | symbol;
 
 symbol ::= 
 	TERMINAL
-	type_id	
-	declares_term
+	type_id:id {: _cur_symbol_type = id.toString(); :}	
+	declares_term  {: _cur_symbol_type = null; :}
 	|
 	TERMINAL
 	declares_term
 	|
 	non_terminal
-	type_id
-	declares_non_term
+	type_id:id  {: _cur_symbol_type = id.toString(); :}
+	declares_non_term  {: _cur_symbol_type = null; :}
 	|
 	non_terminal
 	declares_non_term
@@ -402,40 +381,24 @@ symbol ::=
 	/* error recovery productions -- sync on semicolon */
 
 	TERMINAL
-	error 
-	{:
-	  /* reset the accumulated multipart name */
-	  multipart_name = new String();
-	:}
-	SEMI
+	error
+	SEMI  {: _cur_symbol_type = null; :}
 	|
 	non_terminal
-	error 
-	{:
-	  /* reset the accumulated multipart name */
-	  multipart_name = new String();
-	:}
-	SEMI
+	error
+	SEMI  {: _cur_symbol_type = null; :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 declares_term ::=
 	term_name_list
-	{: 
-	  /* reset the accumulated multipart name */
-	  multipart_name = new String();
-	:}
 	SEMI
 	;
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 declares_non_term ::=
 	non_term_name_list
-	{: 
-	  /* reset the accumulated multipart name */
-	  multipart_name = new String();
-	:}
 	SEMI
 	;
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -568,7 +531,6 @@ production ::=
 	  new_rhs();
 	:}
 	COLON_COLON_EQUALS
-/*	{: :}*/
 	rhs_list
 	SEMI
 	|
@@ -715,43 +677,40 @@ opt_label ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 multipart_id ::=
-	multipart_id DOT robust_id:another_id
-	{: multipart_name = multipart_name.concat("."+another_id); :}
-	|multipart_id 
-        {: multipart_names.push(multipart_name); multipart_name="";:}
+	multipart_id:id DOT robust_id:another_id
+	{: id.append('.').append(another_id); RESULT=id; :}
+	|multipart_id:id 
         LT typearglist:types GT
-         {: multipart_name =
-            multipart_names.pop().concat("<"+types+">"); :}
+         {: id.append('<').append(types).append('>');
+            RESULT=id; :}
         |
 	robust_id:an_id
-	{: multipart_name = multipart_name.concat(an_id); :}
+	{: RESULT = new StringBuilder(an_id); :}
 	;
 /*. . . . . . . . . . . .TUM CHANGES. . . . . . . . . . . . . . . */
 
 
 typearglist ::= 
-            typearguement:arg
+            typeargument:arg
             {: RESULT = arg; :}
-            | typearglist:list COMMA typearguement:arg
+            | typearglist:list COMMA typeargument:arg
             {: RESULT = list + "," + arg; :}
             ;
 
-typearguement ::=
-              type_id
-              {: RESULT = multipart_name; multipart_name = new String(); :}
+typeargument ::=
+              type_id:id
+              {: RESULT = id.toString(); :}
               | wildcard:w
               {: RESULT = w; :}
               ;
 
 wildcard ::=
          QUESTION
-         {: RESULT = " ? "; :}
-         | QUESTION EXTENDS type_id
-         {: RESULT = " ? extends "+multipart_name; multipart_name = new
-         String(); :}
-         | QUESTION SUPER type_id
-         {: RESULT = " ? super "+multipart_name; multipart_name = new
-         String(); :}
+         {: RESULT = "?"; :}
+         | QUESTION EXTENDS type_id:id
+         {: RESULT = "? extends "+id; :}
+         | QUESTION SUPER type_id:id
+         {: RESULT = "? super "+id; :}
          ;
 
 /*. . . . . . . . . . .END TUM CHANGES. . . . . . . . . . . . . . */ 
@@ -760,17 +719,17 @@ wildcard ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 import_id ::= 
-	multipart_id DOT STAR
-	{: multipart_name = multipart_name.concat(".*"); :}
+	multipart_id:id DOT STAR
+	{: id.append(".*"); RESULT = id; :}
 	|
-	multipart_id
+	multipart_id:id {: RESULT = id; :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-type_id ::= multipart_id
-	| type_id LBRACK RBRACK
-	{: multipart_name = multipart_name.concat("[]"); :}
+type_id ::= multipart_id:id {: RESULT = id; :}
+	| type_id:id LBRACK RBRACK
+	{: id.append("[]"); RESULT = id; :}
        	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -787,13 +746,9 @@ new_term_id ::=
 	    }
 	  else
 	    {
-	      /* if no type declared, declare one */
-	      if (multipart_name.equals("")) {
-		multipart_name = "Object";
-	      }
 	      /* build a production_part and put it in the table */ 
 	      symbols.put(term_id, 
-	        new symbol_part(new terminal(term_id, multipart_name)));
+	        new symbol_part(new terminal(term_id, _cur_symbol_type)));
 	    }
 	:}
 	;
@@ -812,12 +767,9 @@ new_non_term_id ::=
 	    }
 	  else
 	    {
-	      if (multipart_name.equals("")) {
-                   multipart_name ="Object";
-	      }
 	      /* build the non terminal object */
               non_terminal this_nt = 
-		new non_terminal(non_term_id, multipart_name);
+		new non_terminal(non_term_id, _cur_symbol_type);
 
 	      /* put it in the non_terms table */
 	      non_terms.put(non_term_id, this_nt);
@@ -900,12 +852,4 @@ opt_semi ::= /* nothing */
 empty ::= /* nothing */;
 
 /*----------------------------------------------------------------*/ 
-
-
-
-
-
-
-
-
 

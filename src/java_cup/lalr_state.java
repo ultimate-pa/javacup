@@ -8,8 +8,8 @@ import java.util.Stack;
 import java.util.Map.Entry;
 
 /** This class represents a state in the LALR viable prefix recognition machine.
- *  A state consists of a mapping from LR items to a set of terminals and 
- *  of transitions to other states under terminal and non-terminal symbols.
+ *  A state consists of a mapping from LR items to a set of terminals (lookaheads)
+ *  and of transitions to other states under terminal and non-terminal symbols.
  *  Each state represents a potential configuration of the parser.  If the item 
  *  set of a state includes an item such as: <pre>
  *    [A ::= B * C d E , {a,b,c}]
