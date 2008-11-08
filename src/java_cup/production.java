@@ -1,7 +1,7 @@
 package java_cup;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.ArrayList;
 
 /**
  * This class represents a production in the grammar. It contains a LHS non
@@ -124,10 +124,10 @@ public class production {
       indexOfIntermediateResult = last_act_loc;
 
       /* assign an index */
-      _index = next_index++;
+      _index = _all.size();
 
       /* put us in the global collection of productions */
-      _all.put(_index, this);
+      _all.add(this);
 
       /* put us in the production list of the lhs non terminal */
       lhs_sym.add_production(this);
@@ -156,12 +156,12 @@ public class production {
   /**
    * Table of all productions. Elements are stored using their index as the key.
    */
-  protected static HashMap<Integer, production> _all = new HashMap<Integer, production>();
+  protected static ArrayList<production> _all = new ArrayList<production>();
 
   /** Access to all productions. */
   public static Collection<production> all()
     {
-      return _all.values();
+      return _all;
     }
 
   /** Lookup a production by index. */
@@ -174,7 +174,6 @@ public class production {
   public static void clear()
     {
       _all.clear();
-      next_index = 0;
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -184,9 +183,6 @@ public class production {
     {
       return _all.size();
     }
-
-  /** Static counter for assigning unique index numbers. */
-  protected static int next_index;
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/

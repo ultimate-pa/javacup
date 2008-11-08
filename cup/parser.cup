@@ -90,7 +90,8 @@
 
 package java_cup;
 import java_cup.runtime.*;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.ArrayList;
 /*----------------------------------------------------------------*/ 
 
 action code {:
@@ -104,34 +105,11 @@ action code {:
       return new symbol_part(((symbol_part)part).the_symbol(),lab);
     }
 
-  /** max size of right hand side we will support */
-  private final int MAX_RHS = 200;
-
-  /** array for accumulating right hand side parts */
-  private production_part[] rhs_parts = new production_part[MAX_RHS];
-
-  /** where we are currently in building a right hand side */
-  private int rhs_pos = 0;
-
-  /** start a new right hand side */
-  private void new_rhs() {rhs_pos = 0; }
-
-  /** add a new right hand side part */
-  private void add_rhs_part(production_part part) throws java.lang.Exception
-    {
-      if (rhs_pos >= MAX_RHS)
-	throw new Exception("Internal Error: Productions limited to " + 
-			     MAX_RHS + " symbols and actions"); 
-
-      rhs_parts[rhs_pos] = part;
-      rhs_pos++;
-    }
-
   /** table of declared symbols -- contains production parts indexed by name */
-  private Hashtable<String, symbol_part> symbols = new Hashtable<String, symbol_part>();
+  private HashMap<String, symbol_part> symbols = new HashMap<String, symbol_part>();
 
   /** table of just non terminals -- contains non_terminals indexed by name */
-  private Hashtable<String, non_terminal> non_terms = new Hashtable<String, non_terminal>();
+  private HashMap<String, non_terminal> non_terms = new HashMap<String, non_terminal>();
 
   /** declared start non_terminal */
   private non_terminal start_nt = null;
@@ -169,6 +147,33 @@ action code {:
       }
     }
   }
+  
+  /** set start non terminal symbol */
+  private void set_start_symbol(non_terminal nt)
+    {
+      start_nt = nt;
+      /* build a special start production */
+      production_part[] rhs;
+      if (start_nt.stack_type() != null)
+	{
+	  rhs = new production_part[] 
+	    {
+	      add_lab(new symbol_part(start_nt),"start_val"),
+	      new symbol_part(terminal.EOF),
+	      new action_part("RESULT = start_val;")
+	    };
+	}
+      else
+	{
+	  rhs = new production_part[] 
+	    {
+	      new symbol_part(start_nt),
+	      new symbol_part(terminal.EOF)
+	    };
+	}
+      emit.start_production = 
+	  new production(non_terminal.START_nt, rhs, rhs.length);
+    }
 :};
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -222,14 +227,18 @@ non terminal
   code_parts, code_part, opt_semi, non_terminal,
   parser_code_part, symbol_list, start_spec, production_list, 
   import_spec, init_code, scan_code, symbol, 
-  term_name_list, non_term_name_list, production, prod_part_list, 
-  prod_part, new_term_id, new_non_term_id, rhs_list, rhs, empty,
+  term_name_list, non_term_name_list, production, 
+  new_term_id, new_non_term_id, rhs_list, rhs, empty,
   precedence_list, preced, terminal_list, precedence_l, declares_term, 
   declares_non_term;
 
 non terminal String  nt_id, symbol_id, label_id, opt_label, terminal_id,
                      term_id, robust_id, typearglist, typeargument, wildcard;
 non terminal StringBuilder multipart_id, import_id, type_id;
+
+non terminal production_part prod_part;
+non terminal ArrayList<production_part> prod_part_list;
+non terminal symbol prod_precedence; 
 
 /*----------------------------------------------------------------*/ 
 
@@ -489,18 +498,7 @@ start_spec ::=
 	    }
           else
 	    {
-	      /* remember the non-terminal for later */
-	      start_nt = nt;
-
-	      /* build a special start production */
-	      new_rhs();
-	      add_rhs_part(add_lab(new symbol_part(start_nt), "start_val"));
-	      add_rhs_part(new symbol_part(terminal.EOF));
-	      if (start_nt.stack_type() != null)
-	      	add_rhs_part(new action_part("RESULT = start_val;"));
-	      emit.start_production = 
-		     new production(non_terminal.START_nt, rhs_parts, rhs_pos);
-	      new_rhs();
+	      set_start_symbol(nt);
 	    }
 	:}
 	SEMI
@@ -527,9 +525,6 @@ production ::=
 	      ErrorManager.getManager().emit_warning("LHS non terminal \"" + lhs_id + 
 			       "\" has not been declared");
 	    }
-
-	  /* reset the rhs accumulation */
-	  new_rhs();
 	:}
 	COLON_COLON_EQUALS
 	rhs_list
@@ -544,97 +539,65 @@ production ::=
 
 rhs_list ::= rhs_list BAR rhs | rhs;
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+prod_precedence ::= PERCENT_PREC term_id:term_name
+	{: 
+	      RESULT = null;
+	      /* Find the precedence symbol */
+	      if (term_name == null)
+	        {
+		  System.err.println("No terminal for contextual precedence");
+	        }
+	      else
+		{
+		  symbol sym = symbols.get(term_name).the_symbol();
+		  if ((sym!=null) && (sym instanceof terminal))
+		    {
+		      RESULT = sym;
+		      sym.note_use();
+		    }
+		  else
+		    System.err.println("Invalid terminal " + term_name + 
+				   " for contextual precedence assignment");
+		}
+	:}
+	| empty {: RESULT = null; :};
+	      
 
 rhs ::= 
-	prod_part_list PERCENT_PREC term_id:term_name 
+	prod_part_list:rhs prod_precedence:precsym 
 	{:
-	  java_cup.symbol sym = null;
 	  if (lhs_nt != null) 
 	    {
-	      /* Find the precedence symbol */
-	      if (term_name == null) {
-		System.err.println("No terminal for contextual precedence");
-		sym = null;
-	      } else {
-		sym = symbols.get(term_name).the_symbol();
-	      }
 	      /* build the production */
 	      production p;
-	      if ((sym!=null) && (sym instanceof terminal)) {
-		p = new production(lhs_nt, rhs_parts, rhs_pos,
-				   ((terminal)sym).precedence_num(),
-				   ((terminal)sym).precedence_side());
-		symbols.get(term_name).the_symbol().note_use();
+	      production_part[] rhs_parts = rhs.toArray(new production_part[rhs.size()]);
+	      if (precsym!=null) {
+		p = new production(lhs_nt, rhs_parts, rhs.size(),
+				   ((terminal)precsym).precedence_num(),
+				   ((terminal)precsym).precedence_side());
 	      } else {
-		System.err.println("Invalid terminal " + term_name + 
-				   " for contextual precedence assignment");
-		p = new production(lhs_nt, rhs_parts, rhs_pos);
+		p = new production(lhs_nt, rhs_parts, rhs.size());
 	      }
 
 	      /* if we have no start non-terminal declared and this is 
 		 the first production, make its lhs nt the start_nt 
 		 and build a special start production for it. */
-              if (start_nt == null)
+	      if (start_nt == null)
 		{
-		  start_nt = lhs_nt;
-
-	          /* build a special start production */
-	          new_rhs();
-	          add_rhs_part(add_lab(new symbol_part(start_nt),"start_val"));
-	          add_rhs_part(new symbol_part(terminal.EOF));
-		  add_rhs_part(new action_part("RESULT = start_val;"));
-		  if ((sym!=null) && (sym instanceof terminal)) {
-		    emit.start_production = 
-		      new production(non_terminal.START_nt, rhs_parts, 
-				     rhs_pos, ((terminal)sym).precedence_num(),
-				     ((terminal)sym).precedence_side());
-		  } else {
-		    emit.start_production = 
-		      new production(non_terminal.START_nt, rhs_parts, rhs_pos);
-		  }
-	          new_rhs();
+		  set_start_symbol(lhs_nt);
 		}
 	    }
-
-	  /* reset the rhs accumulation in any case */
-	  new_rhs();
 	:}
-	|
-	prod_part_list 
-	{: 
-	  if (lhs_nt != null) 
-	    {
-	      /* build the production */
-	      production p = new production(lhs_nt, rhs_parts, rhs_pos);
-
-	      /* if we have no start non-terminal declared and this is 
-		 the first production, make its lhs nt the start_nt 
-		 and build a special start production for it. */
-              if (start_nt == null)
-		{
-		  start_nt = lhs_nt;
-
-	          /* build a special start production */
-	          new_rhs();
-	          add_rhs_part(add_lab(new symbol_part(start_nt),"start_val"));
-	          add_rhs_part(new symbol_part(terminal.EOF));
-		  add_rhs_part(new action_part("RESULT = start_val;"));
-	          emit.start_production = 
-		     new production(non_terminal.START_nt, rhs_parts, rhs_pos);
-
-	          new_rhs();
-		}
-	    }
-	  
-	  /* reset the rhs accumulation in any case */
-	  new_rhs();
-	:} 
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-prod_part_list ::= prod_part_list prod_part | empty;
+prod_part_list ::= prod_part_list:list prod_part:prod
+	{: RESULT = list; if (prod != null) RESULT.add(prod); :}
+      | empty {: RESULT = new ArrayList<production_part>(); :}
+      ;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
@@ -650,18 +613,19 @@ prod_part ::=
 	      if (ErrorManager.getManager().getErrorCount() == 0)
 	        ErrorManager.getManager().emit_error("java_cup.runtime.Symbol \"" + symid + 
 			       "\" has not been declared");
+	      RESULT = null;
 	    }
 	  else
 	    {
 	      /* add a labeled production part */
-	      add_rhs_part(add_lab(symb, labid));
+	      RESULT = add_lab(symb, labid);
 	    }
 	:}
 	|
 	CODE_STRING:code_str
 	{: 
 	  /* add a new production part */
-	  add_rhs_part(new action_part(code_str));
+	  RESULT = new action_part(code_str);
 	:}
 	;
 
