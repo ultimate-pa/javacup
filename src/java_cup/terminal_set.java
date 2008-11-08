@@ -1,13 +1,14 @@
 
 package java_cup;
 
-import java.util.BitSet;
-
 /** A set of terminals implemented as a bitset. 
- * @version last updated: 11/25/95
- * @author  Scott Hudson
+ * @version last updated: 2008-11-08
+ * @author  Scott Hudson, Jochen Hoenicke
  */
 public class terminal_set {
+  private final static int LOG_BITS_PER_UNIT = 6;
+  private final static int BITS_PER_UNIT = 64;
+  private long[] _elements;
 
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
@@ -17,7 +18,7 @@ public class terminal_set {
   public terminal_set() 
     { 
       /* allocate the bitset at what is probably the right size */
-      _elements = new BitSet(terminal.number());
+      _elements = new long[((terminal.number()-1) >>> LOG_BITS_PER_UNIT)+1];
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -27,43 +28,20 @@ public class terminal_set {
    */
   public terminal_set(terminal_set other) 
     {
-      not_null(other);
-      _elements = (BitSet)other._elements.clone();
+      _elements = other._elements.clone();
     }
-
-  /*-----------------------------------------------------------*/
-  /*--- (Access to) Static (Class) Variables ------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** Constant for the empty set. */
-  public static final terminal_set EMPTY = new terminal_set();
-
-  /*-----------------------------------------------------------*/
-  /*--- (Access to) Instance Variables ------------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** Bitset to implement the actual set. */
-  protected BitSet _elements;
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ----------------------------------------*/
   /*-----------------------------------------------------------*/
 
-  /** Helper function to test for a null object and throw an exception if
-   *  one is found. 
-   * @param obj the object we are testing.
-   */
-  protected void not_null(Object obj)
-    {
-      assert obj != null : "Null object used in set operation";
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** Determine if the set is empty. */
   public boolean empty()
     {
-      return equals(EMPTY);
+      for (int i = 0; i < _elements.length; i++)
+	if (_elements[i] != 0)
+	  return false;
+      return true;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -73,8 +51,7 @@ public class terminal_set {
    */
   public boolean contains(terminal sym) 
     {
-      not_null(sym); 
-      return _elements.get(sym.index());
+      return contains(sym.index());
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -84,7 +61,9 @@ public class terminal_set {
    */
   public boolean contains(int indx) 
     {
-      return _elements.get(indx);
+      int idx  = indx >> LOG_BITS_PER_UNIT;
+      long mask = (1L << (indx & (BITS_PER_UNIT-1)));
+      return (_elements[idx] & mask) != 0;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -94,27 +73,11 @@ public class terminal_set {
    */
   public boolean is_subset_of(terminal_set other)
     {
-      not_null(other);
-
-      /* make a copy of the other set */
-      BitSet copy_other = (BitSet)other._elements.clone();
-
-      /* and or in */
-      copy_other.or(_elements);
-
-      /* if it hasn't changed, we were a subset */
-      return copy_other.equals(other._elements);
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Determine if this set is an (improper) superset of another.
-   * @param other the set we are testing against.
-   */
-  public boolean is_superset_of(terminal_set other)
-    {
-      not_null(other);
-      return other.is_subset_of(this);
+      assert(other._elements.length == _elements.length);
+      for (int i = 0; i < _elements.length; i++)
+	if ((_elements[i] & ~other._elements[i]) != 0)
+	  return false;
+      return true;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -125,17 +88,11 @@ public class terminal_set {
    */
   public boolean add(terminal sym) 
     {
-      boolean result;
-
-      not_null(sym); 
-
-      /* see if we already have this */ 
-      result = _elements.get(sym.index());
-
-      /* if not we add it */
-      if (!result)
-	_elements.set(sym.index());
-
+      int indx = sym.index();
+      int idx  = indx >> LOG_BITS_PER_UNIT;
+      long mask = (1L << (indx & (BITS_PER_UNIT-1)));
+      boolean result = (_elements[idx] & mask) == 0;
+      _elements[idx] |= mask;
       return result;
     }
 
@@ -146,8 +103,10 @@ public class terminal_set {
    */
   public void remove(terminal sym) 
     {
-      not_null(sym); 
-      _elements.clear(sym.index());
+      int indx = sym.index();
+      int idx  = indx >> LOG_BITS_PER_UNIT;
+      long mask = (1L << (indx & (BITS_PER_UNIT-1)));
+      _elements[idx] &= ~mask;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -158,16 +117,15 @@ public class terminal_set {
    */
   public boolean add(terminal_set other)
     {
-      not_null(other);
-
-      /* make a copy */
-      BitSet copy = (BitSet)_elements.clone();
-
-      /* or in the other set */
-      _elements.or(other._elements);
-
-      /* changed if we are not the same as the copy */
-      return !_elements.equals(copy);
+      assert(other._elements.length == _elements.length);
+      boolean changed = false;
+      for (int i = 0; i < _elements.length; i++)
+	{
+	  if ((~_elements[i] & other._elements[i]) != 0)
+	    changed = true;
+	  _elements[i] |= other._elements[i];
+	}
+      return changed;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -177,16 +135,13 @@ public class terminal_set {
    */
    public boolean intersects(terminal_set other)
      {
-       not_null(other);
-
-       /* make a copy of the other set */
-       BitSet copy = (BitSet)other._elements.clone();
-
-       /* xor out our values */
-       copy.xor(this._elements);
-
-       /* see if its different */
-       return !copy.equals(other._elements);
+       assert(other._elements.length == _elements.length);
+       for (int i = 0; i < _elements.length; i++)
+ 	{
+ 	  if ((_elements[i] & other._elements[i]) != 0)
+ 	    return true;
+ 	}
+       return false;
      }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -194,10 +149,13 @@ public class terminal_set {
   /** Equality comparison. */
   public boolean equals(terminal_set other)
     {
-      if (other == null) 
-	return false;
-      else
-	return _elements.equals(other._elements);
+      assert(other._elements.length == _elements.length);
+      for (int i = 0; i < _elements.length; i++)
+	{
+	  if (_elements[i] != other._elements[i])
+	    return false;
+	}
+      return true;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -216,26 +174,18 @@ public class terminal_set {
   /** Convert to string. */
   public String toString()
     {
-      String result;
-      boolean comma_flag;
-      
-      result = "{";
-      comma_flag = false;
+      StringBuilder result = new StringBuilder("{");
+      String comma = "";
       for (int t = 0; t < terminal.number(); t++)
 	{
-	  if (_elements.get(t))
+	  if (contains(t))
 	    {
-	      if (comma_flag)
-	        result += ", ";
-	      else
-	        comma_flag = true;
-
-	      result += terminal.find(t).name();
+	      result.append(comma).append(terminal.find(t).name());
+	      comma = ", ";
 	    }
 	}
-      result += "}";
-
-      return result;
+      result.append("}");
+      return result.toString();
     }
 
   /*-----------------------------------------------------------*/

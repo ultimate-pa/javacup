@@ -287,7 +287,7 @@ public class lr_item {
   	       if (!sym.is_non_term())
   		 {
   		   result.add((terminal)sym);
-  		   return result;
+  		   break;
   		 }
   	       else
   		 {

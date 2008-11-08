@@ -246,7 +246,7 @@ public class lalr_state {
       while (consider.size() > 0)
 	{
 	  /* get one item to consider */
-	  lr_item itm = consider.pop(); 
+	  lr_item itm = consider.pop();
 
 	  /* do we have a dot before a non terminal */
 	  non_terminal nt = itm.dot_before_nt();
@@ -281,7 +281,7 @@ public class lalr_state {
 		  if (need_prop)
 		    add_propagate(itm, this, new_itm);
 		} 
-	    } 
+	    }
 	} 
     }
 
@@ -299,12 +299,6 @@ public class lalr_state {
 	{
 	  props = new ArrayList<propagate_info>();
 	  _propagations.put(itm, props);
-	}
-      else
-	{
-	  for (propagate_info prop : props)
-	    if (prop.state().equals(new_st) && prop.itm().equals(new_itm))
-	      return;
 	}
       props.add(new propagate_info(new_st, new_itm));
     }
@@ -413,45 +407,42 @@ public class lalr_state {
   private void compute_successors(Stack<lalr_state> work_stack) 
     {
       /* gather up all the symbols that appear before dots */
-      HashSet<symbol> outgoing = new HashSet<symbol>();
+      HashMap<symbol, ArrayList<lr_item>> outgoing =
+	new HashMap<symbol, ArrayList<lr_item>>();
       for (lr_item itm : _items.keySet() )
 	{
 	  /* add the symbol after the dot (if any) to our collection */
 	  symbol sym = itm.symbol_after_dot();
 	  if (sym != null)
-	    outgoing.add(sym);
+	    {
+	      if (!outgoing.containsKey(sym))
+		outgoing.put(sym, new ArrayList<lr_item>());
+	      outgoing.get(sym).add(itm);
+	    }
 	}
       
       /* now create a transition out for each individual symbol */
-      for (symbol sym : outgoing )
+      for (Entry<symbol,ArrayList<lr_item>> out : outgoing.entrySet() )
 	{
 	  /* gather up shifted versions of all the items that have this
 		 symbol before the dot */
 	  HashMap<lr_item, terminal_set> new_items = new HashMap<lr_item, terminal_set>();
-	  for (lr_item itm : items().keySet())
+	  for (lr_item itm : out.getValue())
 	    {
-	      /* if this is the symbol we are working on now, add to set */
-	      if (sym.equals(itm.symbol_after_dot()))
-		{
-		  /* add to the kernel of the new state */
-		  new_items.put(itm.shift_core(), new terminal_set(items().get(itm)));
-		}
+	      /* add to the kernel of the new state */
+	      new_items.put(itm.shift_core(), new terminal_set(items().get(itm)));
 	    }
 
 	  /* have we seen this one already? */
 	  lalr_state new_st = get_lalr_state(work_stack, new_items);
-	  for (lr_item itm : items().keySet())
+	  for (lr_item itm : out.getValue())
 	    {
-	      /* if this is the symbol we are working on now, ...*/
-	      if (sym.equals(itm.symbol_after_dot()))
-		{
-		  /* ... remember that itm has propagate link to it */
-		  add_propagate(itm, new_st, itm.shift_core());
-		}
+	      /* ... remember that itm has propagate link to it */
+	      add_propagate(itm, new_st, itm.shift_core());
 	    }
 
 	  /* add a transition from current state to that state */
-	  add_transition(sym, new_st);
+	  add_transition(out.getKey(), new_st);
 	}
     }
  
@@ -584,10 +575,11 @@ public class lalr_state {
 		  production p = ((reduce_action)our_act_row.under_term[sym.index()]).reduce_with();
 
 		  /* shift always wins */
-		  if (!fix_with_precedence(p, sym.index(), our_act_row, act)) {
-		    our_act_row.under_term[sym.index()] = act;
-		    conflict_set.add(terminal.find(sym.index()));
-		  }
+		  if (!fix_with_precedence(p, sym.index(), our_act_row, act))
+		    {
+		      our_act_row.under_term[sym.index()] = act;
+		      conflict_set.add(terminal.find(sym.index()));
+		    }
 		}
 	    }
 	  else
@@ -761,7 +753,7 @@ public class lalr_state {
 		}
 	      /* report S/R conflicts under all the symbols we conflict under */
 	      for (int t = 0; t < terminal.number(); t++)
-		if (itm.getValue().contains(t))
+		if (itm.getValue().contains(t) && conflict_set.contains(t))
 		  report_shift_reduce(itm.getKey(),t);
 	    }
 	}
@@ -887,6 +879,9 @@ public class lalr_state {
       result.append("lalr_state [").append(index()).append("]: {\n");
       for (Entry<lr_item,terminal_set> itm : items().entrySet()) 
 	{
+	  /* only print the kernel */
+	  if (itm.getKey().dot_pos() == 0)
+	    continue;
 	  result.append("  [").append(itm.getKey()).append(", ");
 	  result.append(itm.getValue()).append("]\n");
 	}

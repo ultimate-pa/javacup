@@ -123,18 +123,24 @@ public class production {
       /* allocate and copy over the right-hand-side */
       /* count use of each rhs symbol */
       _rhs = new production_part[_rhs_length];
-      for (i=0; i<_rhs_length; i++) {
-	_rhs[i] = rhs_parts[i];
-	if (!_rhs[i].is_action()) {
-	  ((symbol_part)_rhs[i]).the_symbol().note_use();
-	  if (((symbol_part)_rhs[i]).the_symbol() instanceof terminal) {
-	    _rhs_prec = 
-	      ((terminal)((symbol_part)_rhs[i]).the_symbol()).precedence_num();
-	    _rhs_assoc = 
-	      ((terminal)((symbol_part)_rhs[i]).the_symbol()).precedence_side();
-	  }
+      for (i=0; i<_rhs_length; i++)
+	{
+	  _rhs[i] = rhs_parts[i];
+	  if (!_rhs[i].is_action()) 
+	    {
+	      symbol rhs_sym = ((symbol_part)_rhs[i]).the_symbol();
+	      rhs_sym.note_use();
+	      if (rhs_sym instanceof terminal)
+		{
+		  terminal term = (terminal) rhs_sym;
+		  if (term.precedence_num() != assoc.no_prec)
+		    {
+		      _rhs_prec = term.precedence_num();
+		      _rhs_assoc = term.precedence_side();
+		    }
+		}
+	    }
 	}
-      }
 
       /*now action string is really declaration string, so put it in front!
 	6/14/96 frankf */
