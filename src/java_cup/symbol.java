@@ -27,9 +27,6 @@ public abstract class symbol {
        /* sanity check */
        if (nm == null) nm = "";
 
-       /* apply default if no type given */
-       if (tp == null) tp = "Object";
-
        _name = nm;
        _stack_type = tp;
      }

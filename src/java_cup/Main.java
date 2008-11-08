@@ -103,7 +103,7 @@ public class Main {
 
   /* frankf added this 6/18/96 */
   /** User option -- should generator generate code for left/right values? */
-  protected static boolean lr_values = true;
+  protected static boolean opt_lr_values = true;
 
   /** User option -- should symbols be put in a class or an interface? [CSA]*/
   protected static boolean sym_interface = false;
@@ -171,9 +171,6 @@ public class Main {
       /* process user options and arguments */
       parse_args(argv);
 
-      /* frankf 6/18/96
-	 hackish, yes, but works */
-      emit.set_lr_values(lr_values);
       /* open output files */
       if (print_progress) System.err.println("Opening files...");
       /* use a buffered version of standard input */
@@ -361,7 +358,7 @@ public class Main {
 	  else if (argv[i].equals("-time"))         opt_show_timing = true; 
 	  else if (argv[i].equals("-debug"))        opt_do_debug = true;
 	  /* frankf 6/18/96 */
-	  else if (argv[i].equals("-nopositions"))  lr_values = false;
+	  else if (argv[i].equals("-nopositions"))  opt_lr_values = false;
 	  /* CSA 12/21/97 */
 	  else if (argv[i].equals("-interface"))    sym_interface = true;
 	  /* CSA 23-Jul-1999 */
@@ -615,7 +612,7 @@ public class Main {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
 		  start_state.index(), emit.start_production, opt_compact_red,
-		  suppress_scanner, opt_java15);
+		  suppress_scanner, opt_lr_values, opt_java15);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/

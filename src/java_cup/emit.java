@@ -207,16 +207,8 @@ public class emit {
   /** Time to produce the reduce-goto table. */
   public static long goto_table_time       = 0;
 
-  /* frankf 6/18/96 */
-  protected static boolean _lr_values;
-
-  /** whether or not to emit code for left and right values */
-  public static boolean lr_values() {return _lr_values;}
-  protected static void set_lr_values(boolean b) { _lr_values = b;}
-
   //Hm Added clear  to clear all static fields
   public static void clear () {
-      _lr_values = true;
       action_code = null;
       import_list.clear();
       init_code = null;
@@ -270,10 +262,10 @@ public class emit {
   public static String stackelem(int index, boolean is_java15)
     {
       String access;
-      if (index==0)
+      if (index == 1)
 	access = emit.pre("stack") + ".peek()";
       else
-	access = emit.pre("stack") + ".elementAt(" + emit.pre("top") + "-" + index + ")";
+	access = emit.pre("stack") + ".elementAt(" + emit.pre("size") + "-" + index + ")";
       return is_java15 ? access : "((java_cup.runtime.Symbol) "+access+")";
     }
 
@@ -349,7 +341,8 @@ public class emit {
    * @param out        stream to produce output on.
    * @param start_prod the start production of the grammar.
    */
-  protected static void emit_action_code(PrintWriter out, production start_prod, boolean is_java15)
+  protected static void emit_action_code(PrintWriter out, production start_prod, 
+      boolean lr_values, boolean is_java15)
     {
       long start_time = System.currentTimeMillis();
 
@@ -396,9 +389,9 @@ public class emit {
       out.println("    throws java.lang.Exception");
       out.println("    {");
 
-      /* declaration of result symbol */
-      /* New declaration!! now return Symbol
-	 6/13/96 frankf */
+      out.println("      /* Stack size for peeking into the stack */");
+      out.println("      int " + pre("size") + " = "+pre("stack")+".size();");
+      out.println();
       out.println("      /* Symbol object for return from actions */");
       out.println("      java_cup.runtime.Symbol " + pre("result") + ";");
       out.println();
@@ -419,54 +412,77 @@ public class emit {
 	  /* give them their own block to work in */
 	  out.println("            {");
 
+	  if (prod.lhs().the_symbol().stack_type() != null)
+	    {
+	      int lastResult = prod.getIndexOfIntermediateResult();
+	      String result = "null";
+	      if (lastResult!=-1)
+		{
+		  result =  "(" + prod.lhs().the_symbol().stack_type() + ") " +
+		  stackelem(prod.rhs_params() - lastResult, is_java15)+".value";
+		}
 
-          /**
-           * TUM 20060608 intermediate result patch
-           */
-          String result = "null";
-          if (prod instanceof action_production)
-            {
-              int lastResult = ((action_production)prod).getIndexOfIntermediateResult();
-              if (lastResult!=-1)
-        	{
-                  result =  "(" + prod.lhs().the_symbol().stack_type() + ") " +
-                      stackelem(lastResult - 1, is_java15)+".value";
-              }
-          }
-
-	  /* create the result symbol */
-	  /*make the variable RESULT which will point to the new Symbol (see below)
-	    and be changed by action code
-	    6/13/96 frankf */
-	  out.println("              " +  prod.lhs().the_symbol().stack_type() +
-		      " RESULT ="+result+";");
-
+	      /* create the result symbol */
+	      /* make the variable RESULT which will point to the new Symbol 
+	       * (see below) and be changed by action code
+	       * 6/13/96 frankf */
+	      out.println("              " +  prod.lhs().the_symbol().stack_type() +
+		  " RESULT ="+result+";");
+	    }
+	  production baseprod;
+	  if (prod instanceof action_production)
+	    baseprod = ((action_production)prod).base_production();
+	  else
+	    baseprod = prod;
 	  /* Add code to propagate RESULT assignments that occur in
 	   * action code embedded in a production (ie, non-rightmost
 	   * action code). 24-Mar-1998 CSA
 	   */
-	  for (int i=prod.rhs_length()-1; i>=0; i--) {
-	    // only interested in non-terminal symbols.
-	    if (!(prod.rhs(i) instanceof symbol_part)) continue;
-	    symbol s = ((symbol_part)prod.rhs(i)).the_symbol();
-	    if (!(s instanceof non_terminal)) continue;
-	    // skip this non-terminal unless it corresponds to
-	    // an embedded action production.
-	    if (((non_terminal)s).is_embedded_action == false) continue;
-	    // OK, it fits.  Make a conditional assignment to RESULT.
-	    int index = prod.rhs_length() - i - 1; // last rhs is on top.
-            // set comment to inform about where the intermediate result came from
-	    out.println("              " + "// propagate RESULT from " +s.name());
+	  for (int i=prod.rhs_params()-1; i>=0; i--) 
+	    {
+	      String symbvar = null;
+	      if (!(prod instanceof action_production) &&
+		  lr_values && (i == 0 || i == prod.rhs_params()-1))
+		{
+		  if (i == prod.rhs_params()-1)
+		    symbvar = pre("right");
+		  else
+		    symbvar = pre("left");
 
-	    // store the intermediate result into RESULT
-            out.println("                " + "RESULT = " +
-	      "(" + prod.lhs().the_symbol().stack_type() + ") " +
-	      stackelem(index, is_java15) + ".value;");
-            break;
-	  }
+		  out.println("              Symbol " + symbvar + " = " +
+		      stackelem(prod.rhs_params() - i, is_java15) + ";");
+		}
+	      
+	      symbol_part symbol = baseprod.rhs(i);
+	      if (symbol.label() != null)
+		{
+		  if (symbvar == null)
+		    {
+		      symbvar = pre("sym"+symbol.label());
+		      out.println("              Symbol " + symbvar + " = " +
+			  stackelem(prod.rhs_params() - i, is_java15) + ";");
+		    }
+		  /* Put in the left/right value labels */
+		  if (lr_values)
+		    {
+		      out.println("              int "+symbol.label()+"left = "+
+			  symbvar + ".left;");
+		      out.println("              int "+symbol.label()+"right = "+
+			  symbvar + ".right;");
+		    }
+
+		  String symtype = symbol.the_symbol().stack_type(); 
+		  if (symtype != null)
+		    {
+		      out.println("              " + symtype +
+			  " " + symbol.label() + " = (" + symtype + ") " +
+			  symbvar + ".value;");
+		    }
+		}
+	    }
 
 	  /* if there is an action string, emit it */
-          if (prod.action() != null && prod.action().code_string() != null)
+          if (prod.action() != null)
             out.println(prod.action().code_string());
 
 	  /* here we have the left and right values being propagated.  
@@ -475,23 +491,26 @@ public class emit {
 
          /* Create the code that assigns the left and right values of
             the new Symbol that the production is reducing to */
-	  if (emit.lr_values()) {	    
-	    String leftstring, rightstring;
-	    rightstring = stackelem(0, is_java15);
-	    if (prod.rhs_length() == 0)
-	      leftstring = rightstring;
-	    else
-	      leftstring = stackelem(prod.rhs_length() - 1, is_java15);
-	    out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
-                        "\""+ 	prod.lhs().the_symbol().name() +"\","+ 
-			prod.lhs().the_symbol().index()  +
-			", " + leftstring + ", " + rightstring + ", RESULT);");
-	  } else {
-	    out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
-		"\""+ 	prod.lhs().the_symbol().name() +  "\","+ 
-			prod.lhs().the_symbol().index() + 
-			", RESULT);");
-	  }
+          String leftright = "";
+	  if (lr_values)
+	    {
+	      String leftsym = pre("left");
+	      String rightsym = pre("right");
+	      if (prod.rhs_length() == 0)
+		{
+		  out.println("              Symbol " + rightsym + " = " +
+		      stackelem(1, is_java15) + ";");
+		}
+	      if (prod.rhs_length() < 2)
+		leftsym = rightsym;
+	      leftright = ", " + leftsym + ", " + rightsym;
+	    }
+	  String result = prod.lhs().the_symbol().stack_type() != null 
+	  	? ", RESULT" : "";
+
+	  out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
+	      "\""+ 	prod.lhs().the_symbol().name() +  "\","+ 
+	      prod.lhs().the_symbol().index() + leftright + result + ");");
 	  
 	  /* end of their block */
 	  out.println("            }");
@@ -796,6 +815,7 @@ public class emit {
     production         start_prod,
     boolean            compact_reduces,
     boolean            suppress_scanner,
+    boolean            lr_values,
     boolean            is_java15)
     {
       long start_time = System.currentTimeMillis();
@@ -931,7 +951,7 @@ public class emit {
       out.println("}");
 
       /* put out the action code class */
-      emit_action_code(out, start_prod, is_java15);
+      emit_action_code(out, start_prod, lr_values, is_java15);
 
       parser_time = System.currentTimeMillis() - start_time;
     }

@@ -21,26 +21,25 @@ public class action_production extends production {
   public action_production(
     production      base,
     non_terminal    lhs_sym, 
-    production_part rhs_parts[],
-    int             rhs_len,
-    String          action_str,
+    production_part action,
+    int             indexOfAction,
     int             indexOfIntermediateResult)
     {
-      super(lhs_sym, rhs_parts, rhs_len, action_str);
+      super(lhs_sym, new production_part[] { action }, 1);
       _base_production = base;
+      this.indexOfAction = indexOfAction;
       this.indexOfIntermediateResult = indexOfIntermediateResult;
     }
-  private int indexOfIntermediateResult;
-  /**
-   * @return the index of the result of the previous intermediate action on the stack relative to top, -1 if no previous action
-   */
-  public int getIndexOfIntermediateResult(){
-      return indexOfIntermediateResult;
+  
+  private int indexOfAction;
+  
+  public int rhs_params() {
+    return indexOfAction;
   }
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The production we were taken out of. */
-  protected production _base_production;
+  private production _base_production;
 
   /** The production we were taken out of. */
   public production base_production() {return _base_production;}

@@ -496,7 +496,8 @@ start_spec ::=
 	      new_rhs();
 	      add_rhs_part(add_lab(new symbol_part(start_nt), "start_val"));
 	      add_rhs_part(new symbol_part(terminal.EOF));
-	      add_rhs_part(new action_part("RESULT = start_val;"));
+	      if (start_nt.stack_type() != null)
+	      	add_rhs_part(new action_part("RESULT = start_val;"));
 	      emit.start_production = 
 		     new production(non_terminal.START_nt, rhs_parts, rhs_pos);
 	      new_rhs();
