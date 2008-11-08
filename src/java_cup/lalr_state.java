@@ -104,8 +104,14 @@ public class lalr_state {
   public static void clear() {
       _all_kernels.clear();
       next_index=0;
+      num_conflicts = 0;
   }
   
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** Number of conflict found while building tables. */
+  public static int num_conflicts = 0;
+
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Indicate total number of states there are. */
@@ -727,7 +733,7 @@ public class lalr_state {
       message.append("}\n  Resolved in favor of the first production.\n");
 
       /* count the conflict */
-      emit.num_conflicts++;
+      num_conflicts++;
       ErrorManager.getManager().emit_warning(message.toString());
     }
 
@@ -767,7 +773,7 @@ public class lalr_state {
       "  Resolved in favor of shifting.\n";
 
       /* count the conflict */
-      emit.num_conflicts++;
+      num_conflicts++;
       ErrorManager.getManager().emit_warning(message);
     }
 

@@ -46,7 +46,7 @@ import java.util.Date;
  * conflicts detected (see the source code and public variables below for
  * more details).<p> 
  *
- * This class is "static" (contains only static data and methods).<p> 
+ * This class is "static" (contains only data and methods).<p> 
  *
  * @see java_cup.main
  * @version last update: 11/25/95
@@ -97,132 +97,103 @@ import java.util.Date;
 public class emit {
 
   /*-----------------------------------------------------------*/
-  /*--- Constructor(s) ----------------------------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** Only constructor is private so no instances can be created. */
-  private emit() { }
-
-  /*-----------------------------------------------------------*/
-  /*--- Static (Class) Variables ------------------------------*/
+  /*--- Variables ---------------------------------------------*/
   /*-----------------------------------------------------------*/
 
   /** The prefix placed on names that pollute someone else's name space. */
-  public static String prefix = "CUP$";
+  public final static String prefix = "CUP$";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Package that the resulting code goes into (null is used for unnamed). */
-  public static String package_name = null;
+  public String package_name = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Name of the generated class for symbol constants. */
-  public static String symbol_const_class_name = "sym";
+  public String symbol_const_class_name = "sym";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Name of the generated parser class. */
-  public static String parser_class_name = "parser";
+  public String parser_class_name = "parser";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
  /** TUM changes; proposed by Henning Niss 20050628: Type arguments for class declaration */
-  public static String class_type_argument = null;
+  public String class_type_argument = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** User declarations for direct inclusion in user action class. */
-  public static String action_code = null;
+  public String action_code = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** User declarations for direct inclusion in parser class. */
-  public static String parser_code = null;
+  public String parser_code = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** User code for user_init() which is called during parser initialization. */
-  public static String init_code = null;
+  public String init_code = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** User code for scan() which is called to get the next Symbol. */
-  public static String scan_code = null;
+  public String scan_code = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The start production of the grammar. */
-  public static production start_production = null;
+  public production start_production = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** List of imports (Strings containing class names) to go with actions. */
-  public static ArrayList<String> import_list = new ArrayList<String>();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Number of conflict found while building tables. */
-  public static int num_conflicts = 0;
+  public ArrayList<String> import_list = new ArrayList<String>();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Do we skip warnings? */
-  public static boolean nowarn = false;
+  public boolean nowarn = false;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Count of the number on non-reduced productions found. */
-  public static int not_reduced = 0;
+  public int not_reduced = 0;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Count of unused terminals. */
-  public static int unused_term = 0;
+  public int unused_term = 0;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Count of unused non terminals. */
-  public static int unused_non_term = 0;
+  public int unused_non_term = 0;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /* Timing values used to produce timing report in main.*/
 
   /** Time to produce symbol constant class. */
-  public static long symbols_time          = 0;
+  public long symbols_time          = 0;
 
   /** Time to produce parser class. */
-  public static long parser_time           = 0;
+  public long parser_time           = 0;
 
   /** Time to produce action code class. */
-  public static long action_code_time      = 0;
+  public long action_code_time      = 0;
 
   /** Time to produce the production table. */
-  public static long production_table_time = 0;
+  public long production_table_time = 0;
 
   /** Time to produce the action table. */
-  public static long action_table_time     = 0;
+  public long action_table_time     = 0;
 
   /** Time to produce the reduce-goto table. */
-  public static long goto_table_time       = 0;
-
-  //Hm Added clear  to clear all static fields
-  public static void clear () {
-      action_code = null;
-      import_list.clear();
-      init_code = null;
-      not_reduced = 0;
-      num_conflicts = 0;
-      package_name = null;
-      parser_class_name = "parser";
-      parser_code = null;
-      scan_code = null;
-      start_production = null;
-      symbol_const_class_name = "sym";
-      unused_non_term = 0;
-      unused_term = 0;
-  }
+  public long goto_table_time       = 0;
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
@@ -231,8 +202,8 @@ public class emit {
   /** Build a string with the standard prefix. 
    * @param str string to prefix.
    */
-  protected static String pre(String str) {
-    return prefix + parser_class_name + "$" + str;
+  protected String pre(String str) {
+    return prefix + str;
   }
 
    /**
@@ -240,7 +211,7 @@ public class emit {
     * Build a string with the specified type arguments,
     * if present, otherwise an empty string.
     */
-   protected static String typeArgument() {
+   protected String typeArgument() {
      return class_type_argument == null ? "" : "<" + class_type_argument + ">";
    }
 
@@ -249,7 +220,7 @@ public class emit {
   /** Emit a package spec if the user wants one. 
    * @param out stream to produce output on.
    */
-  protected static void emit_package(PrintWriter out)
+  protected void emit_package(PrintWriter out)
     {
       /* generate a package spec if we have a name for one */
       if (package_name != null) {
@@ -259,13 +230,13 @@ public class emit {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
   
-  public static String stackelem(int index, boolean is_java15)
+  public String stackelem(int index, boolean is_java15)
     {
       String access;
       if (index == 1)
-	access = emit.pre("stack") + ".peek()";
+	access = pre("stack") + ".peek()";
       else
-	access = emit.pre("stack") + ".elementAt(" + emit.pre("size") + "-" + index + ")";
+	access = pre("stack") + ".elementAt(" + pre("size") + "-" + index + ")";
       return is_java15 ? access : "((java_cup.runtime.Symbol) "+access+")";
     }
 
@@ -275,7 +246,7 @@ public class emit {
    * @param emit_non_terms do we emit constants for non terminals?
    * @param sym_interface  should we emit an interface, rather than a class?
    */
-  public static void symbols(PrintWriter out, 
+  public void symbols(PrintWriter out, 
 			     boolean emit_non_terms, boolean sym_interface)
     {
       String class_or_interface = (sym_interface)?"interface":"class";
@@ -305,7 +276,7 @@ public class emit {
 	{
 
 	  /* output a constant decl for the terminal */
-	  out.println("  public static final int " + term.name() + " = " + 
+	  out.println("  public final int " + term.name() + " = " + 
 		      term.index() + ";");
 	}
 
@@ -323,7 +294,7 @@ public class emit {
           // ****
 
 	      /* output a constant decl for the terminal */
-	      out.println("  static final int " + nt.name() + " = " + 
+	      out.println("  final int " + nt.name() + " = " + 
 		          nt.index() + ";");
 	    }
 	}
@@ -341,7 +312,7 @@ public class emit {
    * @param out        stream to produce output on.
    * @param start_prod the start production of the grammar.
    */
-  protected static void emit_action_code(PrintWriter out, production start_prod, 
+  protected void emit_action_code(PrintWriter out, production start_prod, 
       boolean lr_values, boolean is_java15)
     {
       long start_time = System.currentTimeMillis();
@@ -551,7 +522,7 @@ public class emit {
   /** Emit the production table. 
    * @param out stream to produce output on.
    */
-  protected static void emit_production_table(PrintWriter out)
+  protected void emit_production_table(PrintWriter out)
     {
       long start_time = System.currentTimeMillis();
 
@@ -566,7 +537,7 @@ public class emit {
       /* do the top of the table */
       out.println();
       out.println("  /** Production table. */");
-      out.println("  private static final short _production_table[][] = ");
+      out.println("  private final short _production_table[][] = ");
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, prod_table);
       out.println(");");
@@ -587,7 +558,7 @@ public class emit {
    * @param act_tab         the internal representation of the action table.
    * @param compact_reduces do we use the most frequent reduce as default?
    */
-  protected static void do_action_table(
+  protected void do_action_table(
     PrintWriter        out, 
     parse_action_table act_tab,
     boolean            compact_reduces)
@@ -600,6 +571,8 @@ public class emit {
 
       /* collect values for the action table */
       short[][] action_table = new short[act_tab.num_states()][];
+      /* make temporary table for the row. */
+      short[] temp_table = new short[2*terminal.number()+2];
       /* do each state (row) of the action table */
       for (int i = 0; i < act_tab.num_states(); i++)
 	{
@@ -612,12 +585,10 @@ public class emit {
 	  else
 	    row.default_reduce = -1;
 
-	  /* make temporary table for the row. */
-	  short[] temp_table = new short[2*parse_action_row.size()];
 	  int nentries = 0;
 
 	  /* do each column */
-	  for (int j = 0; j < parse_action_row.size(); j++)
+	  for (int j = 0; j < terminal.number(); j++)
 	    {
 	      /* extract the action from the table */
 	      act = row.under_term[j];
@@ -654,23 +625,19 @@ public class emit {
 					     act.kind() + " found in parse table";
 		}
 	    }
-
-	  /* now we know how big to make the row */
-	  action_table[i] = new short[nentries + 2];
-	  System.arraycopy(temp_table, 0, action_table[i], 0, nentries);
-
 	  /* finish off the row with a default entry */
-	  action_table[i][nentries++] = -1;
-	  if (row.default_reduce != -1)
-	    action_table[i][nentries++] = (short) (-(row.default_reduce+1));
-	  else
-	    action_table[i][nentries++] = 0;
+	  temp_table[nentries++] = -1;
+	  temp_table[nentries++] = (short) (-(row.default_reduce+1));
+	  
+	  /* now we know how big to make the row */
+	  action_table[i] = new short[nentries];
+	  System.arraycopy(temp_table, 0, action_table[i], 0, nentries);
 	}
 
       /* finish off the init of the table */
       out.println();
       out.println("  /** Parse-action table. */");
-      out.println("  private static final short[][] _action_table = "); 
+      out.println("  private final short[][] _action_table = "); 
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, action_table);
       out.println(");");
@@ -689,7 +656,7 @@ public class emit {
    * @param out     stream to produce output on.
    * @param red_tab the internal representation of the reduce-goto table.
    */
-  protected static void do_reduce_table(
+  protected void do_reduce_table(
     PrintWriter out, 
     parse_reduce_table red_tab)
     {
@@ -699,14 +666,14 @@ public class emit {
 
       /* collect values for reduce-goto table */
       short[][] reduce_goto_table = new short[red_tab.num_states()][];
+      /* make temporary table for the row. */
+      short[] temp_table = new short[2*non_terminal.number()+2];
       /* do each row of the reduce-goto table */
       for (int i=0; i<red_tab.num_states(); i++)
 	{
-	  /* make temporary table for the row. */
-	  short[] temp_table = new short[2*parse_reduce_row.size()];
 	  int nentries = 0;
 	  /* do each entry in the row */
-	  for (int j=0; j<parse_reduce_row.size(); j++)
+	  for (int j=0; j<non_terminal.number(); j++)
 	    {
 	      /* get the entry */
 	      goto_st = red_tab.under_state[i].under_non_term[j];
@@ -719,19 +686,19 @@ public class emit {
 		  temp_table[nentries++] = (short) goto_st.index();
 		}
 	    }
-	  /* now we know how big to make the row. */
-	  reduce_goto_table[i] = new short[nentries+2];
-	  System.arraycopy(temp_table, 0, reduce_goto_table[i], 0, nentries);
-
 	  /* end row with default value */
-	  reduce_goto_table[i][nentries++] = -1;
-	  reduce_goto_table[i][nentries++] = -1;
+	  temp_table[nentries++] = -1;
+	  temp_table[nentries++] = -1;
+
+	  /* now we know how big to make the row. */
+	  reduce_goto_table[i] = new short[nentries];
+	  System.arraycopy(temp_table, 0, reduce_goto_table[i], 0, nentries);
 	}
 
       /* emit the table. */
       out.println();
       out.println("  /** <code>reduce_goto</code> table. */");
-      out.println("  private static final short[][] _reduce_table = "); 
+      out.println("  private final short[][] _reduce_table = "); 
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, reduce_goto_table);
       out.println(");");
@@ -746,7 +713,7 @@ public class emit {
     }
 
   // print a string array encoding the given short[][] array.
-  protected static void do_table_as_string(PrintWriter out, short[][] sa) {
+  protected void do_table_as_string(PrintWriter out, short[][] sa) {
     out.println("new String[] {");
     out.print("    \"");
     int nchar=0, nbytes=0;
@@ -769,14 +736,14 @@ public class emit {
     out.print("\" }");
   }
   // split string if it is very long; start new line occasionally for neatness
-  protected static int do_newline(PrintWriter out, int nchar, int nbytes) {
+  protected int do_newline(PrintWriter out, int nchar, int nbytes) {
     if (nbytes > 65500)  { out.println("\", "); out.print("    \""); }
     else if (nchar > 11) { out.println("\" +"); out.print("    \""); }
     else return nchar+1;
     return 0;
   }
   // output an escape sequence for the given character code.
-  protected static int do_escaped(PrintWriter out, char c) {
+  protected int do_escaped(PrintWriter out, char c) {
     StringBuffer escape = new StringBuffer();
     if (c <= 0xFF) {
       escape.append(Integer.toOctalString(c));
@@ -807,7 +774,7 @@ public class emit {
    * @param compact_reduces do we use most frequent reduce as default?
    * @param suppress_scanner should scanner be suppressed for compatibility?
    */
-  public static void parser(
+  public void parser(
     PrintWriter        out, 
     parse_action_table action_table,
     parse_reduce_table reduce_table,

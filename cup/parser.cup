@@ -171,7 +171,7 @@ action code {:
 	      new symbol_part(terminal.EOF)
 	    };
 	}
-      emit.start_production = 
+      parser.emit.start_production = 
 	  new production(non_terminal.START_nt, rhs, rhs.length);
     }
 :};
@@ -179,7 +179,8 @@ action code {:
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 parser code {:
-
+  emit emit;
+  
  /* override error routines */
   protected Lexer lexer;
   public void report_fatal_error(
@@ -281,7 +282,7 @@ package_spec ::=
 	multipart_id:id
 	{:
 	  /* save the package name */
-	  emit.package_name = id.toString();
+	  parser.emit.package_name = id.toString();
 	:}
 	SEMI
 	|
@@ -305,7 +306,7 @@ import_spec ::=
 	SEMI
 	{: 
 	  /* save this import on the imports list */
-	  emit.import_list.add(id.toString());
+	  parser.emit.import_list.add(id.toString());
 	:}
 	;
 
@@ -323,10 +324,10 @@ code_parts ::=
 action_code_part ::= 
 	ACTION CODE CODE_STRING:user_code opt_semi
 	{:
-	  if (emit.action_code!=null)
+	  if (parser.emit.action_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant action code (skipping)");
 	  else /* save the user included code string */
-	    emit.action_code = user_code;
+	    parser.emit.action_code = user_code;
 	:}
 	;
 
@@ -335,10 +336,10 @@ action_code_part ::=
 parser_code_part ::= 
 	PARSER CODE CODE_STRING:user_code opt_semi
 	{:
-	  if (emit.parser_code!=null)
+	  if (parser.emit.parser_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant parser code (skipping)");
 	  else /* save the user included code string */
-	    emit.parser_code = user_code;
+	    parser.emit.parser_code = user_code;
 	:}
 	;
 
@@ -347,10 +348,10 @@ parser_code_part ::=
 init_code ::= 
 	INIT WITH CODE_STRING:user_code opt_semi
 	{: 
-	  if (emit.init_code!=null)
+	  if (parser.emit.init_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant init code (skipping)");
 	  else /* save the user code */
-	    emit.init_code = user_code;
+	    parser.emit.init_code = user_code;
 	:}
 	;
 
@@ -359,10 +360,10 @@ init_code ::=
 scan_code ::=
 	SCAN WITH CODE_STRING:user_code opt_semi
 	{: 
-	  if (emit.scan_code!=null)
+	  if (parser.emit.scan_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant scan code (skipping)");
 	  else /* save the user code */
-	    emit.scan_code = user_code;
+	    parser.emit.scan_code = user_code;
 	:}
 	;
 

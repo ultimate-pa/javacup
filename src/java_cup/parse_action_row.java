@@ -15,32 +15,14 @@ public class parse_action_row {
    */
   public parse_action_row()
     {
-      /* make sure the size is set */
-      if (_size <= 0 )  _size = terminal.number();
-
+      int num_terminals = terminal.number();
       /* allocate the array */
-      under_term = new parse_action[size()];
+      under_term = new parse_action[num_terminals];
 
       /* set each element to an error action */
-      for (int i=0; i<_size; i++)
+      for (int i=0; i < num_terminals; i++)
 	under_term[i] = new parse_action();
     }
-
-  /*-----------------------------------------------------------*/
-  /*--- (Access to) Static (Class) Variables ------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** Number of columns (terminals) in every row. */
-  protected static int _size = 0;
-
-  /** Number of columns (terminals) in every row. */
-  public static int size() {return _size;}
-
-  //Hm Added clear  to clear all static fields
-  public static void clear() {
-      _size = 0;
-      reduction_count = null;
-  }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -88,7 +70,7 @@ public class parse_action_row {
       max_red = 0;
      
       /* walk down the row and look at the reduces */
-      for (i = 0; i < size(); i++)
+      for (i = 0; i < under_term.length; i++)
 	if (under_term[i].kind() == parse_action.REDUCE)
 	  {
 	    /* count the reduce in the proper production slot and keep the 

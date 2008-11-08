@@ -78,70 +78,72 @@ public class Main {
   /* Options set by the user */
   /*-------------------------*/
   /** User option -- do we print progress messages. */
-  protected boolean print_progress   = false;
+  private boolean print_progress   = false;
   /** User option -- do we produce a dump of the state machine */
-  protected boolean opt_dump_states  = false;
+  private boolean opt_dump_states  = false;
   /** User option -- do we produce a dump of the parse tables */
-  protected boolean opt_dump_tables  = false;
+  private boolean opt_dump_tables  = false;
   /** User option -- do we produce a dump of the grammar */
-  protected boolean opt_dump_grammar = false;
+  private boolean opt_dump_grammar = false;
   /** User option -- do we show timing information as a part of the summary */
-  protected boolean opt_show_timing  = false;
+  private boolean opt_show_timing  = false;
   /** User option -- do we run produce extra debugging messages */
-  protected boolean opt_do_debug     = false;
+  private boolean opt_do_debug     = false;
   /** User option -- do we compact tables by making most common reduce the 
       default action */
-  protected boolean opt_compact_red  = false;
+  private boolean opt_compact_red  = false;
   /** User option -- use java 1.5 syntax (generics, annotations) */
-  protected boolean opt_java15       = false;
+  private boolean opt_java15       = false;
   /** User option -- should we include non terminal symbol numbers in the 
       symbol constant class. */
-  protected boolean include_non_terms = false;
+  private boolean include_non_terms = false;
   /** User option -- do not print a summary. */
-  protected boolean no_summary = false;
+  private boolean no_summary = false;
   /** User option -- number of conflicts to expect */
-  protected int expect_conflicts = 0;
+  private int expect_conflicts = 0;
 
   /* frankf added this 6/18/96 */
   /** User option -- should generator generate code for left/right values? */
-  protected boolean opt_lr_values = true;
+  private boolean opt_lr_values = true;
 
   /** User option -- should symbols be put in a class or an interface? [CSA]*/
-  protected boolean sym_interface = false;
+  private boolean sym_interface = false;
 
   /** User option -- should generator suppress references to
    *  java_cup.runtime.Scanner for compatibility with old runtimes? */
-  protected boolean suppress_scanner = false;
+  private boolean suppress_scanner = false;
 
   /*----------------------------------------------------------------------*/
   /* Timing data (not all of these time intervals are mutually exclusive) */
   /*----------------------------------------------------------------------*/
   /** Timing data -- when did we start */
-  protected long start_time       = 0;
+  private long start_time       = 0;
   /** Timing data -- when did we end preliminaries */
-  protected long prelim_end       = 0;
+  private long prelim_end       = 0;
   /** Timing data -- when did we end parsing */
-  protected long parse_end        = 0;
+  private long parse_end        = 0;
   /** Timing data -- when did we end checking */
-  protected long check_end        = 0;
+  private long check_end        = 0;
   /** Timing data -- when did we end dumping */
-  protected long dump_end         = 0;
+  private long dump_end         = 0;
   /** Timing data -- when did we end state and table building */
-  protected long build_end        = 0;
+  private long build_end        = 0;
   /** Timing data -- when did we end nullability calculation */
-  protected long nullability_end  = 0;
+  private long nullability_end  = 0;
   /** Timing data -- when did we end first set calculation */
-  protected long first_end        = 0;
+  private long first_end        = 0;
   /** Timing data -- when did we end state machine construction */
-  protected long machine_end      = 0;
+  private long machine_end      = 0;
   /** Timing data -- when did we end table construction */
-  protected long table_end        = 0;
+  private long table_end        = 0;
   /** Timing data -- when did we end checking for non-reduced productions */
-  protected long reduce_check_end = 0;
+  private long reduce_check_end = 0;
   /** Timing data -- when did we finish emitting code */
-  protected long emit_end         = 0;
+  private long emit_end         = 0;
   /** Timing data -- when were we completely done */
-  protected long final_time       = 0;
+  private long final_time       = 0;
+  
+  private emit emit = new emit();
 
   /* Additional timing information is also collected in emit */
 
@@ -163,12 +165,9 @@ public class Main {
       terminal.clear();
       production.clear();
       action_production.clear();
-      emit.clear();
       non_terminal.clear();
-      parse_reduce_row.clear();
-      parse_action_row.clear();
       lalr_state.clear();
-
+      
       /* open output files */
       if (print_progress) System.err.println("Opening files...");
       /* use a buffered version of standard input */
@@ -238,7 +237,7 @@ public class Main {
    *  then exit.
    * @param message a specific error message to preface the usage message by.
    */
-  protected void usage(String message)
+  private void usage(String message)
     {
       System.err.println();
       System.err.println(message);
@@ -277,7 +276,7 @@ public class Main {
    *  flags and variables. 
    * @param argv the command line arguments to be parsed.
    */
-  protected void parse_args(String argv[])
+  private void parse_args(String argv[])
     {
       int len = argv.length;
       int i;
@@ -399,20 +398,20 @@ public class Main {
   /*-------*/
 
   /** Input file.  This is a buffered version of System.in. */
-  protected BufferedInputStream input_file;
+  private BufferedInputStream input_file;
 
   /** Output file for the parser class. */
-  protected PrintWriter parser_class_file;
+  private PrintWriter parser_class_file;
 
   /** Output file for the symbol constant class. */
-  protected PrintWriter symbol_class_file;
+  private PrintWriter symbol_class_file;
 
   /** Output directory. */
-  protected File dest_dir = null;
+  private File dest_dir = null;
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Open various files used by the system. */
-  protected void open_files()
+  private void open_files()
     {
       File fil;
       String out_name;
@@ -445,7 +444,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Close various files used by the system. */
-  protected void close_files() throws java.io.IOException
+  private void close_files() throws java.io.IOException
     {
       if (input_file != null) input_file.close();
       if (parser_class_file != null) parser_class_file.close();
@@ -460,13 +459,14 @@ public class Main {
    *  of various variables (mostly in the emit class) for small user supplied
    *  items such as the code to scan with.
    */
-  protected void parse_grammar_spec() throws java.lang.Exception
+  private void parse_grammar_spec() throws java.lang.Exception
     {
       parser parser_obj;
 
       /* create a parser and parse with it */
       ComplexSymbolFactory csf = new ComplexSymbolFactory();
       parser_obj = new parser(new Lexer(csf),csf);
+      parser_obj.emit = emit;
       try {
 	if (opt_do_debug)
           parser_obj.debug_parse();
@@ -486,7 +486,7 @@ public class Main {
   /** Check for unused symbols.  Unreduced productions get checked when
    *  tables are created.
    */
-  protected void check_unused()
+  private void check_unused()
     {
       /* check for unused terminals */
       for (terminal term : terminal.all())
@@ -531,13 +531,13 @@ public class Main {
   /* . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Start state in the overall state machine. */
-  protected lalr_state start_state;
+  private lalr_state start_state;
 
   /** Resulting parse action table. */
-  protected parse_action_table action_table;
+  private parse_action_table action_table;
 
   /** Resulting reduce-goto table. */
-  protected parse_reduce_table reduce_table;
+  private parse_reduce_table reduce_table;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -550,7 +550,7 @@ public class Main {
    *    <li> Checking for unreduced productions.
    *  </ul>
    */
-  protected void build_parser()
+  private void build_parser()
     {
       /* compute nullability of all non terminals */
       if (opt_do_debug || print_progress) 
@@ -588,12 +588,12 @@ public class Main {
       /* check and warn for non-reduced productions */
       if (opt_do_debug || print_progress) 
 	System.err.println("  Checking for non-reduced productions...");
-      action_table.check_reductions();
+      action_table.check_reductions(!emit.nowarn);
 
       reduce_check_end = System.currentTimeMillis();
 
       /* if we have more conflicts than we expected issue a message and die */
-      if (emit.num_conflicts > expect_conflicts)
+      if (lalr_state.num_conflicts > expect_conflicts)
 	{
 	    ErrorManager.getManager().emit_error("*** More conflicts encountered than expected " +
 			     "-- parser generation aborted");
@@ -605,7 +605,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Call the emit routines necessary to write out the generated parser. */
-  protected void emit_parser()
+  private void emit_parser()
     {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
@@ -618,7 +618,7 @@ public class Main {
   /** Helper routine to optionally return a plural or non-plural ending. 
    * @param val the numerical value determining plurality.
    */
-  protected String plural(int val)
+  private String plural(int val)
     {
       if (val == 1)
 	return "";
@@ -634,7 +634,7 @@ public class Main {
    *  summary is also produced if it was requested by the user.
    * @param output_produced did the system get far enough to generate code.
    */
-  protected void emit_summary(boolean output_produced)
+  private void emit_summary(boolean output_produced)
     {
       final_time = System.currentTimeMillis();
 
@@ -669,8 +669,8 @@ public class Main {
 			 plural(emit.not_reduced) + " never reduced.");
 
       /* conflicts */
-      System.err.println("  " + emit.num_conflicts + " conflict" +
-			 plural(emit.num_conflicts) + " detected" +
+      System.err.println("  " + lalr_state.num_conflicts + " conflict" +
+			 plural(lalr_state.num_conflicts) + " detected" +
 	                 " (" + expect_conflicts + " expected).");
 
       /* code location */
@@ -690,7 +690,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Produce the optional timing summary as part of an overall summary. */
-  protected void show_times()
+  private void show_times()
     {
       long total_time = final_time - start_time;
 
@@ -758,7 +758,7 @@ public class Main {
    * @param time_val   the value being formatted (in ms).
    * @param total_time total time percentages are calculated against (in ms).
    */
-  protected String timestr(long time_val, long total_time)
+  private String timestr(long time_val, long total_time)
     {
       boolean neg;
       long    ms = 0;

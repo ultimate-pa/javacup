@@ -55,12 +55,12 @@ public class parse_action_table {
    *  Issue a warning message (to System.err) for each production that
    *  is never reduced.
    */
-  public void check_reductions()
+  public void check_reductions(boolean warn)
     {
       /* tabulate reductions -- look at every table entry */
       for (int row = 0; row < num_states(); row++)
 	{
-	  for (int col = 0; col < parse_action_row.size(); col++)
+	  for (int col = 0; col < terminal.number(); col++)
 	    {
 	      /* look at the action entry to see if its a reduce */
 	      parse_action act = under_state[row].under_term[col];
@@ -82,7 +82,7 @@ public class parse_action_table {
 	      emit.not_reduced++;
 
 	      /* give a warning if they haven't been turned off */
-	      if (!emit.nowarn)
+	      if (warn)
 		{
 
 		  ErrorManager.getManager().emit_warning("*** Production \"" + 
@@ -105,7 +105,7 @@ public class parse_action_table {
 	{
 	  result.append("From state #").append(row).append("\n");
 	  cnt = 0;
-	  for (int col = 0; col < parse_action_row.size(); col++)
+	  for (int col = 0; col < terminal.number(); col++)
 	    {
 	      /* if the action is not an error print it */ 
 	      if (under_state[row].under_term[col].kind() != parse_action.ERROR)
@@ -133,4 +133,3 @@ public class parse_action_table {
   /*-----------------------------------------------------------*/
 
 }
-
