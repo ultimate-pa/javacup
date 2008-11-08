@@ -466,8 +466,7 @@ public class emit {
 	  }
 
 	  /* if there is an action string, emit it */
-          if (prod.action() != null && prod.action().code_string() != null &&
-              !prod.action().equals(""))
+          if (prod.action() != null && prod.action().code_string() != null)
             out.println(prod.action().code_string());
 
 	  /* here we have the left and right values being propagated.  

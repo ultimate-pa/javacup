@@ -4,8 +4,6 @@ package java_cup;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Stack;
 import java.util.Map.Entry;
 
@@ -57,38 +55,10 @@ public class lalr_state {
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
 
-  private static class propagate_info {
-    private lalr_state _state;
-    private lr_item _itm;
-    
-    /**
-     * @return the state
-     */
-    public lalr_state state()
-      {
-        return _state;
-      }
-
-    /**
-     * @return the itm
-     */
-    public lr_item itm()
-      {
-        return _itm;
-      }
-
-    public propagate_info(lalr_state state, lr_item itm)
-      {
-	super();
-	this._state = state;
-	this._itm = itm;
-      }
-  }
-
   /** Constructor for building a state from a set of items.
    * @param itms the set of items that makes up this state.
    */
-  private lalr_state(Map<lr_item, terminal_set> kernel)
+  private lalr_state(HashMap<lr_item, terminal_set> kernel)
    {
      /* don't allow null or duplicate item sets */
      if (kernel == null)
@@ -99,8 +69,9 @@ public class lalr_state {
       _index = next_index++;
 
      /* store the items */
-     _items = new HashMap<lr_item, terminal_set>();
-     _items.putAll(kernel);
+     _items = new HashMap<lr_item, lookaheads>();
+     for (Entry<lr_item, terminal_set> entry : kernel.entrySet())
+       _items.put(entry.getKey(), new lookaheads(entry.getValue()));
    }
   
   public static lalr_state get_lalr_state(
@@ -159,15 +130,11 @@ public class lalr_state {
   /*-----------------------------------------------------------*/
 
   /** The item set for this state. */
-  protected HashMap<lr_item, terminal_set> _items;
+  protected HashMap<lr_item, lookaheads> _items;
 
   /** The item set for this state. */
-  public Map<lr_item, terminal_set> items() {return _items;}
+  public HashMap<lr_item, lookaheads> items() {return _items;}
 
-  /** List of propagations for each itm. */
-  private HashMap<lr_item, ArrayList<propagate_info>> _propagations =
-    new HashMap<lr_item, ArrayList<propagate_info>>();
-  
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** List of transitions out of this state. */
@@ -194,7 +161,7 @@ public class lalr_state {
   void dump_state()
     {
       System.out.println("lalr_state [" + index() + "] {");
-      for (Entry<lr_item, terminal_set> itm : items().entrySet() )
+      for (Entry<lr_item, lookaheads> itm : items().entrySet() )
 	{
 	  System.out.print("  [");
 	  System.out.print(itm.getKey().the_production().lhs().the_symbol().name());
@@ -266,58 +233,26 @@ public class lalr_state {
 		{
 		  /* create new item with dot at start and that lookahead */
 		  lr_item new_itm = prod.item();
+		  lookaheads new_la;
 		  if (_items.containsKey(new_itm))
 		    {
-		      add_lookaheads(new_itm, new_lookaheads);
+		      new_la = _items.get(new_itm); 
+		      new_la.add(new_lookaheads);
 		    }
 		  else
 		    {
-		      _items.put(new_itm, new terminal_set(new_lookaheads));
+		      new_la = new lookaheads(new_lookaheads);
+		      _items.put(new_itm, new_la);
 		      /* that may need further closure, consider it also */ 
 		      consider.push(new_itm);
 		    }
 		  
 		  /* if propagation is needed link to that item */
 		  if (need_prop)
-		    add_propagate(itm, this, new_itm);
+		    _items.get(itm).add_propagation(new_la);
 		} 
 	    }
 	} 
-    }
-
-  /** Propagate lookahead sets through the constructed viable prefix 
-   *  recognizer.  When the machine is constructed, each item that results
-      in the creation of another such that its lookahead is included in the
-      other's propagate info.  This allows additions
-      to the lookahead of one item to be included in other items that it 
-      was used to directly or indirectly create.
-   */
-  private void add_propagate(lr_item itm, lalr_state new_st, lr_item new_itm)
-    {
-      ArrayList<propagate_info> props = _propagations.get(itm);
-      if (props == null)
-	{
-	  props = new ArrayList<propagate_info>();
-	  _propagations.put(itm, props);
-	}
-      props.add(new propagate_info(new_st, new_itm));
-    }
-
-  private void add_lookaheads(lr_item new_core, terminal_set new_lookaheads)
-    {
-      Stack<propagate_info> work = new Stack<propagate_info>();
-      work.add(new propagate_info(this, new_core));
-      while (!work.isEmpty())
-	{
-	  propagate_info prop = work.pop();
-	  terminal_set old_lookaheads = prop.state().items().get(prop.itm());
-	  if (!new_lookaheads.is_subset_of(old_lookaheads))
-	    {
-	      old_lookaheads.add(new_lookaheads);
-	      if (prop.state()._propagations.containsKey(prop.itm()))
-		work.addAll(prop.state()._propagations.get(prop.itm()));
-	    }
-	}
     }
 
   /** Add a transition out of this state to another.
@@ -430,15 +365,16 @@ public class lalr_state {
 	  for (lr_item itm : out.getValue())
 	    {
 	      /* add to the kernel of the new state */
-	      new_items.put(itm.shift_core(), new terminal_set(items().get(itm)));
+	      new_items.put(itm.shift_core(), items().get(itm));
 	    }
 
-	  /* have we seen this one already? */
+	  /* create/get succesor state */
 	  lalr_state new_st = get_lalr_state(work_stack, new_items);
 	  for (lr_item itm : out.getValue())
 	    {
 	      /* ... remember that itm has propagate link to it */
-	      add_propagate(itm, new_st, itm.shift_core());
+	      items().get(itm).add_propagation(
+		  new_st.items().get(itm.shift_core()));
 	    }
 
 	  /* add a transition from current state to that state */
@@ -457,7 +393,7 @@ public class lalr_state {
       /* recursively propagate out from each item in the state */
       for (Entry<lr_item, terminal_set> entry : new_kernel.entrySet())
 	{
-	  add_lookaheads(entry.getKey(), entry.getValue());
+	  _items.get(entry.getKey()).add(entry.getValue());
 	}
     }
 
@@ -499,7 +435,7 @@ public class lalr_state {
       our_red_row = reduce_table.under_state[index()];
 
       /* consider each item in our state */
-      for (Entry<lr_item, terminal_set> itm : items().entrySet())
+      for (Entry<lr_item, lookaheads> itm : items().entrySet())
 	{
 
 	  /* if its completed (dot at end) then reduce under the lookahead */
@@ -720,7 +656,7 @@ public class lalr_state {
       boolean      after_itm;
 
       /* consider each element */
-      for (Entry<lr_item,terminal_set> itm : items().entrySet())
+      for (Entry<lr_item,lookaheads> itm : items().entrySet())
 	{
 	  /* clear the S/R conflict set for this item */
 
@@ -730,25 +666,22 @@ public class lalr_state {
 	      /* not yet after itm */
 	      after_itm = false;
 
-	      /* compare this item against all others looking for conflicts */
-	      for (Entry<lr_item,terminal_set> compare : items().entrySet())
+	      /* compare this item against all others before this,
+	       * looking for conflicts */
+	      for (Entry<lr_item,lookaheads> compare : items().entrySet())
 		{
-		  /* if this is the item, next one is after it */
-		  if (itm == compare) after_itm = true;
+		  /* if this is the item break out of the loop */
+		  if (itm.getKey() == compare.getKey())
+		    break;
 
-		  /* only look at it if its not the same item */
-		  if (itm != compare)
+		  /* is it a reduce */
+		  if (compare.getKey().dot_at_end())
 		    {
-		      /* is it a reduce */
-		      if (compare.getKey().dot_at_end())
-			{
-			  /* only look at reduces after itm */
-			  if (after_itm)
-                            /* does the comparison item conflict? */
-                            if (compare.getValue().intersects(itm.getValue()))
-                              /* report a reduce/reduce conflict */
-                              report_reduce_reduce(itm, compare);
-			}
+		      if (after_itm)
+			/* does the comparison item conflict? */
+			if (compare.getValue().intersects(itm.getValue()))
+			  /* report a reduce/reduce conflict */
+			  report_reduce_reduce(itm, compare);
 		    }
 		}
 	      /* report S/R conflicts under all the symbols we conflict under */
@@ -767,12 +700,12 @@ public class lalr_state {
    * @param itm2 second item in conflict.
    */
   protected void report_reduce_reduce(
-      Entry<lr_item,terminal_set> itm1,
-      Entry<lr_item,terminal_set> itm2)
+      Entry<lr_item,lookaheads> itm1,
+      Entry<lr_item,lookaheads> itm2)
     {
       if (itm1.getKey().the_production().index() > itm2.getKey().the_production().index())
 	{
-	  Entry<lr_item,terminal_set> tmpitm = itm1;
+	  Entry<lr_item,lookaheads> tmpitm = itm1;
 	  itm1 = itm2;
 	  itm2 = tmpitm;
 	}
@@ -877,7 +810,7 @@ public class lalr_state {
 
       /* dump the item set */
       result.append("lalr_state [").append(index()).append("]: {\n");
-      for (Entry<lr_item,terminal_set> itm : items().entrySet()) 
+      for (Entry<lr_item,lookaheads> itm : items().entrySet()) 
 	{
 	  /* only print the kernel */
 	  if (itm.getKey().dot_pos() == 0)

@@ -168,6 +168,15 @@ public class terminal_set {
       else
 	return equals((terminal_set)other);
     }
+  
+  @Override
+  public int hashCode() 
+    {
+      int hash = 0;
+      for (int i = 0; i < _elements.length; i++)
+	hash = 13*hash + 157*(int)(_elements[i] >>16) + (int)_elements[i];
+      return hash;
+    }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
