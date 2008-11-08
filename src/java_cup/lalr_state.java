@@ -249,7 +249,7 @@ public class lalr_state {
 		  
 		  /* if propagation is needed link to that item */
 		  if (need_prop)
-		    _items.get(itm).add_propagation(new_la);
+		    _items.get(itm).add_listener(new_la);
 		} 
 	    }
 	} 
@@ -373,7 +373,7 @@ public class lalr_state {
 	  for (lr_item itm : out.getValue())
 	    {
 	      /* ... remember that itm has propagate link to it */
-	      items().get(itm).add_propagation(
+	      items().get(itm).add_listener(
 		  new_st.items().get(itm.shift_core()));
 	    }
 

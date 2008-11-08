@@ -3,25 +3,34 @@ package java_cup;
 import java.util.ArrayList;
 import java.util.Stack;
 
+/**
+ * A lookaheads object represents a set of terminal symbols that are
+ * used as follower set for a production, to determine under which lookahead
+ * symbols that production can be reduced.  Since the lookahead symbols can
+ * be directly inherited to other productions, we allow adding listeners
+ * to this set, that will be updated whenever this set gets new lookahead
+ * symbols.
+ * 
+ * @author hoenicke
+ *
+ */
 public class lookaheads extends terminal_set {
-  private ArrayList<lookaheads> propagations;
+  private ArrayList<lookaheads> _listeners;
   
   public lookaheads(terminal_set t)
     {
       super(t);
-      propagations = new ArrayList<lookaheads>();
+      _listeners = new ArrayList<lookaheads>();
     }
 
-  /** Propagate lookahead sets through the constructed viable prefix 
-   *  recognizer.  When the machine is constructed, each item that results
-      in the creation of another such that its lookahead is included in the
-      other's propagate info.  This allows additions
-      to the lookahead of one item to be included in other items that it 
-      was used to directly or indirectly create.
+  /** Add a listener object for propagations.  Whenever this object
+      changes by adding new lookaheads, all propagation listeners
+      will also be updated.
+      @param child the lookaheads object that is dependent on this.
    */
-  public void add_propagation(lookaheads child)
+  public void add_listener(lookaheads child)
     {
-      propagations.add(child); 
+      _listeners.add(child); 
     }
 
   private boolean add_without_prop(terminal_set new_lookaheads)
@@ -29,23 +38,25 @@ public class lookaheads extends terminal_set {
       return super.add(new_lookaheads);
     }
   
+  /** Adds new lookaheads.  This will also propagate the lookaheads 
+      to all objects added by add_propagation().
+      @param new_lookaheads  A set of new lookahead symbols.
+   */
   public boolean add(terminal_set new_lookaheads)
     {
       if (!super.add(new_lookaheads))
 	return false;
       
       Stack<lookaheads> work = new Stack<lookaheads>();
-      work.addAll(propagations);
+      work.addAll(_listeners);
       while (!work.isEmpty())
 	{
 	  lookaheads la = work.pop();
 	  if (la.add_without_prop(new_lookaheads))
 	    {
-	      work.addAll(la.propagations);
+	      work.addAll(la._listeners);
 	    }
 	}
       return true;
     }
-
-
 }
