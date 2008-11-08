@@ -164,7 +164,6 @@ public class Main {
       /** clean all members, that contain remaining stuff from earlier calls */
       terminal.clear();
       production.clear();
-      action_production.clear();
       non_terminal.clear();
       lalr_state.clear();
       

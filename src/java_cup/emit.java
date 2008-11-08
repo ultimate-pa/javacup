@@ -276,7 +276,7 @@ public class emit {
 	{
 
 	  /* output a constant decl for the terminal */
-	  out.println("  public final int " + term.name() + " = " + 
+	  out.println("  public static final int " + term.name() + " = " + 
 		      term.index() + ";");
 	}
 
@@ -294,7 +294,7 @@ public class emit {
           // ****
 
 	      /* output a constant decl for the terminal */
-	      out.println("  final int " + nt.name() + " = " + 
+	      out.println("  static final int " + nt.name() + " = " + 
 		          nt.index() + ";");
 	    }
 	}
@@ -537,7 +537,7 @@ public class emit {
       /* do the top of the table */
       out.println();
       out.println("  /** Production table. */");
-      out.println("  private final short _production_table[][] = ");
+      out.println("  private static final short _production_table[][] = ");
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, prod_table);
       out.println(");");
@@ -637,7 +637,7 @@ public class emit {
       /* finish off the init of the table */
       out.println();
       out.println("  /** Parse-action table. */");
-      out.println("  private final short[][] _action_table = "); 
+      out.println("  private static final short[][] _action_table = "); 
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, action_table);
       out.println(");");
@@ -698,7 +698,7 @@ public class emit {
       /* emit the table. */
       out.println();
       out.println("  /** <code>reduce_goto</code> table. */");
-      out.println("  private final short[][] _reduce_table = "); 
+      out.println("  private static final short[][] _reduce_table = "); 
       out.print  ("    unpackFromStrings(");
       do_table_as_string(out, reduce_goto_table);
       out.println(");");
