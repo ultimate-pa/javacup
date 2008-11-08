@@ -1,8 +1,16 @@
 
 package java_cup;
 
-import java.io.*;
-import java_cup.runtime.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+
+import java_cup.runtime.ComplexSymbolFactory;
+
 
 /** This class serves as the main driver for the JavaCup system.
  *  It accepts user options and coordinates overall control flow.
@@ -66,99 +74,92 @@ import java_cup.runtime.*;
 
 public class Main {
 
-  /*-----------------------------------------------------------*/
-  /*--- Constructor(s) ----------------------------------------*/
-  /*-----------------------------------------------------------*/
-  /** Only constructor is private, so we do not allocate any instances of this
-      class. */
-  private Main() { }
-
   /*-------------------------*/
   /* Options set by the user */
   /*-------------------------*/
   /** User option -- do we print progress messages. */
-  protected static boolean print_progress   = false;
+  protected boolean print_progress   = false;
   /** User option -- do we produce a dump of the state machine */
-  protected static boolean opt_dump_states  = false;
+  protected boolean opt_dump_states  = false;
   /** User option -- do we produce a dump of the parse tables */
-  protected static boolean opt_dump_tables  = false;
+  protected boolean opt_dump_tables  = false;
   /** User option -- do we produce a dump of the grammar */
-  protected static boolean opt_dump_grammar = false;
+  protected boolean opt_dump_grammar = false;
   /** User option -- do we show timing information as a part of the summary */
-  protected static boolean opt_show_timing  = false;
+  protected boolean opt_show_timing  = false;
   /** User option -- do we run produce extra debugging messages */
-  protected static boolean opt_do_debug     = false;
+  protected boolean opt_do_debug     = false;
   /** User option -- do we compact tables by making most common reduce the 
       default action */
-  protected static boolean opt_compact_red  = false;
+  protected boolean opt_compact_red  = false;
   /** User option -- use java 1.5 syntax (generics, annotations) */
-  protected static boolean opt_java15       = false;
+  protected boolean opt_java15       = false;
   /** User option -- should we include non terminal symbol numbers in the 
       symbol constant class. */
-  protected static boolean include_non_terms = false;
+  protected boolean include_non_terms = false;
   /** User option -- do not print a summary. */
-  protected static boolean no_summary = false;
+  protected boolean no_summary = false;
   /** User option -- number of conflicts to expect */
-  protected static int expect_conflicts = 0;
+  protected int expect_conflicts = 0;
 
   /* frankf added this 6/18/96 */
   /** User option -- should generator generate code for left/right values? */
-  protected static boolean opt_lr_values = true;
+  protected boolean opt_lr_values = true;
 
   /** User option -- should symbols be put in a class or an interface? [CSA]*/
-  protected static boolean sym_interface = false;
+  protected boolean sym_interface = false;
 
   /** User option -- should generator suppress references to
    *  java_cup.runtime.Scanner for compatibility with old runtimes? */
-  protected static boolean suppress_scanner = false;
+  protected boolean suppress_scanner = false;
 
   /*----------------------------------------------------------------------*/
   /* Timing data (not all of these time intervals are mutually exclusive) */
   /*----------------------------------------------------------------------*/
   /** Timing data -- when did we start */
-  protected static long start_time       = 0;
+  protected long start_time       = 0;
   /** Timing data -- when did we end preliminaries */
-  protected static long prelim_end       = 0;
+  protected long prelim_end       = 0;
   /** Timing data -- when did we end parsing */
-  protected static long parse_end        = 0;
+  protected long parse_end        = 0;
   /** Timing data -- when did we end checking */
-  protected static long check_end        = 0;
+  protected long check_end        = 0;
   /** Timing data -- when did we end dumping */
-  protected static long dump_end         = 0;
+  protected long dump_end         = 0;
   /** Timing data -- when did we end state and table building */
-  protected static long build_end        = 0;
+  protected long build_end        = 0;
   /** Timing data -- when did we end nullability calculation */
-  protected static long nullability_end  = 0;
+  protected long nullability_end  = 0;
   /** Timing data -- when did we end first set calculation */
-  protected static long first_end        = 0;
+  protected long first_end        = 0;
   /** Timing data -- when did we end state machine construction */
-  protected static long machine_end      = 0;
+  protected long machine_end      = 0;
   /** Timing data -- when did we end table construction */
-  protected static long table_end        = 0;
+  protected long table_end        = 0;
   /** Timing data -- when did we end checking for non-reduced productions */
-  protected static long reduce_check_end = 0;
+  protected long reduce_check_end = 0;
   /** Timing data -- when did we finish emitting code */
-  protected static long emit_end         = 0;
+  protected long emit_end         = 0;
   /** Timing data -- when were we completely done */
-  protected static long final_time       = 0;
+  protected long final_time       = 0;
 
   /* Additional timing information is also collected in emit */
 
   /*-----------------------------------------------------------*/
-  /*--- Main Program ------------------------------------------*/
+  /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
 
-  /** The main driver for the system. 
-   * @param argv an array of strings containing command line arguments.
-   */
-  public static void main(String argv[]) 
-    throws java.io.IOException, java.lang.Exception
+  public Main()
+    {
+      start_time = System.currentTimeMillis();
+    }
+  
+  public void run()
+    throws Exception
     {
       boolean did_output = false;
 
-      start_time = System.currentTimeMillis();
-      
-      /** clean all static members, that contain remaining stuff from earlier calls */
+      /** clean all members, that contain remaining stuff from earlier calls */
       terminal.clear();
       production.clear();
       action_production.clear();
@@ -167,9 +168,6 @@ public class Main {
       parse_reduce_row.clear();
       parse_action_row.clear();
       lalr_state.clear();
-
-      /* process user options and arguments */
-      parse_args(argv);
 
       /* open output files */
       if (print_progress) System.err.println("Opening files...");
@@ -240,7 +238,7 @@ public class Main {
    *  then exit.
    * @param message a specific error message to preface the usage message by.
    */
-  protected static void usage(String message)
+  protected void usage(String message)
     {
       System.err.println();
       System.err.println(message);
@@ -279,7 +277,7 @@ public class Main {
    *  flags and variables. 
    * @param argv the command line arguments to be parsed.
    */
-  protected static void parse_args(String argv[])
+  protected void parse_args(String argv[])
     {
       int len = argv.length;
       int i;
@@ -305,7 +303,7 @@ public class Main {
 				argv[i].endsWith(".cup")) 
 		usage("-destdir must have a name argument");
 	      /* record the name */
-	      Main.dest_dir = new java.io.File(argv[i]);
+	      dest_dir = new File(argv[i]);
 	    }
 	  else if (argv[i].equals("-parser"))
 	    {
@@ -376,14 +374,14 @@ public class Main {
           
  	      /* record the typearg */
  	      emit.class_type_argument = argv[i];
-      }
+ 	  }
 
 	  /* CSA 24-Jul-1999; suggestion by Jean Vaucher */
 	  else if (!argv[i].startsWith("-") && i==len-1) {
 	      /* use input from file. */
 	      try {
 		  System.setIn(new FileInputStream(argv[i]));
-	      } catch (java.io.FileNotFoundException e) {
+	      } catch (FileNotFoundException e) {
 		  usage("Unable to open \"" + argv[i] +"\" for input");
 	      }
 	  }
@@ -401,20 +399,20 @@ public class Main {
   /*-------*/
 
   /** Input file.  This is a buffered version of System.in. */
-  protected static BufferedInputStream input_file;
+  protected BufferedInputStream input_file;
 
   /** Output file for the parser class. */
-  protected static PrintWriter parser_class_file;
+  protected PrintWriter parser_class_file;
 
   /** Output file for the symbol constant class. */
-  protected static PrintWriter symbol_class_file;
+  protected PrintWriter symbol_class_file;
 
   /** Output directory. */
-  protected static File dest_dir = null;
+  protected File dest_dir = null;
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Open various files used by the system. */
-  protected static void open_files()
+  protected void open_files()
     {
       File fil;
       String out_name;
@@ -447,7 +445,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Close various files used by the system. */
-  protected static void close_files() throws java.io.IOException
+  protected void close_files() throws java.io.IOException
     {
       if (input_file != null) input_file.close();
       if (parser_class_file != null) parser_class_file.close();
@@ -458,11 +456,11 @@ public class Main {
 
   /** Parse the grammar specification from standard input.  This produces
    *  sets of terminal, non-terminals, and productions which can be accessed
-   *  via static variables of the respective classes, as well as the setting
+   *  via variables of the respective classes, as well as the setting
    *  of various variables (mostly in the emit class) for small user supplied
    *  items such as the code to scan with.
    */
-  protected static void parse_grammar_spec() throws java.lang.Exception
+  protected void parse_grammar_spec() throws java.lang.Exception
     {
       parser parser_obj;
 
@@ -488,7 +486,7 @@ public class Main {
   /** Check for unused symbols.  Unreduced productions get checked when
    *  tables are created.
    */
-  protected static void check_unused()
+  protected void check_unused()
     {
       /* check for unused terminals */
       for (terminal term : terminal.all())
@@ -533,13 +531,13 @@ public class Main {
   /* . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Start state in the overall state machine. */
-  protected static lalr_state start_state;
+  protected lalr_state start_state;
 
   /** Resulting parse action table. */
-  protected static parse_action_table action_table;
+  protected parse_action_table action_table;
 
   /** Resulting reduce-goto table. */
-  protected static parse_reduce_table reduce_table;
+  protected parse_reduce_table reduce_table;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -552,7 +550,7 @@ public class Main {
    *    <li> Checking for unreduced productions.
    *  </ul>
    */
-  protected static void build_parser()
+  protected void build_parser()
     {
       /* compute nullability of all non terminals */
       if (opt_do_debug || print_progress) 
@@ -607,7 +605,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Call the emit routines necessary to write out the generated parser. */
-  protected static void emit_parser()
+  protected void emit_parser()
     {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
@@ -620,7 +618,7 @@ public class Main {
   /** Helper routine to optionally return a plural or non-plural ending. 
    * @param val the numerical value determining plurality.
    */
-  protected static String plural(int val)
+  protected String plural(int val)
     {
       if (val == 1)
 	return "";
@@ -636,7 +634,7 @@ public class Main {
    *  summary is also produced if it was requested by the user.
    * @param output_produced did the system get far enough to generate code.
    */
-  protected static void emit_summary(boolean output_produced)
+  protected void emit_summary(boolean output_produced)
     {
       final_time = System.currentTimeMillis();
 
@@ -692,7 +690,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Produce the optional timing summary as part of an overall summary. */
-  protected static void show_times()
+  protected void show_times()
     {
       long total_time = final_time - start_time;
 
@@ -760,7 +758,7 @@ public class Main {
    * @param time_val   the value being formatted (in ms).
    * @param total_time total time percentages are calculated against (in ms).
    */
-  protected static String timestr(long time_val, long total_time)
+  protected String timestr(long time_val, long total_time)
     {
       boolean neg;
       long    ms = 0;
@@ -798,7 +796,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Produce a human readable dump of the grammar. */
-  public static void dump_grammar()
+  public void dump_grammar()
     {
       System.err.println("===== Terminals =====");
       for (int tidx=0, cnt=0; tidx < terminal.number(); tidx++, cnt++)
@@ -840,7 +838,7 @@ public class Main {
   /** Produce a (semi-) human readable dump of the complete viable prefix 
    *  recognition state machine. 
    */
-  public static void dump_machine()
+  public void dump_machine()
     {
       lalr_state ordered[] = new lalr_state[lalr_state.number()];
 
@@ -862,7 +860,7 @@ public class Main {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Produce a (semi-) human readable dumps of the parse tables */
-  public static void dump_tables()
+  public void dump_tables()
     {
       System.err.println(action_table);
       System.err.println(reduce_table);
@@ -870,5 +868,21 @@ public class Main {
 
   /*-----------------------------------------------------------*/
 
-}
+  /*-----------------------------------------------------------*/
+  /*--- Main Program ------------------------------------------*/
+  /*-----------------------------------------------------------*/
 
+  /** The main driver for the system. 
+   * @param argv an array of strings containing command line arguments.
+   */
+  public static void main(String argv[]) 
+    throws Exception
+    {
+      Main main = new Main();
+      
+      /* process user options and arguments */
+      main.parse_args(argv);
+      main.run();
+    }
+  
+}
