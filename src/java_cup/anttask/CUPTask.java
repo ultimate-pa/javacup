@@ -42,6 +42,7 @@ public class CUPTask extends Task
     private String _package=null;
     private String symbols=null;
     private String destdir=null;
+    private boolean java15=false;
     private boolean _interface=false;
     private boolean nonterms=false;
     private String expect=null;
@@ -76,6 +77,7 @@ public class CUPTask extends Task
 	if (symbols!=null) { sc.add("-symbols"); sc.add(symbols); }
         else symbols="sym";
 	if (expect!=null)  {  sc.add("-expect"); sc.add(expect); }
+	if (java15)        {  sc.add("-java15"); }
 	if (_interface)    {  sc.add("-interface"); }
 	if (nonterms)      {  sc.add("-nonterms"); }
 	if (compact_red)   {  sc.add("-compact_red"); }
@@ -271,6 +273,24 @@ public class CUPTask extends Task
      */
     public void setDestdir(String destdir) {
 	this.destdir = destdir;
+    }
+
+    /**
+     * Gets the value of java15
+     *
+     * @return the value of _interface
+     */
+    public boolean isJava15()  {
+	return this.java15;
+    }
+
+    /**
+     * Sets the value of java15
+     *
+     * @param arg_java15 Value to assign to this.java15
+     */
+    public void setJava15(boolean arg_java15) {
+	this.java15 = arg_java15;
     }
 
     /**

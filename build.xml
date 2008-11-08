@@ -44,7 +44,7 @@
   <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="${bin}/JFlex.jar" />
 
   <target name="cup" depends="init">
-    <cup srcfile="${cup}/parser.cup" interface="on" destdir="${java}" parser="parser" symbols="sym" quiet="false" nonterms="true"/>
+    <cup srcfile="${cup}/parser.cup" java15="on" interface="on" destdir="${java}" parser="parser" symbols="sym" quiet="false" nonterms="true"/>
   </target>
 
   <target name="jflex" depends="cup">
@@ -53,24 +53,24 @@
 
   <target name="compile" depends="jflex">
     <copy todir="${java}"><fileset dir="${src}"></fileset></copy>
-    <javac srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="on" source="1.2" target="1.2">
+    <javac srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="on" source="1.5" target="1.5">
       <classpath refid="libraries"/>
     </javac>
   </target>
 
   <target name="dist" depends="compile">
-   <jar jarfile="${dist}/java-cup-11a.jar" basedir="${classes}">
+   <jar jarfile="${dist}/java-cup-11joho.jar" basedir="${classes}">
       <manifest>
         <attribute name="Main-Class" value="java_cup/Main" />
-	<attribute name="Class-Path" value="java-cup-11a-runtime.jar" />
       </manifest>
     </jar>
-    <jar jarfile="${dist}/java-cup-11a-runtime.jar" basedir="${classes}" includes="java_cup/runtime/*">
+    <jar jarfile="${dist}/java-cup-11joho-runtime.jar" basedir="${classes}" includes="java_cup/runtime/*">
     </jar>
   </target>
 
   <target name="test" depends="dist">
-    <java jar="${dist}/java-cup-11a.jar" fork="true">
+    <java jar="${dist}/java-cup-11joho.jar" fork="true">
+        <arg value="-java15" />
         <arg value="-interface" />
         <arg value="${cup}/parser.cup" />
     </java>  
