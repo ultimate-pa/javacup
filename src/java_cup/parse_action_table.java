@@ -53,9 +53,8 @@ public class parse_action_table {
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
   
-  public short[] compress(boolean compact_reduces)
+  public short[] compress(boolean compact_reduces, int[] base_table)
     {
-      int[] baseaddrs = new int[_num_states];
       int[] rowidx = new int[terminal.number()];
       int maxbase = 0;
       BitSet used = new BitSet();
@@ -82,10 +81,6 @@ public class parse_action_table {
 	next_base:
 	  for (int base = 0; true; base++)
 	    {
-	      if (2*(_num_states+base) > Short.MAX_VALUE)
-		{
-		  throw new AssertionError("Action table overflow!");
-		}
 	      for (int j = 0; j < rowcnt; j++)
 		{
 		  if (used.get(base+rowidx[j]))
@@ -93,22 +88,21 @@ public class parse_action_table {
 		}
 	      for (int j = 0; j < rowcnt; j++)
 		used.set(base+rowidx[j]);
-	      baseaddrs[i] = base;
+	      base_table[i] = (_num_states + 2*base);
 	      if (base > maxbase)
 		maxbase = base;
 	      break;
 	    }
 	}
       short[] compressed = 
-	new short[2*_num_states + 2*(maxbase + terminal.number())];
+	new short[_num_states + 2*(maxbase + terminal.number())];
       for (int i = 0; i < maxbase + terminal.number(); i++)
-	compressed[2*_num_states+2*i] = (short) _num_states;
+	compressed[_num_states+2*i] = (short) _num_states;
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_action_row row = under_state[i];
-	  int base = (2*_num_states + 2*baseaddrs[i]);
-	  compressed[2*i] = (short) base;
-	  compressed[2*i+1] = (short) (2*row.default_reduce+2);
+	  int base = base_table[i];
+	  compressed[i] = (short) (2*row.default_reduce+2);
 	  for (int j = 0; j < terminal.number(); j++)
 	    {
 	      parse_action act = row.under_term[j];

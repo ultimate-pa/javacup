@@ -326,7 +326,7 @@ public class emit {
        "/** Cup generated class to encapsulate user supplied action code.*/"
       );  
       /* TUM changes; proposed by Henning Niss 20050628: added type arguement */
-      out.println("class " +  pre("actions") + typeArgument() + " {");
+      out.println("class " +  pre(parser_class_name+"$actions") + typeArgument() + " {");
       /* user supplied code */
       if (action_code != null)
 	{
@@ -342,7 +342,7 @@ public class emit {
       out.println();
       out.println("  /** Constructor */");
       /* TUM changes; proposed by Henning Niss 20050628: added typeArgument */
-      out.println("  " + pre("actions") + "("+parser_class_name+typeArgument()+" parser) {");
+      out.println("  " + pre(parser_class_name+"$actions") + "("+parser_class_name+typeArgument()+" parser) {");
       out.println("    this.parser = parser;");
       out.println("  }");
 
@@ -550,7 +550,9 @@ public class emit {
     boolean            compact_reduces)
     {
       long start_time = System.currentTimeMillis();
-      String result = do_array_as_string(act_tab.compress(compact_reduces));
+      int[] base_tab = new int[act_tab.num_states()];
+      short[] action_tab = act_tab.compress(compact_reduces, base_tab);
+      String result = do_array_as_string(base_tab) + do_array_as_string(action_tab);
       action_table_time = System.currentTimeMillis() - start_time;
       return result;
     }
@@ -569,14 +571,34 @@ public class emit {
     }
 
   /** create a string encoding a given short[] array.*/
-  private String do_array_as_string(short[] sa) 
+  private String do_array_as_string(short[] sharr) 
     {
       StringBuilder sb = new StringBuilder();
-      sb.append((char)(sa.length >>> 16)).append((char)(sa.length & 0xffff));
-      for (int i = 0; i < sa.length; i++)
-	sb.append((char) sa[i]);
+      if (sharr.length >= 0x8000)
+	sb.append((char) (0x8000+(sharr.length>>16)));
+      sb.append((char)(sharr.length & 0xffff));
+      for (int i = 0; i < sharr.length; i++)
+	sb.append((char) sharr[i]);
       return sb.toString();
     }
+  
+  /** create a string encoding a given short[] array.*/
+  private String do_array_as_string(int[] intarr)
+    {
+      StringBuilder sb = new StringBuilder();
+      if (intarr.length >= 0x8000)
+	sb.append((char) (0x8000+(intarr.length>>16)));
+      sb.append((char)(intarr.length & 0xffff));
+      for (int i = 0; i < intarr.length; i++)
+	{
+	  assert(intarr[i] >= 0);
+	  if (intarr[i] >= 0x8000)
+	    sb.append((char) (0x8000+(intarr[i]>>16)));
+	  sb.append((char) (intarr[i]&0xffff));
+	}
+      return sb.toString();
+    }
+
     // print a string array encoding the given short[][] array.
   protected void output_string(PrintWriter out, String str) {
     for (int i = 0; i < str.length(); i += 11)
@@ -602,9 +624,12 @@ public class emit {
 	  }
 	encoded.append("\"");
 	if (i+11 < str.length())
-	  encoded.append(" +");
-	else
-	  encoded.append(";");
+	  {
+	    if ((i+11) % (11*2000) == 0)
+	      encoded.append(",");
+	    else
+	      encoded.append(" +");
+	  }
 	out.println(encoded.toString());
       }
   }
@@ -679,15 +704,16 @@ public class emit {
 
       /* instance of the action encapsulation class */
       out.println("  /** Return action table */");
-      out.println("  protected String action_table() { ");
-      out.println("    return");
+      out.println("  protected String[] action_table() { ");
+      out.println("    return new String[] {");
       output_string(out, tables);
+      out.println("    };");
       out.println("  }");
       out.println();
 
       /* instance of the action encapsulation class */
       out.println("  /** Instance of action encapsulation class. */");
-      out.println("  protected " + pre("actions") + " action_obj;");
+      out.println("  protected " + pre(parser_class_name+"$actions") + " action_obj;");
       out.println();
 
       /* action object initializer */
@@ -695,7 +721,7 @@ public class emit {
       out.println("  protected void init_actions()");
       out.println("    {");
       /* TUM changes; proposed by Henning Niss 20050628: added typeArgument */
-      out.println("      action_obj = new " + pre("actions") + typeArgument() +"(this);");
+      out.println("      action_obj = new " + pre(parser_class_name+"$actions") + typeArgument() +"(this);");
       out.println("    }");
       out.println();
 
