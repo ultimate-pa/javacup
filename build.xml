@@ -66,12 +66,15 @@
   </target>
 
   <target name="dist" depends="compile">
-   <jar jarfile="${dist}/java-cup-12joho.jar" basedir="${classes}">
+   <jar jarfile="${dist}/java-cup-12joho.jar" basedir="${classes}"
+        excludes="java_cup/runtime/lr_parser.class">
       <manifest>
         <attribute name="Main-Class" value="java_cup/Main" />
       </manifest>
     </jar>
-    <jar jarfile="${dist}/java-cup-12joho-runtime.jar" basedir="${classes}" includes="java_cup/runtime/*">
+    <jar jarfile="${dist}/java-cup-12joho-runtime.jar" basedir="${classes}" 
+        includes="java_cup/runtime/*"
+        excludes="java_cup/runtime/lr_parser.class">
     </jar>
   </target>
 
