@@ -241,7 +241,7 @@ non terminal
   precedence_list, preced, terminal_list, precedence_l, declares_term, 
   declares_non_term;
 
-non terminal String  nt_id, symbol_id, label_id, opt_label, terminal_id,
+non terminal String  symbol_id, label_id, opt_label, terminal_id,
                      term_id, robust_id, typearglist, typeargument, wildcard;
 non terminal StringBuilder multipart_id, import_id, type_id;
 
@@ -491,7 +491,7 @@ term_id ::= symbol_id:sym
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 start_spec ::= 
-	START WITH nt_id:start_name 
+	START WITH symbol_id:start_name 
 	{: 
 	  /* verify that the name has been declared as a non terminal */
 	  non_terminal nt = non_terms.get(start_name);
@@ -517,7 +517,7 @@ production_list ::= production_list production | production;
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 production ::=
-	nt_id:lhs_id
+	symbol_id:lhs_id
 	{:
 	  /* lookup the lhs nt */
 	  lhs_nt = non_terms.get(lhs_id);
@@ -704,7 +704,7 @@ type_id ::= multipart_id:id {: RESULT = id; :}
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 new_term_id ::= 
-	ID:term_id 
+	symbol_id:term_id 
 	{: 
 	  /* see if this terminal has been declared before */
 	  if (symbols.get(term_id) != null)
@@ -725,7 +725,7 @@ new_term_id ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 new_non_term_id ::=
-	ID:non_term_id
+	symbol_id:non_term_id
 	{: 
 	  /* see if this non terminal has been declared before */
 	  if (symbols.get(non_term_id) != null)
@@ -751,26 +751,11 @@ new_non_term_id ::=
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-nt_id ::=
-	ID:the_id
-	{: RESULT = the_id; :}
-	| error
-	{:
-		ErrorManager.getManager().emit_error("Illegal use of reserved word");
-		RESULT="ILLEGAL";
-	:}
-	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
 symbol_id ::=
 	ID:the_id
 	{: RESULT = the_id; :}
-	| error
-	{:
-		ErrorManager.getManager().emit_error("Illegal use of reserved word");
-		RESULT="ILLEGAL";
-	:}
+	| SUPER		{: RESULT = "super"; :}
+	| EXTENDS	{: RESULT = "extends"; :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
