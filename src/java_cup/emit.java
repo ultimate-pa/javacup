@@ -355,8 +355,7 @@ public class emit {
 		     pre("do_action") + "(");
       out.println("    int                        " + pre("act_num,"));
       out.println("    java_cup.runtime.lr_parser " + pre("parser,"));
-      out.println("    java.util.Stack"+genericArg+" " + pre("stack,"));
-      out.println("    int                        " + pre("top)"));
+      out.println("    java.util.Stack"+genericArg+" " + pre("stack)"));
       out.println("    throws java.lang.Exception");
       out.println("    {");
 
@@ -420,7 +419,7 @@ public class emit {
 		  else
 		    symbvar = pre("left");
 
-		  out.println("              Symbol " + symbvar + " = " +
+		  out.println("              java_cup.runtime.Symbol " + symbvar + " = " +
 		      stackelem(prod.rhs_params() - i, is_java15) + ";");
 		}
 	      
@@ -430,7 +429,7 @@ public class emit {
 		  if (symbvar == null)
 		    {
 		      symbvar = pre("sym"+symbol.label());
-		      out.println("              Symbol " + symbvar + " = " +
+		      out.println("              java_cup.runtime.Symbol " + symbvar + " = " +
 			  stackelem(prod.rhs_params() - i, is_java15) + ";");
 		    }
 		  /* Put in the left/right value labels */
@@ -469,7 +468,7 @@ public class emit {
 	      String rightsym = pre("right");
 	      if (prod.rhs_length() == 0)
 		{
-		  out.println("              Symbol " + rightsym + " = " +
+		  out.println("              java_cup.runtime.Symbol " + rightsym + " = " +
 		      stackelem(1, is_java15) + ";");
 		}
 	      if (prod.rhs_length() < 2)
@@ -665,17 +664,17 @@ public class emit {
       /* constructors [CSA/davidm, 24-jul-99] */
       out.println();
       out.println("  /** Default constructor. */");
-      out.println("  public " + parser_class_name + "() {super("+pre("tables")+");}");
+      out.println("  public " + parser_class_name + "() {super();}");
       if (!suppress_scanner) {
 	  out.println();
 	  out.println("  /** Constructor which sets the default scanner. */");
 	  out.println("  public " + parser_class_name + 
-		      "(java_cup.runtime.Scanner s) {super(s,"+pre("tables")+");}");
+		      "(java_cup.runtime.Scanner s) {super(s);}");
           // TUM 20060327 added SymbolFactory aware constructor
 	  out.println();
 	  out.println("  /** Constructor which sets the default scanner. */");
 	  out.println("  public " + parser_class_name + 
-		      "(java_cup.runtime.Scanner s, java_cup.runtime.SymbolFactory sf) {super(s,sf,"+pre("tables")+");}");
+		      "(java_cup.runtime.Scanner s, java_cup.runtime.SymbolFactory sf) {super(s,sf);}");
       }
 
       /* emit the various tables */
@@ -684,9 +683,11 @@ public class emit {
       	do_reduce_table(reduce_table);
 
       /* instance of the action encapsulation class */
-      out.println("  /** Instance of action encapsulation class. */");
-      out.println("  private final static String " + pre("tables")+ " = ");
+      out.println("  /** Return action table */");
+      out.println("  protected String action_table() { ");
+      out.println("    return");
       output_string(out, tables);
+      out.println("  }");
       out.println();
 
       /* instance of the action encapsulation class */
@@ -709,15 +710,14 @@ public class emit {
       out.println("    int                        act_num,");
       out.println("    java_cup.runtime.lr_parser parser,");
       if (is_java15)
-	out.println("    java.util.Stack<java_cup.runtime.Symbol> stack,");
+	out.println("    java.util.Stack<java_cup.runtime.Symbol> stack)");
       else
-	out.println("    java.util.Stack            stack,");
-      out.println("    int                        top)");
+	out.println("    java.util.Stack            stack)");
       out.println("    throws java.lang.Exception");
       out.println("  {");
       out.println("    /* call code in generated class */");
       out.println("    return action_obj." + pre("do_action(") +
-                  "act_num, parser, stack, top);");
+                  "act_num, parser, stack);");
       out.println("  }");
       out.println("");
 

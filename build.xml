@@ -53,23 +53,30 @@
 
   <target name="compile" depends="jflex">
     <copy todir="${java}"><fileset dir="${src}"></fileset></copy>
+    <javac srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="on" source="1.5" target="jsr14">
+      <classpath refid="libraries"/>
+      <include name="java_cup.anttask.**"/>
+      <include name="java_cup.runtime.**"/>
+    </javac>
     <javac srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="on" source="1.5" target="1.5">
       <classpath refid="libraries"/>
+      <exclude name="java_cup.anttask.**"/>
+      <exclude name="java_cup.runtime.**"/>
     </javac>
   </target>
 
   <target name="dist" depends="compile">
-   <jar jarfile="${dist}/java-cup-11joho.jar" basedir="${classes}">
+   <jar jarfile="${dist}/java-cup-12joho.jar" basedir="${classes}">
       <manifest>
         <attribute name="Main-Class" value="java_cup/Main" />
       </manifest>
     </jar>
-    <jar jarfile="${dist}/java-cup-11joho-runtime.jar" basedir="${classes}" includes="java_cup/runtime/*">
+    <jar jarfile="${dist}/java-cup-12joho-runtime.jar" basedir="${classes}" includes="java_cup/runtime/*">
     </jar>
   </target>
 
   <target name="test" depends="dist">
-    <java jar="${dist}/java-cup-11joho.jar" fork="true">
+    <java jar="${dist}/java-cup-12joho.jar" fork="true">
         <arg value="-java15" />
         <arg value="-interface" />
         <arg value="${cup}/parser.cup" />
