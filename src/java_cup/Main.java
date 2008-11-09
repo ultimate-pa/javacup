@@ -515,7 +515,7 @@ public class Main {
 	  if (nt.use_count() == 0 || nt.productions().size() == 0)
 	    {
 	      /* count and warn if we are doing warnings */
-	      emit.unused_term++;
+	      emit.unused_non_term++;
 	      if (!emit.nowarn) 
 		{
 		  String reason;
@@ -666,7 +666,7 @@ public class Main {
       System.err.println("  " + emit.unused_term + " terminal" + 
 			 plural(emit.unused_term) + " declared but not used.");
       System.err.println("  " + emit.unused_non_term + " non-terminal" + 
-			 plural(emit.unused_term) + " declared but not used.");
+			 plural(emit.unused_non_term) + " declared but not used.");
 
       /* productions that didn't reduce */
       System.err.println("  " + emit.not_reduced + " production" + 
