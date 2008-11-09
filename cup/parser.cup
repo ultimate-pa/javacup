@@ -116,7 +116,15 @@ action code {:
 
   /** left hand side non terminal of the current production */
   private non_terminal lhs_nt;
-  
+
+  {
+    /* declare "error" as a terminal */
+    symbols.put("error", new symbol_part(terminal.error));
+
+    /* declare start non terminal */
+    non_terms.put("$START", non_terminal.START_nt);
+  }  
+
   /** Current symbol type */
   String _cur_symbol_type;
 
@@ -208,12 +216,6 @@ init with {:
     ComplexSymbolFactory f = new ComplexSymbolFactory();
     symbolFactory = f;
     lexer = new Lexer(f); 
-
-    /* declare "error" as a terminal */
-    symbols.put("error", new symbol_part(terminal.error));
-
-    /* declare start non terminal */
-    non_terms.put("$START", non_terminal.START_nt);
 :}
 scan with {: 
     return lexer.next_token(); 
@@ -254,6 +256,8 @@ start with spec;
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 spec ::= 
+	{:
+	:}
 	package_spec
 	import_list
 	code_parts
