@@ -44,7 +44,7 @@
   <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="${bin}/JFlex.jar" />
 
   <target name="cup" depends="init">
-    <cup srcfile="${cup}/parser.cup" java15="on" interface="on" destdir="${java}" parser="parser" symbols="sym" quiet="false" nonterms="true"/>
+    <cup srcfile="${cup}/parser.cup" java15="on" interface="on" destdir="${java}" parser="parser" symbols="sym" compact_red="true" quiet="false" nonterms="true"/>
   </target>
 
   <target name="jflex" depends="cup">

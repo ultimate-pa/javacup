@@ -59,7 +59,6 @@ public class parse_reduce_table {
       int[] rowidx = new int[non_terminal.number()];
       int maxbase = 0;
       BitSet used = new BitSet();
-      System.err.println("do_reduce_table.compress");
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_reduce_row row = under_state[i];
@@ -83,14 +82,17 @@ public class parse_reduce_table {
 		    continue next_base;
 		}
 	      for (int j = 0; j < rowcnt; j++)
-		used.set(base+rowidx[j]);
+		{
+		  used.set(base+rowidx[j]);
+		  if (base+rowidx[j] > maxbase)
+		    maxbase = base+rowidx[j];
+		}
+
 	      baseaddrs[i] = base;
-	      if (base > maxbase)
-		maxbase = base;
 	      break;
 	    }
 	}
-      short[] compressed = new short[_num_states + maxbase + non_terminal.number()];
+      short[] compressed = new short[_num_states + maxbase + 1];
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_reduce_row row = under_state[i];
