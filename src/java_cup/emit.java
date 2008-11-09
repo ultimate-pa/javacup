@@ -571,15 +571,10 @@ public class emit {
   /** create a string encoding a given short[] array.*/
   private String do_array_as_string(short[] sa) 
     {
-      short min_value = 0;
-      for (int i = 0; i < sa.length; i++)
-	if (sa[i] < min_value)
-	  min_value = sa[i];
       StringBuilder sb = new StringBuilder();
       sb.append((char)(sa.length >>> 16)).append((char)(sa.length & 0xffff));
-      sb.append((char)-min_value);
       for (int i = 0; i < sa.length; i++)
-	sb.append((char) (sa[i]-min_value));
+	sb.append((char) sa[i]);
       return sb.toString();
     }
     // print a string array encoding the given short[][] array.

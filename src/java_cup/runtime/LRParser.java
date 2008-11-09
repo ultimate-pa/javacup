@@ -421,21 +421,21 @@ public abstract class LRParser {
 	  /* look up action out of the current state with the current input */
 	  act = get_action(stack.peek().parse_state, cur_token.sym);
 
-	  /* decode the action -- > 0 encodes shift */
-	  if (act > 0)
+	  /* decode the action: odd encodes shift */
+	  if ((act & 1) != 0)
 	    {
 	      /* shift to the encoded state by pushing it on the stack */
-	      cur_token.parse_state = act-1;
+	      cur_token.parse_state = act>>1;
 	      cur_token.used_by_parser = true;
 	      stack.push(cur_token);
 
 	      /* advance to the next Symbol */
 	      cur_token = scan();
 	    }
-	  /* if its less than zero, then it encodes a reduce action */
-	  else if (act < 0)
+	  /* if its even, then it encodes a reduce action */
+	  else if (act != 0)
 	    {
-	      act = -act-1;
+	      act = (act >> 1)-1;
 	      /* perform the action for the reduce */
 	      lhs_sym = do_action(act, stack);
 
@@ -458,7 +458,7 @@ public abstract class LRParser {
 	      stack.push(lhs_sym);
 	    }
 	  /* finally if the entry is zero, we have an error */
-	  else if (act == 0)
+	  else
 	    {
 	      /* call user syntax error reporting routine */
 	      syntax_error(cur_token);
@@ -610,24 +610,24 @@ public abstract class LRParser {
 
 	  /* look up action out of the current state with the current input */
 	  act = get_action(stack.peek().parse_state, cur_token.sym);
-
-	  /* decode the action -- > 0 encodes shift */
-	  if (act > 0)
+	  
+	  /* decode the action: odd encodes shift */
+	  if ((act & 1) != 0)
 	    {
 	      /* shift to the encoded state by pushing it on the stack */
-	      cur_token.parse_state = act-1;
+	      cur_token.parse_state = (act >> 1);
 	      cur_token.used_by_parser = true;
 	      debug_shift(cur_token);
 	      stack.push(cur_token);
 
 	      /* advance to the next Symbol */
 	      cur_token = scan();
-              debug_message("# Current token is " + cur_token);
+	      debug_message("# Current token is " + cur_token);
 	    }
-	  /* if its less than zero, then it encodes a reduce action */
-	  else if (act < 0)
+	  /* if its even, then it encodes a reduce action */
+	  else if (act != 0)
 	    {
-	      act = -act-1;
+	      act = (act >> 1)-1;
 	      /* perform the action for the reduce */
 	      lhs_sym = do_action(act, stack);
 
@@ -657,7 +657,7 @@ public abstract class LRParser {
 	      debug_message("# Goto state #" + act);
 	    }
 	  /* finally if the entry is zero, we have an error */
-	  else if (act == 0)
+	  else
 	    {
 	      /* call user syntax error reporting routine */
 	      syntax_error(cur_token);
@@ -670,7 +670,9 @@ public abstract class LRParser {
 
 		  /* just in case that wasn't fatal enough, end parse */
 		  done_parsing();
-		} else {
+		}
+	      else
+		{
 		  lhs_sym = stack.peek();
 		}
 	    }
@@ -764,17 +766,6 @@ public abstract class LRParser {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Determine if we can shift under the special error Symbol out of the 
-   *  state currently on the top of the (real) parse stack. 
-   */
-  protected boolean shift_under_error()
-    {
-      /* is there a shift under error Symbol */
-      return get_action(stack.peek().parse_state, 1) > 0;
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** Put the (real) parse stack into error recovery configuration by 
    *  popping the stack down to a state that can shift on the special 
    *  error Symbol, then doing the shift.  If no suitable state exists on 
@@ -790,17 +781,21 @@ public abstract class LRParser {
       if (debug) debug_message("# Finding recovery state on stack");
 
       /* Remember the right-position of the top symbol on the stack */
-      Symbol right = stack.peek();// TUM 20060327 removed .right	
-      Symbol left  = right;// TUM 20060327 removed .left	
+      Symbol right = stack.peek();	
+      Symbol left  = right;	
+
+      /* is there a shift under error Symbol */
+      act = get_action(left.parse_state, 1); 
 
       /* pop down until we can shift under error Symbol */
-      while (!shift_under_error())
+      while ((act & 1) == 0)
 	{
 	  /* pop the stack */
 	  if (debug) 
 	    debug_message("# Pop stack by one, state was # " +
 	                  stack.peek().parse_state);
-          left = stack.pop(); // TUM 20060327 removed .left	
+          left = stack.pop();
+          act = get_action(left.parse_state, 1);
 
 	  /* if we have hit bottom, we fail */
 	  if (stack.empty()) 
@@ -810,8 +805,7 @@ public abstract class LRParser {
 	    }
 	}
 
-      /* state on top of the stack can shift under error, find the shift */
-      act = get_action(stack.peek().parse_state, 1);
+      /* state on top of the stack can act under error */
       if (debug) 
 	{
 	  debug_message("# Recover state found (#" + 
@@ -821,7 +815,7 @@ public abstract class LRParser {
 
       /* build and shift a special error Symbol */
       error_token = getSymbolFactory().newSymbol("ERROR",1, left, right);
-      error_token.parse_state = act-1;
+      error_token.parse_state = (act>>1);
       error_token.used_by_parser = true;
       stack.push(error_token);
 
@@ -925,14 +919,11 @@ public abstract class LRParser {
 	  /* look up the action from the current state (on top of stack) */
 	  act = get_action(vstack.top(), cur_err_token().sym);
 
-	  /* if its an error, we fail */
-	  if (act == 0) return false;
-
-	  /* > 0 encodes a shift */
-	  if (act > 0)
+	  /* decode the action: odd encodes shift */
+	  if ((act & 1) != 0)
 	    {
 	      /* push the new state on the stack */
-	      vstack.push(act-1);
+	      vstack.push(act>>1);
 
 	      if (debug) debug_message("# Parse-ahead shifts Symbol #" + 
 		       cur_err_token().sym + " into state #" + (act-1));
@@ -940,10 +931,12 @@ public abstract class LRParser {
 	      /* advance simulated input, if we run off the end, we are done */
 	      if (!advance_lookahead()) return true;
 	    }
-	  /* < 0 encodes a reduce */
+	  /* if its an error, we fail */
+	  else if (act == 0) return false;
+	  /* even encodes a reduce */
 	  else
 	    {
-	      act = -act-1;
+	      act = (act >> 1)-1;
 
 	      /* if this is a reduce with the start production we are done */
 	      if (act == 0) 
@@ -1015,11 +1008,11 @@ public abstract class LRParser {
 	  act = 
 	    get_action(stack.peek().parse_state, cur_err_token().sym);
 
-	  /* decode the action -- > 0 encodes shift */
-	  if (act > 0)
+	  /* decode the action: even encodes shift */
+	  if ((act & 1) != 0)
 	    {
 	      /* shift to the encoded state by pushing it on the stack */
-	      cur_err_token().parse_state = act-1;
+	      cur_err_token().parse_state = (act>>1);
 	      cur_err_token().used_by_parser = true;
 	      if (debug) debug_shift(cur_err_token());
 	      stack.push(cur_err_token());
@@ -1031,14 +1024,14 @@ public abstract class LRParser {
 		  /* go back to normal parser */
 		  return;
 		}
-	      
+
 	      if (debug) 
 		debug_message("# Current Symbol is #" + cur_err_token().sym);
 	    }
-	  /* if its less than zero, then it encodes a reduce action */
-	  else if (act < 0)
+	  /* if its even, then it encodes a reduce action */
+	  else if (act != 0)
 	    {
-	      act = -act-1;
+	      act = (act >> 1) - 1;
 	      /* perform the action for the reduce */
 	      lhs_sym = do_action(act, stack);
 
@@ -1067,7 +1060,7 @@ public abstract class LRParser {
 	    }
 	  /* finally if the entry is zero, we have an error 
 	     (shouldn't happen here, but...)*/
-	  else if (act == 0)
+	  else
 	    {
 	      report_fatal_error("Syntax error", lhs_sym);
 	      return;
@@ -1083,10 +1076,9 @@ public abstract class LRParser {
   private short[] unpackFromString(String s)
     {
       int size = (((int)s.charAt(0)) << 16) | ((int)s.charAt(1));
-      short offset = (short) s.charAt(2);
       short[] result = new short[size];
       for (int i = 0; i < size; i++)
-	result[i] = (short) (s.charAt(3+i) - offset);
+	result[i] = (short) (s.charAt(2+i));
       return result;
     }
 
@@ -1094,9 +1086,9 @@ public abstract class LRParser {
   private void unpackStrings(String s)
     {
       production_table = unpackFromString(s);
-      s = s.substring(production_table.length+3);
+      s = s.substring(production_table.length+2);
       action_table = unpackFromString(s);
-      s = s.substring(action_table.length+3);
+      s = s.substring(action_table.length+2);
       reduce_table = unpackFromString(s);
     }
 }

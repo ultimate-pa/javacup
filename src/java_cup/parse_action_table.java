@@ -108,15 +108,15 @@ public class parse_action_table {
 	  parse_action_row row = under_state[i];
 	  int base = (2*_num_states + 2*baseaddrs[i]);
 	  compressed[2*i] = (short) base;
-	  compressed[2*i+1] = (short) - (row.default_reduce+1);
+	  compressed[2*i+1] = (short) (2*row.default_reduce+2);
 	  for (int j = 0; j < terminal.number(); j++)
 	    {
 	      parse_action act = row.under_term[j];
 	      if (act.kind() == parse_action.SHIFT)
 		{
 		  compressed[base+2*j] = (short) i;
-		  compressed[base+2*j+1] = (short) 
-		      (((shift_action)act).shift_to().index()+1);
+		  compressed[base+2*j+1] = (short)
+		      (2*((shift_action)act).shift_to().index() + 1);
 		}
 	      else if (act.kind() == parse_action.REDUCE)
 		{
@@ -124,7 +124,7 @@ public class parse_action_table {
 		  if (red != row.default_reduce)
 		    {
 		      compressed[base+2*j] = (short) i;
-		      compressed[base+2*j+1] = (short) - (red+1);
+		      compressed[base+2*j+1] = (short) (2*red + 2);
 		    }
 		}
 	    }
