@@ -112,7 +112,7 @@ import java.util.Stack;
  * @author  Frank Flannery
  */
 
-public abstract class lr_parser {
+public abstract class LRParser {
     /*-----------------------------------------------------------*/
     /*--- Constructor(s) ----------------------------------------*/
     /*-----------------------------------------------------------*/
@@ -120,20 +120,19 @@ public abstract class lr_parser {
     /** 
      * Simple constructor. 
      */
-    public lr_parser() {
+    public LRParser() {
     }
     
     /** 
      * Constructor that sets the default scanner. [CSA/davidm] 
      */
-    public lr_parser(Scanner s) {
+    public LRParser(Scanner s) {
         this(s,new DefaultSymbolFactory()); // TUM 20060327 old cup v10 Symbols as default
     }
     /** 
      * Constructor that sets the default scanner and a SymbolFactory
      */
-    public lr_parser(Scanner s, SymbolFactory symfac) {
-        this(); // in case default constructor someday does something
+    public LRParser(Scanner s, SymbolFactory symfac) {
         symbolFactory = symfac;
         setScanner(s);
     }
@@ -163,52 +162,6 @@ public abstract class lr_parser {
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/
   /*-----------------------------------------------------------*/
-
-  /** Table of production information (supplied by generated subclass).
-   *  This table contains one entry per production and is indexed by 
-   *  the negative-encoded values (reduce actions) in the action_table.  
-   *  Each entry has two parts, the index of the non-terminal on the 
-   *  left hand side of the production, and the number of Symbols 
-   *  on the right hand side. 
-   */
-  public abstract short[][] production_table();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** The action table (supplied by generated subclass).  This table is
-   *  indexed by state and terminal number indicating what action is to
-   *  be taken when the parser is in the given state (i.e., the given state 
-   *  is on top of the stack) and the given terminal is next on the input.  
-   *  States are indexed using the first dimension, however, the entries for 
-   *  a given state are compacted and stored in adjacent index, value pairs 
-   *  which are searched for rather than accessed directly (see get_action()).  
-   *  The actions stored in the table will be either shifts, reduces, or 
-   *  errors.  Shifts are encoded as positive values (one greater than the 
-   *  state shifted to).  Reduces are encoded as negative values (one less 
-   *  than the production reduced by).  Error entries are denoted by zero. 
-   * 
-   * @see java_cup.runtime.lr_parser#get_action
-   */
-  public abstract short[][] action_table();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** The reduce-goto table (supplied by generated subclass).  This
-   *  table is indexed by state and non-terminal number and contains
-   *  state numbers.  States are indexed using the first dimension, however,
-   *  the entries for a given state are compacted and stored in adjacent
-   *  index, value pairs which are searched for rather than accessed 
-   *  directly (see get_reduce()).  When a reduce occurs, the handle 
-   *  (corresponding to the RHS of the matched production) is popped off 
-   *  the stack.  The new top of stack indicates a state.  This table is 
-   *  then indexed by that state and the LHS of the reducing production to 
-   *  indicate where to "shift" to. 
-   *
-   * @see java_cup.runtime.lr_parser#get_reduce
-   */
-  public abstract short[][] reduce_table();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The index of the start state (supplied by generated subclass). */
   public abstract int start_state();
@@ -251,9 +204,6 @@ public abstract class lr_parser {
    * debugging routines */
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Indication of the index for top of stack (for use by actions). */
-  protected int tos;
-
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The current lookahead Symbol. */
@@ -263,21 +213,10 @@ public abstract class lr_parser {
 
   /** The parse stack itself. */
   protected Stack<java_cup.runtime.Symbol> stack = new Stack<java_cup.runtime.Symbol>();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Direct reference to the production table. */ 
-  protected short[][] production_tab;
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Direct reference to the action table. */
-  protected short[][] action_tab;
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Direct reference to the reduce-goto table. */
-  protected short[][] reduce_tab;
+  
+  private short[] action_table; 
+  private short[] reduce_table; 
+  private short[] production_table; 
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -305,16 +244,19 @@ public abstract class lr_parser {
    *  at parser generation time.
    *
    * @param act_num   the internal index of the action to be performed.
-   * @param parser    the parser object we are acting for.
    * @param stack     the parse stack of that object.
-   * @param top       the index of the top element of the parse stack.
    */
   public abstract Symbol do_action(
     int       act_num, 
-    lr_parser parser, 
-    Stack<java_cup.runtime.Symbol> stack, 
-    int       top) 
+    Stack<java_cup.runtime.Symbol> stack) 
     throws java.lang.Exception;
+
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** The action table (supplied by generated subclass).  This
+   *  table is automatically generated by the parser generator.
+   */
+  protected abstract String action_table();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -426,92 +368,30 @@ public abstract class lr_parser {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Fetch an action from the action table.  The table is broken up into
-   *  rows, one per state (rows are indexed directly by state number).  
-   *  Within each row, a list of index, value pairs are given (as sequential
-   *  entries in the table), and the list is terminated by a default entry 
-   *  (denoted with a Symbol index of -1).  To find the proper entry in a row 
-   *  we do a linear or binary search (depending on the size of the row).  
+  /** Fetch an action from the action table.    
    *
    * @param state the state index of the action being accessed.
    * @param sym   the Symbol index of the action being accessed.
    */
-  protected final short get_action(int state, int sym)
+  private final short get_action(int state, int sym)
     {
-      short tag;
-      int first, last, probe;
-      short[] row = action_tab[state];
-
-      /* linear search if we are < 10 entries */
-      if (row.length < 20)
-        for (probe = 0; probe < row.length; probe++)
-	  {
-	    /* is this entry labeled with our Symbol or the default? */
-	    tag = row[probe++];
-	    if (tag == sym || tag == -1)
-	      {
-	        /* return the next entry */
-	        return row[probe];
-	      }
-	  }
-      /* otherwise binary search */
-      else
-	{
-	  first = 0; 
-	  last = (row.length-1)/2 - 1;  /* leave out trailing default entry */
-	  while (first <= last)
-	    {
-	      probe = (first+last)/2;
-	      if (sym == row[probe*2])
-		return row[probe*2+1];
-	      else if (sym > row[probe*2])
-		first = probe+1;
-	      else
-	        last = probe-1;
-	    }
-
-	  /* not found, use the default at the end */
-	  return row[row.length-1];
-	}
-
-      /* shouldn't happened, but if we run off the end we return the 
-	 default (error == 0) */
-      return 0;
+      int base = action_table[2*state]+2*sym;
+      if (action_table[base] == state)
+	return action_table[base + 1];
+      /* no entry; return default */
+      return action_table[2*state+1];
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Fetch a state from the reduce-goto table.  The table is broken up into
-   *  rows, one per state (rows are indexed directly by state number).  
-   *  Within each row, a list of index, value pairs are given (as sequential
-   *  entries in the table), and the list is terminated by a default entry 
-   *  (denoted with a Symbol index of -1).  To find the proper entry in a row 
-   *  we do a linear search.  
+  /** Fetch a state from the reduce-goto table.    
    *
    * @param state the state index of the entry being accessed.
    * @param sym   the Symbol index of the entry being accessed.
    */
-  protected final short get_reduce(int state, int sym)
+  private final short get_reduce(int state, int sym)
     {
-      short tag;
-      short[] row = reduce_tab[state];
-
-      /* if we have a null row we go with the default */
-      if (row == null)
-        return -1;
-
-      for (int probe = 0; probe < row.length; probe++)
-	{
-	  /* is this entry labeled with our Symbol or the default? */
-	  tag = row[probe++];
-	  if (tag == sym || tag == -1)
-	    {
-	      /* return the next entry */
-	      return row[probe];
-	    }
-	}
-      /* if we run off the end we return the default (error == -1) */
-      return -1;
+      return reduce_table[reduce_table[state]+sym];
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -533,17 +413,14 @@ public abstract class lr_parser {
       /* information about production being reduced with */
       short handle_size, lhs_sym_num;
 
-      /* set up direct reference to tables to drive the parser */
-
-      production_tab = production_table();
-      action_tab     = action_table();
-      reduce_tab     = reduce_table();
-
       /* initialize the action encapsulation object */
       init_actions();
 
       /* do user initialization */
       user_init();
+
+      /* unpack action/reduce tables */
+      unpackStrings(action_table());
 
       /* get the first token */
       cur_token = scan(); 
@@ -551,7 +428,6 @@ public abstract class lr_parser {
       /* push dummy Symbol with start state to get us underway */
       stack.removeAllElements();
       stack.push(getSymbolFactory().startSymbol("START", 0, start_state()));
-      tos = 0;
 
       /* continue until we are told to stop */
       for (_done_parsing = false; !_done_parsing; )
@@ -572,7 +448,6 @@ public abstract class lr_parser {
 	      cur_token.parse_state = act-1;
 	      cur_token.used_by_parser = true;
 	      stack.push(cur_token);
-	      tos++;
 
 	      /* advance to the next Symbol */
 	      cur_token = scan();
@@ -580,18 +455,18 @@ public abstract class lr_parser {
 	  /* if its less than zero, then it encodes a reduce action */
 	  else if (act < 0)
 	    {
+	      act = -act-1;
 	      /* perform the action for the reduce */
-	      lhs_sym = do_action((-act)-1, this, stack, tos);
+	      lhs_sym = do_action(act, stack);
 
 	      /* look up information about the production */
-	      lhs_sym_num = production_tab[(-act)-1][0];
-	      handle_size = production_tab[(-act)-1][1];
+	      lhs_sym_num = production_table[2*act];
+	      handle_size = production_table[2*act+1];
 
 	      /* pop the handle off the stack */
 	      for (int i = 0; i < handle_size; i++)
 		{
 		  stack.pop();
-		  tos--;
 		}
 	      
 	      /* look up the state to go to from the one popped back to */
@@ -601,7 +476,6 @@ public abstract class lr_parser {
 	      lhs_sym.parse_state = act;
 	      lhs_sym.used_by_parser = true;
 	      stack.push(lhs_sym);
-	      tos++;
 	    }
 	  /* finally if the entry is zero, we have an error */
 	  else if (act == 0)
@@ -622,6 +496,10 @@ public abstract class lr_parser {
 		}
 	    }
 	}
+      /* clean-up tables to save space */
+      production_table = null;
+      action_table = null;
+      reduce_table = null;
       return lhs_sym;
     }
 
@@ -720,11 +598,6 @@ public abstract class lr_parser {
       /* information about production being reduced with */
       short handle_size, lhs_sym_num;
 
-      /* set up direct reference to tables to drive the parser */
-      production_tab = production_table();
-      action_tab     = action_table();
-      reduce_tab     = reduce_table();
-
       debug_message("# Initializing parser");
 
       /* initialize the action encapsulation object */
@@ -732,6 +605,9 @@ public abstract class lr_parser {
 
       /* do user initialization */
       user_init();
+
+      /* unpack action/reduce tables */
+      unpackStrings(action_table());
 
       /* the current Symbol */
       cur_token = scan(); 
@@ -741,7 +617,6 @@ public abstract class lr_parser {
       /* push dummy Symbol with start state to get us underway */
       stack.removeAllElements();
       stack.push(getSymbolFactory().startSymbol("START",0, start_state()));
-      tos = 0;
 
       /* continue until we are told to stop */
       for (_done_parsing = false; !_done_parsing; )
@@ -764,7 +639,6 @@ public abstract class lr_parser {
 	      cur_token.used_by_parser = true;
 	      debug_shift(cur_token);
 	      stack.push(cur_token);
-	      tos++;
 
 	      /* advance to the next Symbol */
 	      cur_token = scan();
@@ -773,20 +647,20 @@ public abstract class lr_parser {
 	  /* if its less than zero, then it encodes a reduce action */
 	  else if (act < 0)
 	    {
+	      act = -act-1;
 	      /* perform the action for the reduce */
-	      lhs_sym = do_action((-act)-1, this, stack, tos);
+	      lhs_sym = do_action(act, stack);
 
 	      /* look up information about the production */
-	      lhs_sym_num = production_tab[(-act)-1][0];
-	      handle_size = production_tab[(-act)-1][1];
+	      lhs_sym_num = production_table[2*act];
+	      handle_size = production_table[2*act+1];
 
-	      debug_reduce((-act)-1, lhs_sym_num, handle_size);
+	      debug_reduce(act, lhs_sym_num, handle_size);
 
 	      /* pop the handle off the stack */
 	      for (int i = 0; i < handle_size; i++)
 		{
 		  stack.pop();
-		  tos--;
 		}
 	      
 	      /* look up the state to go to from the one popped back to */
@@ -799,7 +673,6 @@ public abstract class lr_parser {
 	      lhs_sym.parse_state = act;
 	      lhs_sym.used_by_parser = true;
 	      stack.push(lhs_sym);
-	      tos++;
 
 	      debug_message("# Goto state #" + act);
 	    }
@@ -822,6 +695,10 @@ public abstract class lr_parser {
 		}
 	    }
 	}
+      /* clean-up tables to save space */
+      production_table = null;
+      action_table = null;
+      reduce_table = null;
       return lhs_sym;
     }
 
@@ -944,7 +821,6 @@ public abstract class lr_parser {
 	    debug_message("# Pop stack by one, state was # " +
 	                  stack.peek().parse_state);
           left = stack.pop(); // TUM 20060327 removed .left	
-	  tos--;
 
 	  /* if we have hit bottom, we fail */
 	  if (stack.empty()) 
@@ -968,7 +844,6 @@ public abstract class lr_parser {
       error_token.parse_state = act-1;
       error_token.used_by_parser = true;
       stack.push(error_token);
-      tos++;
 
       return true;
     }
@@ -1088,16 +963,18 @@ public abstract class lr_parser {
 	  /* < 0 encodes a reduce */
 	  else
 	    {
+	      act = -act-1;
+
 	      /* if this is a reduce with the start production we are done */
-	      if ((-act)-1 == start_production()) 
+	      if (act == start_production()) 
 		{
 		  if (debug) debug_message("# Parse-ahead accepts");
 		  return true;
 		}
 
 	      /* get the lhs Symbol and the rhs size */
-	      lhs = production_tab[(-act)-1][0];
-	      rhs_size = production_tab[(-act)-1][1];
+	      lhs = production_table[2*act];
+	      rhs_size = production_table[2*act+1];
 
 	      /* pop handle off the stack */
 	      for (int i = 0; i < rhs_size; i++)
@@ -1166,19 +1043,11 @@ public abstract class lr_parser {
 	      cur_err_token().used_by_parser = true;
 	      if (debug) debug_shift(cur_err_token());
 	      stack.push(cur_err_token());
-	      tos++;
 
 	      /* advance to the next Symbol, if there is none, we are done */
 	      if (!advance_lookahead()) 
 		{
 		  if (debug) debug_message("# Completed reparse");
-
-		  /* scan next Symbol so we can continue parse */
-		  // BUGFIX by Chris Harris <ckharris@ucsd.edu>:
-		  //   correct a one-off error by commenting out
-		  //   this next line.
-		  /*cur_token = scan();*/
-
 		  /* go back to normal parser */
 		  return;
 		}
@@ -1189,12 +1058,13 @@ public abstract class lr_parser {
 	  /* if its less than zero, then it encodes a reduce action */
 	  else if (act < 0)
 	    {
+	      act = -act-1;
 	      /* perform the action for the reduce */
-	      lhs_sym = do_action((-act)-1, this, stack, tos);
+	      lhs_sym = do_action(act, stack);
 
 	      /* look up information about the production */
-	      lhs_sym_num = production_tab[(-act)-1][0];
-	      handle_size = production_tab[(-act)-1][1];
+	      lhs_sym_num = production_table[2*act];
+	      handle_size = production_table[2*act+1];
 
 	      if (debug) debug_reduce((-act)-1, lhs_sym_num, handle_size);
 
@@ -1202,7 +1072,6 @@ public abstract class lr_parser {
 	      for (int i = 0; i < handle_size; i++)
 		{
 		  stack.pop();
-		  tos--;
 		}
 	      
 	      /* look up the state to go to from the one popped back to */
@@ -1212,7 +1081,6 @@ public abstract class lr_parser {
 	      lhs_sym.parse_state = act;
 	      lhs_sym.used_by_parser = true;
 	      stack.push(lhs_sym);
-	      tos++;
 	       
 	      if (debug) debug_message("# Goto state #" + act);
 
@@ -1232,22 +1100,24 @@ public abstract class lr_parser {
   /*-----------------------------------------------------------*/
 
   /** Utility function: unpacks parse tables from strings */
-  protected static short[][] unpackFromStrings(String[] sa)
+  private short[] unpackFromString(String s)
     {
-      // Concatenate initialization strings.
-      StringBuffer sb = new StringBuffer(sa[0]);
-      for (int i=1; i<sa.length; i++)
-	sb.append(sa[i]);
-      int n=0; // location in initialization string
-      int size1 = (((int)sb.charAt(n))<<16) | ((int)sb.charAt(n+1)); n+=2;
-      short[][] result = new short[size1][];
-      for (int i=0; i<size1; i++) {
-        int size2 = (((int)sb.charAt(n))<<16) | ((int)sb.charAt(n+1)); n+=2;
-        result[i] = new short[size2];
-        for (int j=0; j<size2; j++)
-          result[i][j] = (short) (sb.charAt(n++)-2);
-      }
+      int size = (((int)s.charAt(0)) << 16) | ((int)s.charAt(1));
+      short offset = (short) s.charAt(2);
+      short[] result = new short[size];
+      for (int i = 0; i < size; i++)
+	result[i] = (short) (s.charAt(3+i) - offset);
       return result;
+    }
+
+  /** Utility function: unpacks parse tables from strings */
+  private void unpackStrings(String s)
+    {
+      production_table = unpackFromString(s);
+      s = s.substring(production_table.length+3);
+      action_table = unpackFromString(s);
+      s = s.substring(action_table.length+3);
+      reduce_table = unpackFromString(s);
     }
 }
 

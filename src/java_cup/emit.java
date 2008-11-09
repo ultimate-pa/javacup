@@ -354,7 +354,7 @@ public class emit {
       out.println("  public final java_cup.runtime.Symbol " + 
 		     pre("do_action") + "(");
       out.println("    int                        " + pre("act_num,"));
-      out.println("    java_cup.runtime.lr_parser " + pre("parser,"));
+      out.println("    java_cup.runtime.LRParser  " + pre("parser,"));
       out.println("    java.util.Stack"+genericArg+" " + pre("stack)"));
       out.println("    throws java.lang.Exception");
       out.println("    {");
@@ -659,7 +659,7 @@ public class emit {
       out.println("  */");
       /* TUM changes; proposed by Henning Niss 20050628: added typeArgument */
       out.println("public class " + parser_class_name + typeArgument() +
-		  " extends java_cup.runtime.lr_parser {");
+		  " extends java_cup.runtime.LRParser {");
 
       /* constructors [CSA/davidm, 24-jul-99] */
       out.println();
@@ -708,7 +708,6 @@ public class emit {
       out.println("  /** Invoke a user supplied parse action. */");
       out.println("  public java_cup.runtime.Symbol do_action(");
       out.println("    int                        act_num,");
-      out.println("    java_cup.runtime.lr_parser parser,");
       if (is_java15)
 	out.println("    java.util.Stack<java_cup.runtime.Symbol> stack)");
       else
@@ -717,7 +716,7 @@ public class emit {
       out.println("  {");
       out.println("    /* call code in generated class */");
       out.println("    return action_obj." + pre("do_action(") +
-                  "act_num, parser, stack);");
+                  "act_num, this, stack);");
       out.println("  }");
       out.println("");
 
