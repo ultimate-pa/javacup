@@ -23,7 +23,6 @@ package java_cup.anttask;
 
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.types.Path;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -31,7 +30,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URL;
 
 import java_cup.version;
 
@@ -69,7 +67,7 @@ public class CUPTask extends Task
 
     public void execute() throws BuildException 
     {
-        List sc = new ArrayList();  // sc = simulated commandline
+        List<String> sc = new ArrayList<String>();  // sc = simulated commandline
 	// here, we parse our elements
 	if (parser!=null)  { sc.add("-parser"); sc.add(parser);}
         else parser="parser"; // set the default name to check actuality
@@ -160,24 +158,6 @@ public class CUPTask extends Task
         }catch(Exception e){
             log("CUP error occured int CUP task: "+e);
         }
-	
-	// this is a dirty hack to determine the apropriate class path
-//	URL url = CUPTask.class.getResource("/java_cup/Main.class");
-//	String path = url.getPath().substring(0,url.getPath().length()-20);
-//	// if called from a .jar or .zip remove the last "!"
-//	if (path.endsWith("!")) path=path.substring(0,path.length()-1);
-//	createClasspath().setPath(path);
-//
-//	setFailonerror(true);
-//	setFork(true);
-//	
-
-	// here, we prepare for calling CUP
-//	setClassname("java_cup.Main");
-	
-	// let's call CUP
-//	super.execute();
-
     }
 
     /**
