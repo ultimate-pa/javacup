@@ -522,33 +522,21 @@ public class emit {
   /** Emit the production table. 
    * @param out stream to produce output on.
    */
-  protected void emit_production_table(PrintWriter out)
+  protected String do_production_table()
     {
       long start_time = System.currentTimeMillis();
 
       // make short[][]
-      short[][] prod_table = new short[production.number()][2];
+      short[] prod_table = new short[2*production.number()];
       for (production prod : production.all())
 	{
 	  // { lhs symbol , rhs size }
-	  prod_table[prod.index()][0] = (short) prod.lhs().the_symbol().index();
-	  prod_table[prod.index()][1] = (short) prod.rhs_length();
+	  prod_table[2*prod.index()+0] = (short) prod.lhs().the_symbol().index();
+	  prod_table[2*prod.index()+1] = (short) prod.rhs_length();
 	}
-      /* do the top of the table */
-      out.println();
-      out.println("  /** Production table. */");
-      out.println("  private static final short _production_table[][] = ");
-      out.print  ("    unpackFromStrings(");
-      do_table_as_string(out, prod_table);
-      out.println(");");
-
-      /* do the public accessor method */
-      out.println();
-      out.println("  /** Access to production table. */");
-      out.println("  public short[][] production_table() " + 
-						 "{return _production_table;}");
-
+      String result = do_array_as_string(prod_table);
       production_table_time = System.currentTimeMillis() - start_time;
+      return result;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -558,209 +546,73 @@ public class emit {
    * @param act_tab         the internal representation of the action table.
    * @param compact_reduces do we use the most frequent reduce as default?
    */
-  protected void do_action_table(
-    PrintWriter        out, 
+  private String do_action_table(
     parse_action_table act_tab,
     boolean            compact_reduces)
     {
-      parse_action_row row;
-      parse_action     act;
-      int              red;
-
       long start_time = System.currentTimeMillis();
-
-      /* collect values for the action table */
-      short[][] action_table = new short[act_tab.num_states()][];
-      /* make temporary table for the row. */
-      short[] temp_table = new short[2*terminal.number()+2];
-      /* do each state (row) of the action table */
-      for (int i = 0; i < act_tab.num_states(); i++)
-	{
-	  /* get the row */
-	  row = act_tab.under_state[i];
-
-	  /* determine the default for the row */
-	  if (compact_reduces)
-	    row.compute_default();
-	  else
-	    row.default_reduce = -1;
-
-	  int nentries = 0;
-
-	  /* do each column */
-	  for (int j = 0; j < terminal.number(); j++)
-	    {
-	      /* extract the action from the table */
-	      act = row.under_term[j];
-
-	      /* skip error entries these are all defaulted out */
-	      if (act.kind() != parse_action.ERROR)
-		{
-		  /* first put in the symbol index, then the actual entry */
-
-		  /* shifts get positive entries of state number + 1 */
-		  if (act.kind() == parse_action.SHIFT)
-		    {
-		      /* make entry */
-		      temp_table[nentries++] = (short) j;
-		      temp_table[nentries++] = (short)
-			(((shift_action)act).shift_to().index() + 1);
-		    }
-
-		  /* reduce actions get negated entries of production# + 1 */
-		  else if (act.kind() == parse_action.REDUCE)
-		    {
-		      /* if its the default entry let it get defaulted out */
-		      red = ((reduce_action)act).reduce_with().index();
-		      if (red != row.default_reduce) {
-			/* make entry */
-			temp_table[nentries++] = (short) j;
-			temp_table[nentries++] = (short) (-(red+1));
-		      }
-		    } 
-
-		  /* shouldn't be anything else */
-		  else
-		    assert false : "Unrecognized action code " + 
-					     act.kind() + " found in parse table";
-		}
-	    }
-	  /* finish off the row with a default entry */
-	  temp_table[nentries++] = -1;
-	  temp_table[nentries++] = (short) (-(row.default_reduce+1));
-	  
-	  /* now we know how big to make the row */
-	  action_table[i] = new short[nentries];
-	  System.arraycopy(temp_table, 0, action_table[i], 0, nentries);
-	}
-
-      /* finish off the init of the table */
-      out.println();
-      out.println("  /** Parse-action table. */");
-      out.println("  private static final short[][] _action_table = "); 
-      out.print  ("    unpackFromStrings(");
-      do_table_as_string(out, action_table);
-      out.println(");");
-
-      /* do the public accessor method */
-      out.println();
-      out.println("  /** Access to parse-action table. */");
-      out.println("  public short[][] action_table() {return _action_table;}");
-
+      String result = do_array_as_string(act_tab.compress(compact_reduces));
       action_table_time = System.currentTimeMillis() - start_time;
+      return result;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Emit the reduce-goto table. 
-   * @param out     stream to produce output on.
+  /** Create the compressed reduce-goto table. 
    * @param red_tab the internal representation of the reduce-goto table.
    */
-  protected void do_reduce_table(
-    PrintWriter out, 
-    parse_reduce_table red_tab)
+  private String do_reduce_table(parse_reduce_table red_tab)
     {
-      lalr_state       goto_st;
-
       long start_time = System.currentTimeMillis();
-
-      /* collect values for reduce-goto table */
-      short[][] reduce_goto_table = new short[red_tab.num_states()][];
-      /* make temporary table for the row. */
-      short[] temp_table = new short[2*non_terminal.number()+2];
-      /* do each row of the reduce-goto table */
-      for (int i=0; i<red_tab.num_states(); i++)
-	{
-	  int nentries = 0;
-	  /* do each entry in the row */
-	  for (int j=0; j<non_terminal.number(); j++)
-	    {
-	      /* get the entry */
-	      goto_st = red_tab.under_state[i].under_non_term[j];
-
-	      /* if we have none, skip it */
-	      if (goto_st != null)
-		{
-		  /* make entries for the index and the value */
-		  temp_table[nentries++] = (short) j;
-		  temp_table[nentries++] = (short) goto_st.index();
-		}
-	    }
-	  /* end row with default value */
-	  temp_table[nentries++] = -1;
-	  temp_table[nentries++] = -1;
-
-	  /* now we know how big to make the row. */
-	  reduce_goto_table[i] = new short[nentries];
-	  System.arraycopy(temp_table, 0, reduce_goto_table[i], 0, nentries);
-	}
-
-      /* emit the table. */
-      out.println();
-      out.println("  /** <code>reduce_goto</code> table. */");
-      out.println("  private static final short[][] _reduce_table = "); 
-      out.print  ("    unpackFromStrings(");
-      do_table_as_string(out, reduce_goto_table);
-      out.println(");");
-
-      /* do the public accessor method */
-      out.println();
-      out.println("  /** Access to <code>reduce_goto</code> table. */");
-      out.println("  public short[][] reduce_table() {return _reduce_table;}");
-      out.println();
-
+      String result = do_array_as_string(red_tab.compress());
       goto_table_time = System.currentTimeMillis() - start_time;
+      return result;
     }
 
-  // print a string array encoding the given short[][] array.
-  protected void do_table_as_string(PrintWriter out, short[][] sa) {
-    out.println("new String[] {");
-    out.print("    \"");
-    int nchar=0, nbytes=0;
-    nbytes+=do_escaped(out, (char)(sa.length>>16));
-    nchar  =do_newline(out, nchar, nbytes);
-    nbytes+=do_escaped(out, (char)(sa.length&0xFFFF));
-    nchar  =do_newline(out, nchar, nbytes);
-    for (int i=0; i<sa.length; i++) {
-	nbytes+=do_escaped(out, (char)(sa[i].length>>16));
-	nchar  =do_newline(out, nchar, nbytes);
-	nbytes+=do_escaped(out, (char)(sa[i].length&0xFFFF));
-	nchar  =do_newline(out, nchar, nbytes);
-	for (int j=0; j<sa[i].length; j++) {
-	  // contents of string are (value+2) to allow for common -1, 0 cases
-	  // (UTF-8 encoding is most efficient for 0<c<0x80)
-	  nbytes+=do_escaped(out, (char)(2+sa[i][j]));
-	  nchar  =do_newline(out, nchar, nbytes);
-	}
+  /** create a string encoding a given short[] array.*/
+  private String do_array_as_string(short[] sa) 
+    {
+      short min_value = 0;
+      for (int i = 0; i < sa.length; i++)
+	if (sa[i] < min_value)
+	  min_value = sa[i];
+      StringBuilder sb = new StringBuilder();
+      sb.append((char)(sa.length >>> 16)).append((char)(sa.length & 0xffff));
+      sb.append((char)-min_value);
+      for (int i = 0; i < sa.length; i++)
+	sb.append((char) (sa[i]-min_value));
+      return sb.toString();
     }
-    out.print("\" }");
-  }
-  // split string if it is very long; start new line occasionally for neatness
-  protected int do_newline(PrintWriter out, int nchar, int nbytes) {
-    if (nbytes > 65500)  { out.println("\", "); out.print("    \""); }
-    else if (nchar > 11) { out.println("\" +"); out.print("    \""); }
-    else return nchar+1;
-    return 0;
-  }
-  // output an escape sequence for the given character code.
-  protected int do_escaped(PrintWriter out, char c) {
-    StringBuffer escape = new StringBuffer();
-    if (c <= 0xFF) {
-      escape.append(Integer.toOctalString(c));
-      while(escape.length() < 3) escape.insert(0, '0');
-    } else {
-      escape.append(Integer.toHexString(c));
-      while(escape.length() < 4) escape.insert(0, '0');
-      escape.insert(0, 'u');
-    }
-    escape.insert(0, '\\');
-    out.print(escape.toString());
-
-    // return number of bytes this takes up in UTF-8 encoding.
-    if (c == 0) return 2;
-    if (c >= 0x01 && c <= 0x7F) return 1;
-    if (c >= 0x80 && c <= 0x7FF) return 2;
-    return 3;
+    // print a string array encoding the given short[][] array.
+  protected void output_string(PrintWriter out, String str) {
+    for (int i = 0; i < str.length(); i += 11)
+      {
+	StringBuilder encoded = new StringBuilder();
+	encoded.append("    \"");
+	for (int j = 0; j < 11 && i+j < str.length(); j++)
+	  {
+	    char c = str.charAt(i+j);
+	    encoded.append('\\');
+	    if (c < 256) 
+	      {
+		String oct = "000"+Integer.toOctalString(c);
+		oct = oct.substring(oct.length()-3);
+		encoded.append(oct);
+	      }
+	    else
+	      {
+		String hex = "0000"+Integer.toHexString(c);
+		hex = hex.substring(hex.length()-4);
+		encoded.append('u').append(hex);
+	      }
+	  }
+	encoded.append("\"");
+	if (i+11 < str.length())
+	  encoded.append(" +");
+	else
+	  encoded.append(";");
+	out.println(encoded.toString());
+      }
   }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -813,23 +665,29 @@ public class emit {
       /* constructors [CSA/davidm, 24-jul-99] */
       out.println();
       out.println("  /** Default constructor. */");
-      out.println("  public " + parser_class_name + "() {super();}");
+      out.println("  public " + parser_class_name + "() {super("+pre("tables")+");}");
       if (!suppress_scanner) {
 	  out.println();
 	  out.println("  /** Constructor which sets the default scanner. */");
 	  out.println("  public " + parser_class_name + 
-		      "(java_cup.runtime.Scanner s) {super(s);}");
+		      "(java_cup.runtime.Scanner s) {super(s,"+pre("tables")+");}");
           // TUM 20060327 added SymbolFactory aware constructor
 	  out.println();
 	  out.println("  /** Constructor which sets the default scanner. */");
 	  out.println("  public " + parser_class_name + 
-		      "(java_cup.runtime.Scanner s, java_cup.runtime.SymbolFactory sf) {super(s,sf);}");
+		      "(java_cup.runtime.Scanner s, java_cup.runtime.SymbolFactory sf) {super(s,sf,"+pre("tables")+");}");
       }
 
       /* emit the various tables */
-      emit_production_table(out);
-      do_action_table(out, action_table, compact_reduces);
-      do_reduce_table(out, reduce_table);
+      String tables = do_production_table() + 
+      	do_action_table(action_table, compact_reduces) +
+      	do_reduce_table(reduce_table);
+
+      /* instance of the action encapsulation class */
+      out.println("  /** Instance of action encapsulation class. */");
+      out.println("  private final static String " + pre("tables")+ " = ");
+      output_string(out, tables);
+      out.println();
 
       /* instance of the action encapsulation class */
       out.println("  /** Instance of action encapsulation class. */");

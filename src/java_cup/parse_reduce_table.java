@@ -1,6 +1,8 @@
 
 package java_cup;
 
+import java.util.BitSet;
+
 /** This class represents the complete "reduce-goto" table of the parser.
  *  It has one row for each state in the parse machines, and a column for
  *  each terminal symbol.  Each entry contains a state number to shift to
@@ -50,6 +52,59 @@ public class parse_reduce_table {
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
+
+  public short[] compress()
+    {
+      int[] baseaddrs = new int[_num_states];
+      int[] rowidx = new int[non_terminal.number()];
+      int maxbase = 0;
+      BitSet used = new BitSet();
+      System.err.println("do_reduce_table.compress");
+      for (int i = 0; i < _num_states; i++)
+	{
+	  parse_reduce_row row = under_state[i];
+	  int rowcnt = 0;
+	  for (int j = 0; j < non_terminal.number(); j++)
+	    {
+	      if (row.under_non_term[j] != null)
+		rowidx[rowcnt++] = j;
+	    }
+
+	next_base:
+	  for (int base = 0; true; base++)
+	    {
+	      if (_num_states+base > Short.MAX_VALUE)
+		{
+		  throw new AssertionError("Reduce table overflow!");
+		}
+	      for (int j = 0; j < rowcnt; j++)
+		{
+		  if (used.get(base+rowidx[j]))
+		    continue next_base;
+		}
+	      for (int j = 0; j < rowcnt; j++)
+		used.set(base+rowidx[j]);
+	      baseaddrs[i] = base;
+	      if (base > maxbase)
+		maxbase = base;
+	      break;
+	    }
+	}
+      short[] compressed = new short[_num_states + maxbase + non_terminal.number()];
+      for (int i = 0; i < _num_states; i++)
+	{
+	  parse_reduce_row row = under_state[i];
+	  int base = _num_states + baseaddrs[i];
+	  compressed[i] = (short) base;
+	  for (int j = 0; j < non_terminal.number(); j++)
+	    {
+	      lalr_state st = row.under_non_term[j];
+	      if (st != null)
+		compressed[base+j] = (short) st.index();
+	    }
+	}
+      return compressed;
+    }
 
   /** Convert to a string. */
   public String toString()

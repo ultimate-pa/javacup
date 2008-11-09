@@ -1,6 +1,8 @@
 
 package java_cup;
 
+import java.util.BitSet;
+
 /** This class represents the complete "action" table of the parser. 
  *  It has one row for each state in the parse machine, and a column for
  *  each terminal symbol.  Each entry in the table represents a shift,
@@ -50,6 +52,85 @@ public class parse_action_table {
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
+  
+  public short[] compress(boolean compact_reduces)
+    {
+      int[] baseaddrs = new int[_num_states];
+      int[] rowidx = new int[terminal.number()];
+      int maxbase = 0;
+      BitSet used = new BitSet();
+      for (int i = 0; i < _num_states; i++)
+	{
+	  parse_action_row row = under_state[i];
+	  /* determine the default for the row */
+	  if (compact_reduces)
+	    row.compute_default();
+	  else
+	    row.default_reduce = -1;
+	  
+	  int rowcnt = 0;
+	  for (int j = 0; j < terminal.number(); j++)
+	    {
+	      parse_action act = row.under_term[j];
+	      if (act.kind() == parse_action.SHIFT ||
+		  (act.kind() == parse_action.REDUCE &&
+		      ((reduce_action)act).reduce_with().index() 
+		      != row.default_reduce))
+		rowidx[rowcnt++] = j;
+	    }
+
+	next_base:
+	  for (int base = 0; true; base++)
+	    {
+	      if (2*(_num_states+base) > Short.MAX_VALUE)
+		{
+		  throw new AssertionError("Action table overflow!");
+		}
+	      for (int j = 0; j < rowcnt; j++)
+		{
+		  if (used.get(base+rowidx[j]))
+		    continue next_base;
+		}
+	      for (int j = 0; j < rowcnt; j++)
+		used.set(base+rowidx[j]);
+	      baseaddrs[i] = base;
+	      if (base > maxbase)
+		maxbase = base;
+	      break;
+	    }
+	}
+      short[] compressed = 
+	new short[2*_num_states + 2*(maxbase + terminal.number())];
+      for (int i = 0; i < maxbase + terminal.number(); i++)
+	compressed[2*_num_states+2*i] = (short) _num_states;
+      for (int i = 0; i < _num_states; i++)
+	{
+	  parse_action_row row = under_state[i];
+	  int base = (2*_num_states + 2*baseaddrs[i]);
+	  compressed[2*i] = (short) base;
+	  compressed[2*i+1] = (short) - (row.default_reduce+1);
+	  for (int j = 0; j < terminal.number(); j++)
+	    {
+	      parse_action act = row.under_term[j];
+	      if (act.kind() == parse_action.SHIFT)
+		{
+		  compressed[base+2*j] = (short) i;
+		  compressed[base+2*j+1] = (short) 
+		      (((shift_action)act).shift_to().index()+1);
+		}
+	      else if (act.kind() == parse_action.REDUCE)
+		{
+		  int red = ((reduce_action)act).reduce_with().index();
+		  if (red != row.default_reduce)
+		    {
+		      compressed[base+2*j] = (short) i;
+		      compressed[base+2*j+1] = (short) - (red+1);
+		    }
+		}
+	    }
+	}
+      return compressed;
+    }
 
   /** Check the table to ensure that all productions have been reduced. 
    *  Issue a warning message (to System.err) for each production that

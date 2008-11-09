@@ -25,12 +25,12 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The minor version number. */
-  public static final int minor = 11;
+  public static final int minor = 12;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The update letter. */
-  public static final String update = "joho 20081107";
+  public static final String update = "joho 20081109";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
