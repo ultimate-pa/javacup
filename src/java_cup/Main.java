@@ -512,13 +512,18 @@ public class Main {
       for (non_terminal nt : non_terminal.all())
 	{
 	  /* is this one unused */
-	  if (nt.use_count() == 0)
+	  if (nt.use_count() == 0 || nt.productions().size() == 0)
 	    {
 	      /* count and warn if we are doing warnings */
 	      emit.unused_term++;
 	      if (!emit.nowarn) 
 		{
-		    ErrorManager.getManager().emit_warning("Non terminal \"" + nt.name() +  "\" was declared but never used");
+		  String reason;
+		  if (nt.use_count() == 0)
+		    reason = "\" was declared but never used";
+		  else
+		    reason = "\" has no production";
+		  ErrorManager.getManager().emit_warning("Non terminal \"" + nt.name() +  reason);
 		}
 	    }
 	}

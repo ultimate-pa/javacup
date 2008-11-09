@@ -720,27 +720,6 @@ public class emit {
       out.println("  }");
       out.println("");
 
-
-      /* method to tell the parser about the start state */
-      out.println("  /** Indicates start state. */");
-      out.println("  public int start_state() {return " + start_st + ";}");
-
-      /* method to indicate start production */
-      out.println("  /** Indicates start production. */");
-      out.println("  public int start_production() {return " + 
-		     start_production.index() + ";}");
-      out.println();
-
-      /* methods to indicate EOF and error symbol indexes */
-      out.println("  /** <code>EOF</code> Symbol index. */");
-      out.println("  public int EOF_sym() {return " + terminal.EOF.index() + 
-					  ";}");
-      out.println();
-      out.println("  /** <code>error</code> Symbol index. */");
-      out.println("  public int error_sym() {return " + terminal.error.index() +
-					  ";}");
-      out.println();
-
       /* user supplied code for user_init() */
       if (init_code != null)
 	{

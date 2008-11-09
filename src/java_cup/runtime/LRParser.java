@@ -163,26 +163,6 @@ public abstract class LRParser {
   /*--- (Access to) Instance Variables ------------------------*/
   /*-----------------------------------------------------------*/
 
-  /** The index of the start state (supplied by generated subclass). */
-  public abstract int start_state();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** The index of the start production (supplied by generated subclass). */
-  public abstract int start_production();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** The index of the end of file terminal Symbol (supplied by generated 
-   *  subclass). 
-   */
-  public abstract int EOF_sym();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** The index of the special error Symbol (supplied by generated subclass). */
-  public abstract int error_sym();
-
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Internal flag to indicate when parser should quit. */
@@ -289,7 +269,7 @@ public abstract class LRParser {
    */
   public Symbol scan() throws java.lang.Exception {
     Symbol sym = getScanner().next_token();
-    return (sym!=null) ? sym : getSymbolFactory().newSymbol("END_OF_FILE",EOF_sym());
+    return (sym!=null) ? sym : getSymbolFactory().newSymbol("END_OF_FILE",0);
   }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -427,7 +407,7 @@ public abstract class LRParser {
 
       /* push dummy Symbol with start state to get us underway */
       stack.removeAllElements();
-      stack.push(getSymbolFactory().startSymbol("START", 0, start_state()));
+      stack.push(getSymbolFactory().startSymbol("START", 0, 0));
 
       /* continue until we are told to stop */
       for (_done_parsing = false; !_done_parsing; )
@@ -616,7 +596,7 @@ public abstract class LRParser {
 
       /* push dummy Symbol with start state to get us underway */
       stack.removeAllElements();
-      stack.push(getSymbolFactory().startSymbol("START",0, start_state()));
+      stack.push(getSymbolFactory().startSymbol("START",0, 0));
 
       /* continue until we are told to stop */
       for (_done_parsing = false; !_done_parsing; )
@@ -755,7 +735,7 @@ public abstract class LRParser {
 	    }
 
 	  /* if we are now at EOF, we have failed */
-	  if (lookahead[0].sym == EOF_sym()) 
+	  if (lookahead[0].sym == 0) 
 	    {
 	      if (debug) debug_message("# Error recovery fails at EOF");
 	      return false;
@@ -790,7 +770,7 @@ public abstract class LRParser {
   protected boolean shift_under_error()
     {
       /* is there a shift under error Symbol */
-      return get_action(stack.peek().parse_state, error_sym()) > 0;
+      return get_action(stack.peek().parse_state, 1) > 0;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -831,7 +811,7 @@ public abstract class LRParser {
 	}
 
       /* state on top of the stack can shift under error, find the shift */
-      act = get_action(stack.peek().parse_state, error_sym());
+      act = get_action(stack.peek().parse_state, 1);
       if (debug) 
 	{
 	  debug_message("# Recover state found (#" + 
@@ -840,7 +820,7 @@ public abstract class LRParser {
 	}
 
       /* build and shift a special error Symbol */
-      error_token = getSymbolFactory().newSymbol("ERROR",error_sym(), left, right);
+      error_token = getSymbolFactory().newSymbol("ERROR",1, left, right);
       error_token.parse_state = act-1;
       error_token.used_by_parser = true;
       stack.push(error_token);
@@ -966,7 +946,7 @@ public abstract class LRParser {
 	      act = -act-1;
 
 	      /* if this is a reduce with the start production we are done */
-	      if (act == start_production()) 
+	      if (act == 0) 
 		{
 		  if (debug) debug_message("# Parse-ahead accepts");
 		  return true;

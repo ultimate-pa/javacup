@@ -208,6 +208,12 @@ init with {:
     ComplexSymbolFactory f = new ComplexSymbolFactory();
     symbolFactory = f;
     lexer = new Lexer(f); 
+
+    /* declare "error" as a terminal */
+    symbols.put("error", new symbol_part(terminal.error));
+
+    /* declare start non terminal */
+    non_terms.put("$START", non_terminal.START_nt);
 :}
 scan with {: 
     return lexer.next_token(); 
@@ -248,13 +254,6 @@ start with spec;
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 spec ::= 
-	{:
-          /* declare "error" as a terminal */
-          symbols.put("error", new symbol_part(terminal.error));
-
-          /* declare start non terminal */
-          non_terms.put("$START", non_terminal.START_nt);
-	:}
 	package_spec
 	import_list
 	code_parts
@@ -571,6 +570,14 @@ rhs ::=
 	{:
 	  if (lhs_nt != null) 
 	    {
+	      /* if we have no start non-terminal declared and this is 
+		 the first production, make its lhs nt the start_nt 
+		 and build a special start production for it. */
+	      if (start_nt == null)
+		{
+		  set_start_symbol(lhs_nt);
+		}
+
 	      /* build the production */
 	      production p;
 	      production_part[] rhs_parts = rhs.toArray(new production_part[rhs.size()]);
@@ -581,14 +588,6 @@ rhs ::=
 	      } else {
 		p = new production(lhs_nt, rhs_parts, rhs.size());
 	      }
-
-	      /* if we have no start non-terminal declared and this is 
-		 the first production, make its lhs nt the start_nt 
-		 and build a special start production for it. */
-	      if (start_nt == null)
-		{
-		  set_start_symbol(lhs_nt);
-		}
 	    }
 	:}
 	;
