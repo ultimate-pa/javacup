@@ -123,20 +123,20 @@ public class lalr_state {
    *  unclosed, set of items -- which uniquely define the state).  This table 
    *  stores state objects using (a copy of) their kernel item sets as keys. 
    */
-  protected static HashMap<Collection<lr_item>,lalr_state> _all_kernels = 
+  private static HashMap<Collection<lr_item>,lalr_state> _all_kernels = 
     new HashMap<Collection<lr_item>, lalr_state>();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Static counter for assigning unique state indexes. */
-  protected static int next_index = 0;
+  private static int next_index = 0;
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/
   /*-----------------------------------------------------------*/
 
   /** The item set for this state. */
-  protected HashMap<lr_item, lookaheads> _items;
+  private HashMap<lr_item, lookaheads> _items;
 
   /** The item set for this state. */
   public HashMap<lr_item, lookaheads> items() {return _items;}
@@ -144,7 +144,7 @@ public class lalr_state {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** List of transitions out of this state. */
-  protected lalr_transition _transitions = null;
+  private lalr_transition _transitions = null;
 
   /** List of transitions out of this state. */
   public lalr_transition transitions() {return _transitions;}
@@ -152,7 +152,7 @@ public class lalr_state {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Index of this state in the parse tables */
-  protected int _index;
+  private int _index;
 
   /** Index of this state in the parse tables */
   public int index() {return _index;}
@@ -394,7 +394,7 @@ public class lalr_state {
    *  propagates to all items that have propagation links from some item 
    *  in this state. 
    */
-  protected void propagate_lookaheads(HashMap<lr_item, terminal_set> new_kernel)
+  private void propagate_lookaheads(HashMap<lr_item, terminal_set> new_kernel)
     {
       /* recursively propagate out from each item in the state */
       for (Entry<lr_item, terminal_set> entry : new_kernel.entrySet())
@@ -434,7 +434,6 @@ public class lalr_state {
       parse_reduce_row our_red_row;
       parse_action     act, other_act;
       symbol           sym;
-      terminal_set     conflict_set = new terminal_set();
 
       /* pull out our rows from the tables */
       our_act_row = act_table.under_state[index()];
@@ -443,10 +442,10 @@ public class lalr_state {
       /* consider each item in our state */
       for (Entry<lr_item, lookaheads> itm : items().entrySet())
 	{
-
 	  /* if its completed (dot at end) then reduce under the lookahead */
 	  if (itm.getKey().dot_at_end())
 	    {
+	      boolean conflict = false;
 	      act = new reduce_action(itm.getKey().the_production());
 
 	      /* consider each lookahead symbol */
@@ -455,41 +454,45 @@ public class lalr_state {
 		  /* skip over the ones not in the lookahead */
 		  if (!itm.getValue().contains(t)) continue;
 
+		  other_act = our_act_row.under_term[t];
 	          /* if we don't already have an action put this one in */
-	          if (our_act_row.under_term[t].kind() == 
-		      parse_action.ERROR)
+	          if (other_act.kind() == parse_action.ERROR)
 		    {
 	              our_act_row.under_term[t] = act;
 		    }
 	          else
 		    {
-		      /* we now have at least one conflict */
-		      terminal term = terminal.find(t);
-		      other_act = our_act_row.under_term[t];
+		      /* we now have a reduce/reduce conflict */
 
-		      /* if the other act was not a shift */
-		      if (other_act.kind() != parse_action.SHIFT)
-		        {
-		        /* if we have lower index hence priority, replace it*/
-		          if (itm.getKey().the_production().index() < 
-			      ((reduce_action)other_act).reduce_with().index())
-			    {
-			      /* replace the action */
-			      our_act_row.under_term[t] = act;
-			    }
-		        } 
-		      else
+		      /* if we have lower index hence priority, replace it*/
+		      if (itm.getKey().the_production().index() < 
+			  ((reduce_action)other_act).reduce_with().index())
 			{
-			  /*  Check precedences,see if problem is correctable */
-			  if(fix_with_precedence(itm.getKey().the_production(), 
-			      t, our_act_row, act)) 
-			    {
-			      term = null;
-			    }
+			  /* replace the action */
+			  our_act_row.under_term[t] = act;
 			}
-		      if(term!=null) 
+		      conflict = true;
+		    }
+		}
+	      
+	      /* if there was a conflict with a different production, report it now.
+	       * We can't do it in the above loop since it would call report for every
+	       * terminal symbol on which the conflict is.
+	       */
+	      if (conflict)
+		{
+		  for (Entry<lr_item,lookaheads> compare : items().entrySet())
+		    {
+		      /* the compare item must be in a before this item in the entrySet */
+		      if (itm.getKey() == compare.getKey())
+			break;
+
+		      /* is it a reduce */
+		      if (compare.getKey().dot_at_end())
 			{
-			  conflict_set.add(term);
+			  if (compare.getValue().intersects(itm.getValue()))
+			    /* report a reduce/reduce conflict */
+			    report_reduce_reduce(itm, compare);
 			}
 		    }
 		}
@@ -504,23 +507,22 @@ public class lalr_state {
 	  if (!sym.is_non_term())
 	    {
 	      act = new shift_action(trans.to_state());
-
+	      other_act = our_act_row.under_term[sym.index()];
 	      /* if we don't already have an action put this one in */
-	      if ( our_act_row.under_term[sym.index()].kind() == 
-		   parse_action.ERROR)
+	      if (other_act.kind() == parse_action.ERROR)
 		{
 	          our_act_row.under_term[sym.index()] = act;
 		}
 	      else
 		{
 		  /* we now have at least one conflict */
-		  production p = ((reduce_action)our_act_row.under_term[sym.index()]).reduce_with();
+		  production p = ((reduce_action)other_act).reduce_with();
 
 		  /* shift always wins */
 		  if (!fix_with_precedence(p, sym.index(), our_act_row, act))
 		    {
 		      our_act_row.under_term[sym.index()] = act;
-		      conflict_set.add(terminal.find(sym.index()));
+		      report_shift_reduce(p, sym);
 		    }
 		}
 	    }
@@ -530,10 +532,6 @@ public class lalr_state {
 	      our_red_row.under_non_term[sym.index()] = trans.to_state();
 	    }
 	}
-
-      /* if we end up with conflict(s), report them */
-      if (!conflict_set.empty())
-        report_conflicts(conflict_set);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -553,150 +551,47 @@ public class lalr_state {
    *  if the precedence is non associative, then it is a shift/reduce error.
    *
    *  @param p           the production
-   *  @param term_index  the index of the lokahead terminal
+   *  @param term_index  the index of the lookahead terminal
    *  @param parse_action_row  a row of the action table
    *  @param act         the rule in conflict with the table entry
    */
-
-    protected boolean fix_with_precedence(
+  private boolean fix_with_precedence(
 		        production       p,
 			int              term_index,
 			parse_action_row table_row,
-			parse_action     act)
-      {
+			parse_action     shift_act)
+    {
 
       terminal term = terminal.find(term_index);
 
       /* if both production and terminal have a precedence number, 
        * it can be fixed */
       if (p.precedence_num() > assoc.no_prec
-	  && term.precedence_num() > assoc.no_prec) {
+	  && term.precedence_num() > assoc.no_prec) 
+	{
 
-	/* if production precedes terminal, put reduce in table */
-	if (p.precedence_num() > term.precedence_num()) {
-	  table_row.under_term[term_index] = 
-	    insert_reduce(table_row.under_term[term_index],act);
-	  return true;
-	} 
+	  int compare = term.precedence_num() - p.precedence_num();
+	  if (compare == 0)
+	    compare = term.precedence_side() - assoc.nonassoc; 
 
-	/* if terminal precedes rule, put shift in table */
-	else if (p.precedence_num() < term.precedence_num()) {
-	  table_row.under_term[term_index] = 
-	    insert_shift(table_row.under_term[term_index],act);
-	  return true;
-	} 
-	else {  /* they are == precedence */
-
-	  /* equal precedences have equal sides, so only need to 
-	     look at one: if it is right, put shift in table */
-	  if (term.precedence_side() == assoc.right) {
-	  table_row.under_term[term_index] = 
-	    insert_shift(table_row.under_term[term_index],act);
+	  /* if production precedes terminal, keep reduce in table */
+	  if (compare < 0)
 	    return true;
-	  }
 
-	  /* if it is left, put reduce in table */
-	  else if (term.precedence_side() == assoc.left) {
-	    table_row.under_term[term_index] = 
-	      insert_reduce(table_row.under_term[term_index],act);
-	    return true;
-	  }
-
-	  /* if it is nonassoc, we're not allowed to have two nonassocs
-	     of equal precedence in a row */
-	  else {
-	    assert term.precedence_side() == assoc.nonassoc;
-	    return false;
-	  }
+	  /* if terminal precedes rule, put shift in table */
+	  else if (compare > 0)
+	    {
+	      table_row.under_term[term_index] = shift_act; 
+	      return true;
+	    } 
 	}
-      }
-       
+
       /* otherwise, neither the rule nor the terminal has a precedence,
 	 so it can't be fixed. */
       return false;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-
-  /*  given two actions, and an action type, return the 
-      action of that action type.  give an error if they are of
-      the same action, because that should never have tried
-      to be fixed 
-     
-  */
-    protected parse_action insert_action(
-					parse_action a1,
-					parse_action a2,
-					int act_type) 
-    {
-      assert (a1.kind() == act_type) != (a2.kind() == act_type) : 
-	"Conflict resolution of bogus actions";
-      if (a1.kind() == act_type)
-	return a1;
-      else
-	return a2;
-    }
-
-    /* find the shift in the two actions */
-    protected parse_action insert_shift(
-					parse_action a1,
-					parse_action a2) 
-    {
-      return insert_action(a1, a2, parse_action.SHIFT);
-    }
-
-    /* find the reduce in the two actions */
-    protected parse_action insert_reduce(
-					parse_action a1,
-					parse_action a2) 
-    {
-      return insert_action(a1, a2, parse_action.REDUCE);
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Produce warning messages for all conflicts found in this state.  */
-  protected void report_conflicts(terminal_set conflict_set)
-    {
-      boolean      after_itm;
-
-      /* consider each element */
-      for (Entry<lr_item,lookaheads> itm : items().entrySet())
-	{
-	  /* clear the S/R conflict set for this item */
-
-	  /* if it results in a reduce, it could be a conflict */
-	  if (itm.getKey().dot_at_end())
-	    {
-	      /* not yet after itm */
-	      after_itm = false;
-
-	      /* compare this item against all others before this,
-	       * looking for conflicts */
-	      for (Entry<lr_item,lookaheads> compare : items().entrySet())
-		{
-		  /* if this is the item break out of the loop */
-		  if (itm.getKey() == compare.getKey())
-		    break;
-
-		  /* is it a reduce */
-		  if (compare.getKey().dot_at_end())
-		    {
-		      if (after_itm)
-			/* does the comparison item conflict? */
-			if (compare.getValue().intersects(itm.getValue()))
-			  /* report a reduce/reduce conflict */
-			  report_reduce_reduce(itm, compare);
-		    }
-		}
-	      /* report S/R conflicts under all the symbols we conflict under */
-	      for (int t = 0; t < terminal.number(); t++)
-		if (itm.getValue().contains(t) && conflict_set.contains(t))
-		  report_shift_reduce(itm.getKey(),t);
-	    }
-	}
-    }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -705,7 +600,7 @@ public class lalr_state {
    * @param itm1 first item in conflict.
    * @param itm2 second item in conflict.
    */
-  protected void report_reduce_reduce(
+  private void report_reduce_reduce(
       Entry<lr_item,lookaheads> itm1,
       Entry<lr_item,lookaheads> itm2)
     {
@@ -741,40 +636,34 @@ public class lalr_state {
 
   /** Produce a warning message for one shift/reduce conflict.
    *
-   * @param red_itm      the item with the reduce.
+   * @param p            the production that is not reduced.
    * @param conflict_sym the index of the symbol conflict occurs under.
    */
-  protected void report_shift_reduce(
-    lr_item red_itm, 
-    int       conflict_sym)
+  private void report_shift_reduce(
+    production p,
+    symbol     conflict_sym)
     {
-      symbol       shift_sym;
-
       /* emit top part of message including the reduce item */
-      String message = "*** Shift/Reduce conflict found in state #"+index()+"\n" +
-      "  between " + red_itm.toString()+"\n";
+      StringBuilder message = new StringBuilder();
+      message.append("*** Shift/Reduce conflict found in state #").append(index()).append("\n");
+      message.append("  between ").append(p).append("(*)\n");
 
       /* find and report on all items that shift under our conflict symbol */
       for (lr_item itm : items().keySet())
 	{
 	  /* only look if its not the same item and not a reduce */
-	  if (itm != red_itm && !itm.dot_at_end())
+	  if (!itm.dot_at_end() && itm.symbol_after_dot().equals(conflict_sym))
 	    {
-	      /* is it a shift on our conflicting terminal */
-	      shift_sym = itm.symbol_after_dot();
-	      if (!shift_sym.is_non_term() && shift_sym.index() == conflict_sym)
-	        {
-		  /* yes, report on it */
-                  message += "  and     " + itm.toString()+"\n";
-		}
+	      /* yes, report on it */
+	      message.append("  and     ").append(itm).append("\n");
 	    }
 	}
-      message += "  under symbol "+ terminal.find(conflict_sym).name() + "\n"+
-      "  Resolved in favor of shifting.\n";
+      message.append("  under symbol ").append(conflict_sym).append("\n");
+      message.append("  Resolved in favor of shifting.\n");
 
       /* count the conflict */
       num_conflicts++;
-      ErrorManager.getManager().emit_warning(message);
+      ErrorManager.getManager().emit_warning(message.toString());
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
