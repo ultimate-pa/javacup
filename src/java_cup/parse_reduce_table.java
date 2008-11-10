@@ -84,15 +84,19 @@ public class parse_reduce_table {
 	      for (int j = 0; j < rowcnt; j++)
 		{
 		  used.set(base+rowidx[j]);
-		  if (base+rowidx[j] > maxbase)
-		    maxbase = base+rowidx[j];
+		  if (base+rowidx[j] >= maxbase)
+		    maxbase = base+rowidx[j]+1;
 		}
 
 	      baseaddrs[i] = base;
 	      break;
 	    }
 	}
-      short[] compressed = new short[_num_states + maxbase + 1];
+      int minbase = 0;
+      while (!used.get(minbase))
+	minbase++;
+      
+      short[] compressed = new short[_num_states + maxbase - minbase];
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_reduce_row row = under_state[i];

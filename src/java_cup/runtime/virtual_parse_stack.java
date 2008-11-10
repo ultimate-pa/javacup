@@ -118,11 +118,10 @@ public class virtual_parse_stack {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Pop the stack. */
-  public void pop() throws java.lang.Exception
+  public void pop()
     {
-      if (vstack.empty())
-	throw new Exception(
-		  "Internal parser error: pop from empty virtual stack");
+      assert !vstack.empty() :
+		  "Internal parser error: pop from empty virtual stack";
 
       /* pop it */
       vstack.pop();
@@ -130,6 +129,20 @@ public class virtual_parse_stack {
       /* if we are now empty transfer an element (if there is one) */
       if (vstack.empty())
         get_from_real();
+    }
+  
+  /** Pop several elements from the stack */
+  public void pop(int num_elems)
+    {
+      int vsize = vstack.size();
+      if (vsize > num_elems)
+	vstack.setSize(vsize - num_elems);
+      else 
+	{
+	  vstack.setSize(0);
+	  real_stack.setSize(real_stack.size() - (num_elems - vsize));
+	  get_from_real();
+	}
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/

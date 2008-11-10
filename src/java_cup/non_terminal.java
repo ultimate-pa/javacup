@@ -30,10 +30,6 @@ public class non_terminal extends symbol {
       /* super class does most of the work */
       super(nm, tp);
 
-      /* add to set of all non terminals and check for duplicates */
-      Object conflict = _all.put(nm,this);
-      assert conflict == null :	"Duplicate non-terminal ("+nm+") created";
-
       /* assign a unique index */
       _index = _all_by_index.size();
 
@@ -62,22 +58,12 @@ public class non_terminal extends symbol {
 
   //Hm Added clear  to clear all static fields
   public static void clear() {
-      _all.clear();
       _all_by_index.clear();
       next_nt=0;
   }
 
   /** Access to all non-terminals. */
-  public static Collection<non_terminal> all() {return _all.values();}
-
-  /** lookup a non terminal by name string */ 
-  public static non_terminal find(String with_name)
-    {
-      if (with_name == null)
-        return null;
-      else 
-        return (non_terminal)_all.get(with_name);
-    }
+  public static Collection<non_terminal> all() {return _all_by_index;}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -93,12 +79,12 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Total number of non-terminals. */
-  public static int number() {return _all.size();}
+  public static int number() {return _all_by_index.size();}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Static counter for creating unique non-terminal names */
-  static protected int next_nt = 0;
+  private static int next_nt = 0;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

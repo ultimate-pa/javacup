@@ -479,7 +479,7 @@ public class emit {
 	  	? ", RESULT" : "";
 
 	  out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
-	      "\""+ 	prod.lhs().the_symbol().name() +  "\","+ 
+	      "\"" + prod.lhs().the_symbol().name() +  "\", " +
 	      prod.lhs().the_symbol().index() + leftright + result + ");");
 	  
 	  /* end of their block */

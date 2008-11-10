@@ -30,10 +30,6 @@ public class terminal extends symbol {
       /* superclass does most of the work */
       super(nm, tp);
 
-      /* add to set of all terminals and check for duplicates */
-      Object conflict = _all.put(nm,this);
-      assert conflict == null : "Duplicate terminal (" + nm + ") created";
-
       /* set the precedence */
       _precedence_num = precedence_num;
       _precedence_side = precedence_side;
@@ -74,31 +70,15 @@ public class terminal extends symbol {
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
-  /** Table of all terminals.  Elements are stored using name strings as 
-   *  the key 
-   */
-  protected static HashMap<String,terminal> _all = new HashMap<String,terminal>();
-
   //Hm Added clear  to clear all static fields
   public static void clear() {
-      _all.clear();
       _all_by_index.clear();
       EOF = new terminal("EOF");
       error = new terminal ("error");
   }
   
   /** Access to all terminals. */
-  public static Collection<terminal> all() {return _all.values();}
-
-  /** Lookup a terminal by name string. */ 
-  public static terminal find(String with_name)
-    {
-      if (with_name == null)
-	return null;
-      else 
-	return (terminal)_all.get(with_name);
-    }
-
+  public static Collection<terminal> all() {return _all_by_index;}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -114,7 +94,7 @@ public class terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Total number of terminals. */
-  public static int number() {return _all.size();}
+  public static int number() {return _all_by_index.size();}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
