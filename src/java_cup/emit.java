@@ -313,7 +313,7 @@ public class emit {
    * @param start_prod the start production of the grammar.
    */
   protected void emit_action_code(PrintWriter out, production start_prod, 
-      boolean lr_values, boolean is_java15)
+      boolean lr_values, boolean old_lr_values, boolean is_java15)
     {
       long start_time = System.currentTimeMillis();
 
@@ -325,7 +325,7 @@ public class emit {
       out.println(
        "/** Cup generated class to encapsulate user supplied action code.*/"
       );  
-      /* TUM changes; proposed by Henning Niss 20050628: added type arguement */
+      /* TUM changes; proposed by Henning Niss 20050628: added type argument */
       out.println("class " +  pre(parser_class_name+"$actions") + typeArgument() + " {");
       /* user supplied code */
       if (action_code != null)
@@ -404,41 +404,32 @@ public class emit {
 	    baseprod = ((action_production)prod).base_production();
 	  else
 	    baseprod = prod;
+	  String leftsym = null, rightsym = null;
 	  /* Add code to propagate RESULT assignments that occur in
 	   * action code embedded in a production (ie, non-rightmost
 	   * action code). 24-Mar-1998 CSA
 	   */
 	  for (int i=prod.rhs_params()-1; i>=0; i--) 
 	    {
-	      String symbvar = null;
-	      if (!(prod instanceof action_production) &&
-		  lr_values && (i == 0 || i == prod.rhs_params()-1))
-		{
-		  if (i == prod.rhs_params()-1)
-		    symbvar = pre("right");
-		  else
-		    symbvar = pre("left");
-
-		  out.println("              java_cup.runtime.Symbol " + symbvar + " = " +
-		      stackelem(prod.rhs_params() - i, is_java15) + ";");
-		}
-	      
 	      symbol_part symbol = baseprod.rhs(i);
 	      if (symbol.label() != null)
 		{
-		  if (symbvar == null)
-		    {
-		      symbvar = pre("sym"+symbol.label());
-		      out.println("              java_cup.runtime.Symbol " + symbvar + " = " +
-			  stackelem(prod.rhs_params() - i, is_java15) + ";");
-		    }
+		  if (i == 0)
+		    leftsym = symbol.label()+"$";
+		  if (i == prod.rhs_params()-1)
+		    rightsym = symbol.label()+"$";
+		  
+		  out.println("              java_cup.runtime.Symbol " + 
+		      symbol.label() + "$ = " +
+		      stackelem(prod.rhs_params() - i, is_java15) + ";");
+	      		
 		  /* Put in the left/right value labels */
-		  if (lr_values)
+		  if (old_lr_values)
 		    {
 		      out.println("              int "+symbol.label()+"left = "+
-			  symbvar + ".left;");
+			  symbol.label() + "$.left;");
 		      out.println("              int "+symbol.label()+"right = "+
-			  symbvar + ".right;");
+			  symbol.label() + "$.right;");
 		    }
 
 		  String symtype = symbol.the_symbol().stack_type(); 
@@ -446,7 +437,7 @@ public class emit {
 		    {
 		      out.println("              " + symtype +
 			  " " + symbol.label() + " = (" + symtype + ") " +
-			  symbvar + ".value;");
+			  symbol.label() + "$.value;");
 		    }
 		}
 	    }
@@ -464,15 +455,19 @@ public class emit {
           String leftright = "";
 	  if (lr_values)
 	    {
-	      String leftsym = pre("left");
-	      String rightsym = pre("right");
-	      if (prod.rhs_length() == 0)
+	      if (prod.rhs_length() <= 1 && rightsym == null)
 		{
+		  leftsym = rightsym = pre("sym");
 		  out.println("              java_cup.runtime.Symbol " + rightsym + " = " +
 		      stackelem(1, is_java15) + ";");
 		}
-	      if (prod.rhs_length() < 2)
-		leftsym = rightsym;
+	      else
+		{
+		  if (rightsym == null)
+		    rightsym = stackelem(1, is_java15);
+		  if (leftsym == null)
+		    leftsym = stackelem(prod.rhs_params(), is_java15);
+		}
 	      leftright = ", " + leftsym + ", " + rightsym;
 	    }
 	  String result = prod.lhs().the_symbol().stack_type() != null 
@@ -654,6 +649,7 @@ public class emit {
     boolean            compact_reduces,
     boolean            suppress_scanner,
     boolean            lr_values,
+    boolean            old_lr_values,
     boolean            is_java15)
     {
       long start_time = System.currentTimeMillis();
@@ -775,7 +771,7 @@ public class emit {
       out.println("}");
 
       /* put out the action code class */
-      emit_action_code(out, start_prod, lr_values, is_java15);
+      emit_action_code(out, start_prod, lr_values, old_lr_values, is_java15);
 
       parser_time = System.currentTimeMillis() - start_time;
     }

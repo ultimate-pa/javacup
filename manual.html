@@ -749,6 +749,12 @@ by passing various options to it.  Legal options are documented in
       the system as it runs.  This is normally of interest only to maintainers 
       of the system itself.
 
+  </dd><dt><tt>-newpositions</tt>          
+  </dt><dd>This option keeps CUP from generating old variables for the left
+      and right hand values of terminals to non-terminals, and then from
+      non-terminals to other terminals. You should turn it on unless for
+      backwards compatibility.
+
   </dd><dt><tt>-nopositions</tt>          
   </dt><dd>This option keeps CUP from generating code to propagate the left
       and right hand values of terminals to non-terminals, and then from
@@ -1326,15 +1332,16 @@ For more information, refer to the manual on <a href="#symbol_list">declarations
 
 </p><h5><a name="label_ref">Label References</a></h5>
 
-Label references do not refer to the object on the parse stack, as in
+<p>Label references do not refer to the object on the parse stack, as in
 the old CUP, but rather to the value of the <tt>value</tt> 
 instance variable of
 the <tt>Symbol</tt> that represents that terminal or non-terminal.  Hence,
 references to terminal and non-terminal values is direct, as opposed to
 the old CUP, where the labels referred to objects containing the value
-of the terminal or non-terminal.<p>
+of the terminal or non-terminal. The symbol is now accessible with label
+followed by a $ symbol.</p>
 
-For more information, refer to the manual on <a href="#label_part">labels</a>.
+<p>For more information, refer to the manual on <a href="#label_part">labels</a>.
 
 </p><h5><a name="RESULT_pass">RESULT Value</a></h5>
 
@@ -1350,11 +1357,9 @@ For more information, refer to the manual on <a href="#RES_part">RESULT</a>.
 
 </p><h5><a name="pos_prop">Position Propagation</a></h5>
 
-For every label, two more variables are declared, which are the label
-plus <tt>left</tt> or the label plus <tt>right</tt>.  These correspond 
-to the left and
-right locations in the input stream to which that terminal or
-non-terminal came from.  These values are propagated from the input
+For every label, a further variable for the symbol is declared, which is 
+the label plus a $ symbol.  You can use this to access left and right positions
+by label$.left and label$.right.  These values are propagated from the input
 terminals, so that the starting non-terminal should have a left value of
 0 and a right value of the location of the last character read.<p>
 

@@ -103,8 +103,10 @@ public class Main {
   private int expect_conflicts = 0;
 
   /* frankf added this 6/18/96 */
-  /** User option -- should generator generate code for left/right values? */
+  /** User option -- should generator update left/right values? */
   private boolean opt_lr_values = true;
+  /** User option -- should generator generate old style access for left/right values? */
+  private boolean opt_old_lr_values = true;
 
   /** User option -- should symbols be put in a class or an interface? [CSA]*/
   private boolean sym_interface = false;
@@ -254,6 +256,7 @@ public class Main {
 "    -nonterms      put non terminals in symbol constant class\n" + 
 "    -expect #      number of conflicts expected/allowed [default 0]\n" + 
 "    -compact_red   compact tables by defaulting to most frequent reduce\n" +
+"    -newpositions  don't generate old style access for left and right token\n" +
 "    -nowarn        don't warn about useless productions, etc.\n" +
 "    -nosummary     don't print the usual summary of parse states, etc.\n" +
 "    -nopositions   don't propagate the left and right token position values\n" +
@@ -354,7 +357,13 @@ public class Main {
 	  else if (argv[i].equals("-time"))         opt_show_timing = true; 
 	  else if (argv[i].equals("-debug"))        opt_do_debug = true;
 	  /* frankf 6/18/96 */
-	  else if (argv[i].equals("-nopositions"))  opt_lr_values = false;
+	  else if (argv[i].equals("-nopositions"))
+	    {
+	      opt_lr_values = false;
+	      opt_old_lr_values = false;
+	    }
+	  /* joho 2008-11-10 */
+	  else if (argv[i].equals("-newpositions"))  opt_old_lr_values = false;
 	  /* CSA 12/21/97 */
 	  else if (argv[i].equals("-interface"))    sym_interface = true;
 	  /* CSA 23-Jul-1999 */
@@ -614,7 +623,7 @@ public class Main {
       emit.symbols(symbol_class_file, include_non_terms, sym_interface);
       emit.parser(parser_class_file, action_table, reduce_table, 
 		  start_state.index(), emit.start_production, opt_compact_red,
-		  suppress_scanner, opt_lr_values, opt_java15);
+		  suppress_scanner, opt_lr_values, opt_old_lr_values, opt_java15);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
