@@ -1,4 +1,4 @@
-<project name="emugen" default ="dist" basedir=".">
+<project name="javacup" default ="dist" basedir=".">
   <property name="etc"       location="etc"       />
   <property name="bin"       location="bin"       />
   <property name="lib"       location="lib"       />

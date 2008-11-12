@@ -1,4 +1,52 @@
 ------------------------------------------------------------------------
+CUP version 0.12joho 20061112
+
+INCOMPATIBILITIES:
+The super class of parser is now LRParser instead of lr_parser.  This class
+changed such that newly generated parsers do not run with old runtime package
+and vice versa.  Some protected and public members were removed, as they made
+available some internal structures that are not present in new code or that are
+likely to change in later versions.  These are:
+  - prodution_table()
+  - reduce_table()
+  - start_state()
+  - start_production()
+  - EOF_sym()
+  - error_sym()
+  - _error_sync_size (error_sync_size() can still be overridden)
+  - _done_parsing  (done_parsing() is still public)
+  - tos
+  - production_tab
+  - action_tab
+  - reduce_tab
+  - init_actions()
+  - get_action(int, int)
+  - get_reduce(int, int)
+  - error_recovery(boolean)
+  - shift_under_error()
+  - find_recovery_config(boolean)
+  - lookahead
+  - lookahead_pos
+  - read_lookahead()
+  - cur_err_token()
+  - advance_lookahead()
+  - restart_lookahead()
+  - try_parse_ahead()
+  - parse_lookahead()
+  - unpackFromStrings(String[])
+the signature of function action_table() has changed, however, this function is
+not meant to be accessed by user code. 
+
+Error handling is improved, by allowing reducing productions that contain error
+as lookahead symbol.
+
+For each labelled (non-)terminal there is now an additional variable <label>$
+that allows access to the Symbol object.  On the other hand some variables with
+a dollar sign are no longer generated like CUP$parser$top and some variables
+are renamed.  You should not use variables in your code containing a $, except
+for the new <label>$ variable.
+
+OTHER CHANGES:
 
 Added new switch -java15 to emit Java 1.5 compatible code with generic
 Stack parameter and SuppressWarnings annotation. 
@@ -6,6 +54,15 @@ Stack parameter and SuppressWarnings annotation.
 Fix operator precedences:  Report shift/reduce-conflicts unless both rules
 have a precedence and this resolves the conflict.  Report non-assoc conflicts
 immediately and not at run-time.
+
+Cleaned up source code to use less static structures.
+
+Use comb-compressed action/reduce-shift tables, which have better run-time
+performance while achieving a similar compression ratio.
+
+Add the switch (-newlocations) to turn off generation of <label>left and
+<label>right variables.  A better way to access left and right part is via the 
+newly generated symbol object: <label>$.left
 
 J. Hoenicke
 Universität Freiburg
