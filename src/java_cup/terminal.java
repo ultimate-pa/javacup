@@ -4,7 +4,6 @@ import java_cup.assoc;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 
 /** This class represents a terminal symbol in the grammar.  Each terminal 
  *  has a textual name, an index, and a string which indicates the type of 

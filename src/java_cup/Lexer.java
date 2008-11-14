@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
  * on 06.11.08 18:40 from the specification file
  * <tt>flex/Lexer.jflex</tt>
  */
+@SuppressWarnings("unused")
 public class Lexer implements sym, java_cup.runtime.Scanner {
 
   /** This character denotes the end of file */
