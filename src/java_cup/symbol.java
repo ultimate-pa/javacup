@@ -13,7 +13,7 @@ package java_cup;
  * @version last updated: 7/3/96
  * @author  Frank Flannery
  */
-public abstract class symbol {
+public abstract class symbol implements Comparable<symbol> {
    /*-----------------------------------------------------------*/
    /*--- Constructor(s) ----------------------------------------*/
    /*-----------------------------------------------------------*/
@@ -21,24 +21,16 @@ public abstract class symbol {
    /** Full constructor.
     * @param nm the name of the symbol.
     * @param tp a string with the type name.
+    * @param index the index of the symbol.
     */
-   public symbol(String nm, String tp)
+   public symbol(String nm, String tp, int index)
      {
        /* sanity check */
        if (nm == null) nm = "";
 
        _name = nm;
        _stack_type = tp;
-     }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-   /** Constructor with default type. 
-    * @param nm the name of the symbol.
-    */
-   public symbol(String nm)
-     {
-       this(nm, null);
+       _index = index;
      }
 
    /*-----------------------------------------------------------*/
@@ -92,6 +84,15 @@ public abstract class symbol {
   public abstract boolean is_non_term();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+  
+  public int compareTo(symbol other)
+    {
+      /* non terminals are larger than terminals */
+      if (is_non_term() != other.is_non_term())
+	return is_non_term() ? 1 : -1;
+      /* Otherwise compare by index */
+      return index() - other.index();
+    }
 
   /** Convert to a string. */
   public String toString()

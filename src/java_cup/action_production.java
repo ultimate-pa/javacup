@@ -11,12 +11,13 @@ package java_cup;
 public class action_production extends production {
 
   /** Constructor.
+   * @param index      the unique index of this production.
    * @param base       the production we are being factored out of.
    * @param lhs_sym    the LHS symbol for this production.
-   * @param rhs_parts  array of production parts for the RHS.
-   * @param rhs_len    how much of the rhs_parts array is valid.
-   * @param action_str the trailing reduce action for this production.
-   * @param indexOfIntermediateResult the index of the result of the previous intermediate action on the stack relative to top, -1 if no previous action
+   * @param action     the action_part for this production.
+   * @param indexOfAction the index in the rhs() of the base production.
+   * @param last_act_loc the index of the previous intermediate action in base. 
+   *                     -1 if no previous action.
    */ 
   public action_production(
     int             index,
@@ -24,19 +25,19 @@ public class action_production extends production {
     non_terminal    lhs_sym, 
     action_part     action,
     int             indexOfAction,
-    int             indexOfIntermediateResult)
+    int             last_act_loc)
     {
-      super(index, lhs_sym, new symbol_part[0],  action, null);
+      super(index, lhs_sym, new symbol_part[0], last_act_loc, action, null);
       _base_production = base;
       this.indexOfAction = indexOfAction;
-      this.indexOfIntermediateResult = indexOfIntermediateResult;
     }
   
   private int indexOfAction;
   
-  public int rhs_stackdepth() {
-    return indexOfAction;
-  }
+  public int rhs_stackdepth()
+    {
+      return indexOfAction;
+    }
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The production we were taken out of. */

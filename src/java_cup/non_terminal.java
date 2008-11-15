@@ -1,8 +1,7 @@
 package java_cup;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /** This class represents a non-terminal symbol in the grammar.  Each
  *  non terminal has a textual name, an index, and a string which indicates
@@ -25,9 +24,7 @@ public class non_terminal extends symbol {
    */
   public non_terminal(String nm, String tp, int index) 
     {
-      /* super class does most of the work */
-      super(nm, tp);
-      _index = index;
+      super(nm, tp, index);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -44,30 +41,18 @@ public class non_terminal extends symbol {
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
-  /** Table of all non-terminals -- elements are stored using name strings 
-   *  as the key 
-   */
-  protected static HashMap<String, non_terminal> _all = new HashMap<String, non_terminal>();
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** special non-terminal for start symbol */
   public static final non_terminal START_nt = new non_terminal("$START", "Object", 0);
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** flag non-terminals created to embed action productions */
-  public boolean is_embedded_action = false; /* added 24-Mar-1998, CSA */
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/
   /*-----------------------------------------------------------*/
 
   /** Table of all productions with this non terminal on the LHS. */
-  protected Set<production> _productions = new HashSet<production>();
+  protected ArrayList<production> _productions = new ArrayList<production>();
 
   /** Access to productions with this non terminal on the LHS. */
-  public Set<production> productions() {return _productions;}
+  public Collection<production> productions() {return _productions;}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -90,7 +75,7 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Nullability of this non terminal. */
-  protected boolean _nullable;
+  private boolean _nullable;
 
   /** Nullability of this non terminal. */
   public boolean nullable() {return _nullable;}
@@ -115,14 +100,25 @@ public class non_terminal extends symbol {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Test to see if this non terminal currently looks nullable. */
-  protected boolean looks_nullable()
+  /** Test to see if this non terminal currently looks nullable. 
+   * @return true if nullable status changed.
+   */
+  public boolean check_nullable()
     {
+      /* only look at things that aren't already marked nullable */
+      if (_nullable)
+	return false;
+      
       /* look and see if any of the productions now look nullable */
       for (production prod : productions())
-	/* if the production can go to empty, we are nullable */
-	if (prod.check_nullable())
-	  return true;
+	{	
+	  /* if the production can go to empty, we are nullable */
+	  if (prod.check_nullable())
+	    {
+	      _nullable = true;
+	      return true;
+	    }
+	}
 
       /* none of the productions can go to empty, so we are not nullable */
       return false;

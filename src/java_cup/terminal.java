@@ -24,12 +24,11 @@ public class terminal extends symbol {
   public terminal(String nm, String tp, int precedence_side, int precedence_num, int index) 
     {
       /* superclass does most of the work */
-      super(nm, tp);
+      super(nm, tp, index);
 
       /* set the precedence */
       _precedence_num = precedence_num;
       _precedence_side = precedence_side;
-      this._index = index;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/

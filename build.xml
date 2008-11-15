@@ -78,7 +78,6 @@
 
   <target name="test" depends="dist">
     <java jar="${dist}/java-cup-12joho.jar" fork="true">
-        <arg value="-java15" />
         <arg value="-interface" />
         <arg value="${cup}/parser.cup" />
     </java>  

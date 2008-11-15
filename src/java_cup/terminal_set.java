@@ -192,7 +192,7 @@ public class terminal_set {
 	{
 	  if (contains(t))
 	    {
-	      result.append(comma).append(_grammar.find_terminal(t));
+	      result.append(comma).append(_grammar.get_terminal(t));
 	      comma = ", ";
 	    }
 	}

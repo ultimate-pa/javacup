@@ -2,19 +2,35 @@
 package java_cup;
 
 import java.util.BitSet;
+import java.util.HashMap;
 
 /** This class represents the complete "action" table of the parser. 
  *  It has one row for each state in the parse machine, and a column for
  *  each terminal symbol.  Each entry in the table represents a shift,
  *  reduce, or an error.  
+ *  
+ *  An error action is represented by 0 (ERROR), a shift action by
+ *  odd numbers, i.e. 2*to_state.index() + SHIFT, and a reduce action
+ *  by positive even numbers, i.e. 2*prod.index() + REDUCE.
+ *  You can use the static function action, isReduce, isShift and index
+ *  to manipulate action codes. 
  *
- * @see     java_cup.parse_action
- * @see     java_cup.parse_action_row
- * @version last updated: 11/25/95
- * @author  Scott Hudson
+ * @author  Scott Hudson, Jochen Hoenicke
  */
 public class parse_action_table {
+
+  /** Actual array of rows, one per state. */
+  public final int[][] table;
   
+  /** Constant for action type -- error action. */
+  public static final int ERROR = 0;
+
+  /** Constant for action type -- shift action. */
+  public static final int SHIFT = 1;
+
+  /** Constants for action type -- reduce action. */
+  public static final int REDUCE = 2;
+
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -26,55 +42,125 @@ public class parse_action_table {
   public parse_action_table(Grammar grammar)
     {
       /* determine how many states we are working with */
-      _num_states = grammar.lalr_states().size();
-      _num_terminals = grammar.num_terminals();
+      int _num_states = grammar.lalr_states().size();
+      int _num_terminals = grammar.num_terminals();
 
       /* allocate the array and fill it in with empty rows */
-      under_state = new parse_action_row[_num_states];
-      for (int i=0; i<_num_states; i++)
-	under_state[i] = new parse_action_row(grammar);
+      table = new int[_num_states][_num_terminals];
     }
-
-  /*-----------------------------------------------------------*/
-  /*--- (Access to) Instance Variables ------------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** How many rows/states are in the machine/table. */
-  private int _num_states;
-  private int _num_terminals;
-  
-  public int num_states() { return _num_states; }
-
-
-  /** Actual array of rows, one per state. */
-  public  parse_action_row[] under_state;
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
+  /**
+   * Returns the action code for the given kind and index.
+   * @param kind the kind of the action: ERROR, SHIFT or REDUCE.
+   * @param index the index of the destination state resp. production rule.
+   */
+  public static int action(int kind, int index)
+    {
+      return 2*index + kind;
+    }
+  /**
+   * Returns true if the code represent a reduce action
+   * @param code the action code.
+   * @return true for reduce actions.
+   */
+  public static boolean isReduce(int code)
+    {
+      return code != 0 && (code & 1) == 0;
+    }
+  /**
+   * Returns true if the code represent a shift action
+   * @param code the action code.
+   * @return true for shift actions.
+   */
+  public static boolean isShift(int code)
+    {
+      return (code & 1) != 0;
+    }
+  /**
+   * Returns the index of the destination state of SHIFT resp. 
+   * reduction rule of REDUCE actions.
+   * @param code the action code.
+   * @return the index.
+   */
+  public static int index(int code)
+    {
+      return ((code-1) >> 1);
+    }
   
+  /** Compute the default (reduce) action for this row and return it. 
+   *  In the case of non-zero default we will have the 
+   *  effect of replacing all errors by that reduction.  This may cause 
+   *  us to do erroneous reduces, but will never cause us to shift past 
+   *  the point of the error and never cause an incorrect parse.  0 will 
+   *  be used to encode the fact that no reduction can be used as a 
+   *  default (in which case error will be used).
+   *  @param row the action row.
+   *  @return the action code of the reduce action.
+   */
+  public static int compute_default(int[] row)
+    {
+      /* Check if there is already an action for the error symbol.
+       * This must be the default action.
+       */
+      int action = row[terminal.error.index()]; 
+      if (action != ERROR)
+	{
+	  if (isReduce(action))
+	    return action;
+	  return ERROR;
+	}
+      
+      /* allocate the count table */
+      HashMap<Integer, Integer> reduction_count
+      	= new HashMap<Integer, Integer>();
+
+      /* clear the reduction count table and maximums */
+      int max_count = 0;
+      int default_action = ERROR;
+     
+      /* walk down the row and look at the reduces */
+      for (int i = 0; i < row.length; i++)
+	{
+	  if (isReduce(row[i]))
+	    {
+	      /* count the reduce in the proper production slot and keep the 
+	       max up to date */
+	      int prod = index(i);
+	      Integer oldcount = reduction_count.get(prod);
+	      int count = oldcount == null ? 1 : oldcount+1; 
+	      reduction_count.put(prod, count);
+	      if (count > max_count)
+		{
+		  default_action = row[i];
+		  max_count = count;
+		}
+	    }
+	}
+      return default_action;
+    }
+
   public short[] compress(boolean compact_reduces, int[] base_table)
     {
+      int _num_states = table.length;
+      int _num_terminals = table[0].length;
       int[] rowidx = new int[_num_terminals];
       int maxbase = 0;
       BitSet used = new BitSet();
+      int[] default_action = new int[_num_states];
       for (int i = 0; i < _num_states; i++)
 	{
-	  parse_action_row row = under_state[i];
+	  int[] row = table[i];
 	  /* determine the default for the row */
 	  if (compact_reduces)
-	    row.compute_default();
-	  else
-	    row.default_reduce = -1;
+	    default_action[i] = compute_default(row);
 	  
 	  int rowcnt = 0;
 	  for (int j = 0; j < _num_terminals; j++)
 	    {
-	      parse_action act = row.under_term[j];
-	      if (act.kind() == parse_action.SHIFT ||
-		  (act.kind() == parse_action.REDUCE &&
-		      ((reduce_action)act).reduce_with().index() 
-		      != row.default_reduce))
+	      if (row[j] != 0 && row[j] != default_action[i])
 		rowidx[rowcnt++] = j;
 	    }
 
@@ -100,71 +186,19 @@ public class parse_action_table {
 	compressed[_num_states+2*i] = (short) _num_states;
       for (int i = 0; i < _num_states; i++)
 	{
-	  parse_action_row row = under_state[i];
 	  int base = base_table[i];
-	  compressed[i] = (short) (2*row.default_reduce+2);
+	  compressed[i] = (short) default_action[i];
 	  for (int j = 0; j < _num_terminals; j++)
 	    {
-	      parse_action act = row.under_term[j];
-	      if (act.kind() == parse_action.SHIFT)
+	      int act = table[i][j];
+	      if (act != 0 && act != default_action[i])
 		{
 		  compressed[base+2*j] = (short) i;
-		  compressed[base+2*j+1] = (short)
-		      (2*((shift_action)act).shift_to().index() + 1);
-		}
-	      else if (act.kind() == parse_action.REDUCE)
-		{
-		  int red = ((reduce_action)act).reduce_with().index();
-		  if (red != row.default_reduce)
-		    {
-		      compressed[base+2*j] = (short) i;
-		      compressed[base+2*j+1] = (short) (2*red + 2);
-		    }
+		  compressed[base+2*j+1] = (short) act;
 		}
 	    }
 	}
       return compressed;
-    }
-
-  /** Check the table to ensure that all productions have been reduced. 
-   *  Issue a warning message (to System.err) for each production that
-   *  is never reduced.
-   */
-  public void check_reductions(Grammar grammar, boolean warn)
-    {
-      /* tabulate reductions -- look at every table entry */
-      for (int row = 0; row < _num_states; row++)
-	{
-	  for (int col = 0; col < _num_terminals; col++)
-	    {
-	      /* look at the action entry to see if its a reduce */
-	      parse_action act = under_state[row].under_term[col];
-	      if (act != null && act.kind() == parse_action.REDUCE)
-		{
-		  /* tell production that we used it */
-		  ((reduce_action)act).reduce_with().note_reduction_use();
-		}
-	    }
-	}
-
-      /* now go across every production and make sure we hit it */
-      for (production prod : grammar.productions())
-	{
-	  /* if we didn't hit it give a warning */
-	  if (prod.num_reductions() == 0)
-	    {
-	      /* count it *
-	      emit.not_reduced++;
-
-	      /* give a warning if they haven't been turned off */
-	      if (warn)
-		{
-
-		  ErrorManager.getManager().emit_warning("*** Production \"" + 
-				  prod.toString() + "\" never reduced");
-		}
-	    }
-	}
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*
@@ -176,17 +210,17 @@ public class parse_action_table {
       int cnt;
 
       result.append("-------- ACTION_TABLE --------\n");
-      for (int row = 0; row < _num_states; row++)
+      for (int row = 0; row < table.length; row++)
 	{
 	  result.append("From state #").append(row).append("\n");
 	  cnt = 0;
-	  for (int col = 0; col < _num_terminals; col++)
+	  for (int col = 0; col < table[row].length; col++)
 	    {
 	      /* if the action is not an error print it */ 
-	      if (under_state[row].under_term[col].kind() != parse_action.ERROR)
+	      if (table[row][col] != ERROR)
 		{
 		  result.append(" [term ").append(col).append(":")
-		    .append(under_state[row].under_term[col]).append("]");
+		    .append(table[row][col]).append("]");
 
 		  /* end the line after the 2nd one */
 		  cnt++;

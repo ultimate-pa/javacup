@@ -736,7 +736,8 @@ public class Main {
       /* check and warn for non-reduced productions */
       if (opt_do_debug || print_progress)
 	System.err.println("  Checking for non-reduced productions...");
-      grammar.check_tables(!emit.nowarn);
+      if (!emit.nowarn)
+	grammar.check_tables();
       reduce_check_end = System.currentTimeMillis();
 
       /* if we have more conflicts than we expected issue a message and die */

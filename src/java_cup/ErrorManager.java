@@ -23,29 +23,26 @@ public class ErrorManager{
      * ERRORLEVEL : MESSAGE
      **/
     public void emit_fatal(String message){
-        System.err.println("Fatal : "+message);
+        System.err.println("Fatal: "+message);
         fatals++;
     }
     public void emit_fatal(String message, Symbol sym){
-        //System.err.println("Fatal at ("+sym.left+"/"+sym.right+")@"+convSymbol(sym)+" : "+message);
         System.err.println("Fatal: "+message+" @ "+sym);
         fatals++;
     }
     public void emit_warning(String message){
-        System.err.println("Warning : " + message);
+        System.err.println("Warning: " + message);
         warnings++;	
     }
     public void emit_warning(String message, Symbol sym){
-//        System.err.println("Warning at ("+sym.left+"/"+sym.right+")@"+convSymbol(sym)+" : "+message);
-        System.err.println("Fatal: "+message+" @ "+sym);
+        System.err.println("Warning: "+message+" @ "+sym);
         warnings++;
     }
     public void emit_error(String message){
-        System.err.println("Error : " + message);
+        System.err.println("Error: " + message);
         errors++;
     }
     public void emit_error(String message, Symbol sym){
-//        System.err.println("Error at ("+sym.left+"/"+sym.right+")@"+convSymbol(sym)+" : "+message);
         System.err.println("Error: "+message+" @ "+sym);
         errors++;
     }

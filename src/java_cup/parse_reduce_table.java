@@ -14,6 +14,9 @@ import java.util.BitSet;
  */
 public class parse_reduce_table {
  
+  /** Actual parse_reduce matrix, indexed by state and non-terminal. */
+  public  lalr_state[][] table;
+ 
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -29,9 +32,7 @@ public class parse_reduce_table {
       _num_nonterm = grammar.num_non_terminals();
 
       /* allocate the array and fill it in with empty rows */
-      under_state = new parse_reduce_row[_num_states];
-      for (int i=0; i<_num_states; i++)
-	under_state[i] = new parse_reduce_row(grammar);
+      table = new lalr_state[_num_states][_num_nonterm];
     }
 
    
@@ -48,9 +49,6 @@ public class parse_reduce_table {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** Actual array of rows, one per state */
-  public  parse_reduce_row[] under_state;
- 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -63,11 +61,11 @@ public class parse_reduce_table {
       BitSet used = new BitSet();
       for (int i = 0; i < _num_states; i++)
 	{
-	  parse_reduce_row row = under_state[i];
+	  lalr_state[] row = table[i];
 	  int rowcnt = 0;
 	  for (int j = 0; j < _num_nonterm; j++)
 	    {
-	      if (row.under_non_term[j] != null)
+	      if (row[j] != null)
 		rowidx[rowcnt++] = j;
 	    }
 
@@ -101,12 +99,12 @@ public class parse_reduce_table {
       short[] compressed = new short[_num_states + maxbase - minbase];
       for (int i = 0; i < _num_states; i++)
 	{
-	  parse_reduce_row row = under_state[i];
+	  lalr_state[] row = table[i];
 	  int base = _num_states + baseaddrs[i] - minbase;
 	  compressed[i] = (short) base;
 	  for (int j = 0; j < _num_nonterm; j++)
 	    {
-	      lalr_state st = row.under_non_term[j];
+	      lalr_state st = row[j];
 	      if (st != null)
 		compressed[base+j] = (short) st.index();
 	    }
@@ -129,7 +127,7 @@ public class parse_reduce_table {
 	  for (int col = 0; col < _num_nonterm; col++)
 	    {
 	      /* pull out the table entry */
-	      goto_st = under_state[row].under_non_term[col];
+	      goto_st = table[row][col];
 
 	      /* if it has action in it, print it */
 	      if (goto_st != null)

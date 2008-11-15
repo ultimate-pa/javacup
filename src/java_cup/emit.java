@@ -307,7 +307,7 @@ public class emit {
    * @param out        stream to produce output on.
    * @param start_prod the start production of the grammar.
    */
-  protected void emit_action_code(PrintWriter out, Grammar grammar, String action_class, 
+  private void emit_action_code(PrintWriter out, Grammar grammar, String action_class, 
       boolean lr_values, boolean old_lr_values, boolean is_java15)
     {
       long start_time = System.currentTimeMillis();
@@ -407,32 +407,32 @@ public class emit {
 	  for (int i=prod.rhs_stackdepth()-1; i>=0; i--) 
 	    {
 	      symbol_part symbol = baseprod.rhs(i);
-	      if (symbol.label() != null)
+	      if (symbol.label != null)
 		{
 		  if (i == 0)
-		    leftsym = symbol.label()+"$";
+		    leftsym = symbol.label+"$";
 		  if (i == prod.rhs_stackdepth()-1)
-		    rightsym = symbol.label()+"$";
+		    rightsym = symbol.label+"$";
 		  
 		  out.println("              java_cup.runtime.Symbol " + 
-		      symbol.label() + "$ = " +
+		      symbol.label + "$ = " +
 		      stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
 	      		
 		  /* Put in the left/right value labels */
 		  if (old_lr_values)
 		    {
-		      out.println("              int "+symbol.label()+"left = "+
-			  symbol.label() + "$.left;");
-		      out.println("              int "+symbol.label()+"right = "+
-			  symbol.label() + "$.right;");
+		      out.println("              int "+symbol.label+"left = "+
+			  symbol.label + "$.left;");
+		      out.println("              int "+symbol.label+"right = "+
+			  symbol.label + "$.right;");
 		    }
 
-		  String symtype = symbol.the_symbol().stack_type(); 
+		  String symtype = symbol.the_symbol.stack_type(); 
 		  if (symtype != null)
 		    {
 		      out.println("              " + symtype +
-			  " " + symbol.label() + " = (" + symtype + ") " +
-			  symbol.label() + "$.value;");
+			  " " + symbol.label + " = (" + symtype + ") " +
+			  symbol.label + "$.value;");
 		    }
 		}
 	    }
@@ -511,7 +511,7 @@ public class emit {
   /** Emit the production table. 
    * @param out stream to produce output on.
    */
-  protected String do_production_table(Grammar grammar)
+  private String do_production_table(Grammar grammar)
     {
       long start_time = System.currentTimeMillis();
 
@@ -539,7 +539,7 @@ public class emit {
     {
       long start_time = System.currentTimeMillis();
       parse_action_table act_tab = grammar.action_table();
-      int[] base_tab = new int[act_tab.num_states()];
+      int[] base_tab = new int[act_tab.table.length];
       short[] action_tab = act_tab.compress(compact_reduces, base_tab);
       String result = do_array_as_string(base_tab) + do_array_as_string(action_tab);
       action_table_time = System.currentTimeMillis() - start_time;
@@ -589,8 +589,9 @@ public class emit {
       return sb.toString();
     }
 
-    // print a string array encoding the given short[][] array.
-  protected void output_string(PrintWriter out, String str) {
+  /** print a string in java source code */
+  private void output_string(PrintWriter out, String str) {
+    int utf8len = 0;
     for (int i = 0; i < str.length(); i += 11)
       {
 	StringBuilder encoded = new StringBuilder();
@@ -611,11 +612,18 @@ public class emit {
 		hex = hex.substring(hex.length()-4);
 		encoded.append('u').append(hex);
 	      }
+	    utf8len++;
+	    if (c >= 128)
+	      {
+		utf8len++;
+		if (c >= 4096)
+		  utf8len++;
+	      }
 	  }
 	encoded.append("\"");
 	if (i+11 < str.length())
 	  {
-	    if ((i+11) % (11*2000) == 0)
+	    if (utf8len > 65000)
 	      encoded.append(",");
 	    else
 	      encoded.append(" +");

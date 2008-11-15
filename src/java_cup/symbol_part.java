@@ -10,6 +10,14 @@ package java_cup;
  */
 public class symbol_part extends production_part {
 
+  /** The symbol that this part is made up of. */
+  public final symbol the_symbol;
+  
+  /** Optional label for referring to the part within an action (null for 
+   *  no label). 
+   */
+  public final String label;
+
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -20,11 +28,10 @@ public class symbol_part extends production_part {
    */
   public symbol_part(symbol sym, String lab)
     {
-      super(lab);
-
       assert sym != null:
 	  "Attempt to construct a symbol_part with a null symbol";
-      _the_symbol = sym;
+      the_symbol = sym;
+      label = lab;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -37,61 +44,15 @@ public class symbol_part extends production_part {
       this(sym, null);
     }
 
-  /*-----------------------------------------------------------*/
-  /*--- (Access to) Instance Variables ------------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** The symbol that this part is made up of. */
-  protected symbol _the_symbol;
-
-  /** The symbol that this part is made up of. */
-  public symbol the_symbol() {return _the_symbol;}
-
-  /*-----------------------------------------------------------*/
-  /*--- General Methods ---------------------------------------*/
-  /*-----------------------------------------------------------*/
-
-  /** Respond that we are not an action part. */
-  public boolean is_action() { return false; }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Equality comparison. */
-  public boolean equals(symbol_part other)
-    {
-      return other != null && super.equals(other) && 
-	     the_symbol().equals(other.the_symbol());
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Generic equality comparison. */
-  public boolean equals(Object other)
-    {
-      if (!(other instanceof symbol_part))
-	return false;
-      else
-	return equals((symbol_part)other);
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Produce a hash code. */
-  public int hashCode()
-    {
-      return super.hashCode() ^ 
-	     (the_symbol()==null ? 0 : the_symbol().hashCode());
-    }
-
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Convert to a string. */
   public String toString()
     {
-      if (the_symbol() != null)
-	return super.toString() + the_symbol();
+      if (label == null)
+	return the_symbol.name();
       else
-	return super.toString() + "$$MISSING-SYMBOL$$";
+	return the_symbol.name() + ":" + label;
     }
 
   /*-----------------------------------------------------------*/

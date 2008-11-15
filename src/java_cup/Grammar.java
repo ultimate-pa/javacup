@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 /**
@@ -65,14 +66,19 @@ public class Grammar {
       _nonterminals.add(non_terminal.START_nt);
     }
   
-  public non_terminal find_nonterminal(int i)
+  public non_terminal get_nonterminal(int i)
     {
       return _nonterminals.get(i);
     }
   
-  public terminal find_terminal(int i)
+  public terminal get_terminal(int i)
     {
       return _terminals.get(i);
+    }
+  
+  public production get_production(int i)
+    {
+      return _productions.get(i);
     }
   
   public production start_production()
@@ -143,7 +149,7 @@ public class Grammar {
 	rhs[0] = new symbol_part(start_nt);
       rhs[1] = new symbol_part(terminal.EOF);
       _start_production = 
-	  new production(0, non_terminal.START_nt, rhs, action, null);
+	  new production(0, non_terminal.START_nt, rhs, -1, action, null);
       _productions.add(_start_production);
       non_terminal.START_nt.note_use();
     }
@@ -153,7 +159,7 @@ public class Grammar {
   private int next_nt = 0; 
   private non_terminal create_anon_nonterm(String type) 
     {
-        return add_non_terminal("NT$" + next_nt++, type);
+      return add_non_terminal("NT$" + next_nt++, type);
     }
 
   /**
@@ -226,7 +232,8 @@ public class Grammar {
       
       action_part action = null;
       /* strip off any trailing action */
-      if (rhs_parts.size() > 0 && rhs_parts.get(rhs_parts.size() - 1).is_action())
+      if (rhs_parts.size() > 0 && 
+	  rhs_parts.get(rhs_parts.size() - 1) instanceof action_part)
 	{
 	  action = (action_part) rhs_parts.remove(rhs_parts.size()-1);
 	}
@@ -234,16 +241,17 @@ public class Grammar {
       /* allocate and copy over the right-hand-side */
       symbol_part[] rhs = new symbol_part[rhs_parts.size()];
       /* count use of each rhs symbol */
+      int last_act_loc = -1;
       for (i = 0; i < rhs.length; i++)
 	{
 	  production_part prod = rhs_parts.get(i);
-	  if (prod.is_action())
+	  if (prod instanceof action_part)
 	    {
 	      /* create a new non terminal for the action production */
 	      non_terminal new_nt = create_anon_nonterm(lhs.stack_type()); 
-	      new_nt.is_embedded_action = true;
 	      new_nt.note_use();
 	      rhs[i] = new symbol_part(new_nt);
+	      last_act_loc = i;
 	    }
 	  else
 	    {
@@ -252,16 +260,16 @@ public class Grammar {
 	}
       
       /* put the production in the production list of the lhs non terminal */
-      production prod = new production(_productions.size(), lhs, rhs, action, precedence);
+      production prod = new production(_productions.size(), lhs, rhs, last_act_loc, action, precedence);
       _productions.add(prod);
-      int last_act_loc = -1;
+      last_act_loc = -1;
       for (i = 0; i < rhs.length; i++)
 	{
 	  production_part part = rhs_parts.get(i);
-	  if (part.is_action())
+	  if (part instanceof action_part)
 	    {
 	      production actprod = new action_production
-	      	(_productions.size(), prod, (non_terminal) rhs[i].the_symbol(), 
+	      	(_productions.size(), prod, (non_terminal) rhs[i].the_symbol, 
 	      	    (action_part) part, i, last_act_loc);
 	      _productions.add(actprod);
 	      last_act_loc = i;
@@ -270,7 +278,7 @@ public class Grammar {
     }
 
   
-  public lalr_state get_lalr_state(HashMap<lr_item, terminal_set> kernel)
+  public lalr_state get_lalr_state(Map<lr_item, terminal_set> kernel)
     {
       Collection<lr_item> key = kernel.keySet();
       lalr_state state = _kernels_to_lalr.get(key);
@@ -311,19 +319,9 @@ public class Grammar {
 	  /* consider each non-terminal */
 	  for (non_terminal nt : _nonterminals)
 	    {
-	      /* only look at things that aren't already marked nullable */
-	      if (!nt._nullable && nt.looks_nullable())
-		{
-		  nt._nullable = true;
-		  change = true;
-		}
+	      /* check nullable and set change flag */
+	      change |= nt.check_nullable();
 	    }
-	}
-      
-      /* do one last pass over the productions to finalize all of them */
-      for (production prod : _productions)
-	{
-	  prod.set_nullable(prod.check_nullable());
 	}
     }
 
@@ -460,15 +458,7 @@ public class Grammar {
       System.err.println("===== Productions =====");
       for (production prod : productions())
 	{
-	  System.err.print("[" + prod.index() + "] " + prod.lhs().name()
-	      + " ::= ");
-	  for (int i = 0; i < prod.rhs_length(); i++)
-	    if (prod.rhs(i).is_action())
-	      System.err.print("{action} ");
-	    else
-	      System.err.print(((symbol_part) prod.rhs(i)).the_symbol().name()
-		  + " ");
-	  System.err.println();
+	  System.err.println("[" + prod.index() + "] " + prod);
 	}
       System.err.println();
     }
@@ -509,13 +499,6 @@ public class Grammar {
       Entry<lr_item,lookaheads> itm1,
       Entry<lr_item,lookaheads> itm2)
     {
-      if (itm1.getKey().the_production().index() > itm2.getKey().the_production().index())
-	{
-	  Entry<lr_item,lookaheads> tmpitm = itm1;
-	  itm1 = itm2;
-	  itm2 = tmpitm;
-	}
-      
       StringBuilder message = new StringBuilder();
       message.append("*** Reduce/Reduce conflict found in state #").append(state.index()).append("\n")
       	.append("  between ").append(itm1.getKey().toString()).append("\n")
@@ -526,7 +509,7 @@ public class Grammar {
 	{
 	  if (itm1.getValue().contains(t) && itm2.getValue().contains(t))
 	    {
-	      message.append(comma).append(find_terminal(t).name());
+	      message.append(comma).append(get_terminal(t).name());
 	      comma = ", ";
 	    }
 	}
@@ -581,9 +564,35 @@ public class Grammar {
 	}
     }
 
-  public void check_tables(boolean warn)
+  public void check_tables()
     {
-      action_table.check_reductions(this, warn);
+      boolean[] used_productions = new boolean[_productions.size()];
+      /* tabulate reductions -- look at every table entry */
+      for (int row = 0; row < lalr_states().size(); row++)
+	{
+	  for (int col = 0; col < num_terminals(); col++)
+	    {
+	      /* look at the action entry to see if its a reduce */
+	      int act = action_table.table[row][col];
+	      if (parse_action_table.isReduce(act))
+		{
+		  /* tell production that we used it */
+		  used_productions[parse_action_table.index(act)] = true;
+		}
+	    }
+	}
+
+      /* now go across every production and make sure we hit it */
+      for (production prod : productions())
+	{
+	  /* if we didn't hit it give a warning */
+	  if (!used_productions[prod.index()])
+	    {
+	      /* give a warning if they haven't been turned off */
+	      ErrorManager.getManager().emit_warning("*** Production \"" + 
+		  prod.toString() + "\" never reduced");
+	    }
+	}
     }
 
   public parse_action_table action_table()

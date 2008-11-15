@@ -57,9 +57,9 @@ public class production {
    * actions at the end where they can be handled as part of a reduce by the
    * parser.
    */
-  public production(int index, non_terminal lhs_sym, symbol_part rhs[], action_part action, terminal precedence)
+  public production(int index, non_terminal lhs_sym, symbol_part rhs[], 
+      	int last_act_loc, action_part action, terminal precedence)
     {
-      int last_act_loc = -1;
       if (precedence != null)
 	{
 	  _rhs_prec = precedence.precedence_num();
@@ -71,30 +71,22 @@ public class production {
       _index = index;
       for (int i = 0; i < rhs.length; i++)
 	{
-	  symbol rhs_sym = rhs[i].the_symbol();
-	  if (rhs_sym.is_non_term() &&
-	      ((non_terminal)rhs_sym).is_embedded_action)
+	  symbol rhs_sym = rhs[i].the_symbol;
+	  rhs_sym.note_use();
+	  if (precedence == null && rhs_sym instanceof terminal)
 	    {
-	      last_act_loc = i;
-	    }
-	  else
-	    {
-	      rhs_sym.note_use();
-	      if (precedence == null && rhs_sym instanceof terminal)
+	      terminal term = (terminal) rhs_sym;
+	      if (term.precedence_num() != assoc.no_prec)
 		{
-		  terminal term = (terminal) rhs_sym;
-		  if (term.precedence_num() != assoc.no_prec)
+		  if (_rhs_prec == assoc.no_prec)
 		    {
-		      if (_rhs_prec == assoc.no_prec)
-			{
-			  _rhs_prec = term.precedence_num();
-			  _rhs_assoc = term.precedence_side();
-			}
-		      else if (term.precedence_num() != _rhs_prec)
-			{
-			  ErrorManager.getManager().emit_error("Production "+this+
-			      " has more than one precedence symbol");
-			}
+		      _rhs_prec = term.precedence_num();
+		      _rhs_assoc = term.precedence_side();
+		    }
+		  else if (term.precedence_num() != _rhs_prec)
+		    {
+		      ErrorManager.getManager().emit_error("Production "+this+
+		      " has more than one precedence symbol");
 		    }
 		}
 	    }
@@ -109,7 +101,7 @@ public class production {
   /*-----------------------------------------------------------*/
 
   /** The left hand side non-terminal. */
-  protected symbol _lhs;
+  private final symbol _lhs;
 
   /** The left hand side non-terminal. */
   public symbol lhs()
@@ -118,8 +110,8 @@ public class production {
     }
 
   /** The precedence of the rule */
-  protected int _rhs_prec = -1;
-  protected int _rhs_assoc = -1;
+  private int _rhs_prec = -1;
+  private int _rhs_assoc = -1;
 
   /** Access to the precedence of the rule */
   public int precedence_num()
@@ -132,21 +124,10 @@ public class production {
       return _rhs_assoc;
     }
 
-  /** Setting the precedence of a rule */
-  public void set_precedence_num(int prec_num)
-    {
-      _rhs_prec = prec_num;
-    }
-
-  public void set_precedence_side(int prec_side)
-    {
-      _rhs_assoc = prec_side;
-    }
-
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /** A collection of parts for the right hand side. */
-  protected symbol_part _rhs[];
+  private final symbol_part _rhs[];
 
   /** Access to the collection of parts for the right hand side. */
   public symbol_part rhs(int indx)
@@ -173,7 +154,7 @@ public class production {
    * An action_part containing code for the action to be performed when we
    * reduce with this production.
    */
-  protected action_part _action;
+  private final action_part _action;
 
   /**
    * An action_part containing code for the action to be performed when we
@@ -187,7 +168,7 @@ public class production {
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /** Index number of the production. */
-  protected int _index;
+  private final int _index;
 
   /** Index number of the production. */
   public int index()
@@ -198,7 +179,7 @@ public class production {
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /** initial lr item corresponding to the production. */
-  protected lr_item _itm;
+  private lr_item _itm;
 
   /** Index number of the production. */
   public lr_item item()
@@ -210,80 +191,19 @@ public class production {
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
-  /** Count of number of reductions using this production. */
-  protected int _num_reductions = 0;
-
-  /** Count of number of reductions using this production. */
-  public int num_reductions()
-    {
-      return _num_reductions;
-    }
-
-  /** Increment the count of reductions with this non-terminal */
-  public void note_reduction_use()
-    {
-      _num_reductions++;
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
   /** Is the nullability of the production known or unknown? */
-  protected boolean _nullable_known = false;
-
-  /** Is the nullability of the production known or unknown? */
-  public boolean nullable_known()
-    {
-      return _nullable_known;
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+  private boolean _nullable_known = false;
 
   /** Nullability of the production (can it derive the empty string). */
-  protected boolean _nullable = false;
-
-  /** Nullability of the production (can it derive the empty string). */
-  public boolean nullable()
-    {
-      return _nullable;
-    }
+  private boolean _nullable = false;
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /*-----------------------------------------------------------*/
-  /*--- Static Methods ----------------------------------------*/
-  /*-----------------------------------------------------------*/
-
-  /**
-   * Determine if a given character can be a label id starter.
-   * 
-   * @param c
-   *                the character in question.
-   */
-  protected static boolean is_id_start(char c)
-    {
-      return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
-
-      // later need to handle non-8-bit chars here
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /**
-   * Determine if a character can be in a label id.
-   * 
-   * @param c
-   *                the character in question.
-   */
-  protected static boolean is_id_char(char c)
-    {
-      return is_id_start(c) || (c >= '0' && c <= '9');
-    }
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
 
-  int indexOfIntermediateResult;
+  private int indexOfIntermediateResult;
   /**
    * @return the index of the result of the previous intermediate action on the stack relative to top, -1 if no previous action
    */
@@ -294,72 +214,15 @@ public class production {
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /**
-   * Helper routine to strip a trailing action off rhs and return it
-   * 
-   * @param rhs_parts
-   *                array of RHS parts.
-   * @param len
-   *                how many of those are valid.
-   * @return the removed action part.
-   */
-  protected action_part strip_trailing_action(production_part rhs_parts[],
-      int len)
-    {
-      action_part result;
-
-      /* bail out early if we have nothing to do */
-      if (rhs_parts == null || len == 0)
-	return null;
-
-      /* see if we have a trailing action */
-      if (rhs_parts[len - 1].is_action())
-	{
-	  /* snip it out and return it */
-	  result = (action_part) rhs_parts[len - 1];
-	  rhs_parts[len - 1] = null;
-	  return result;
-	} else
-	return null;
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /**
-   * Remove all embedded actions from a production by factoring them out into
-   * individual action production using new non terminals. if the original
-   * production was:
-   * 
-   * <pre>
-   *    A ::= B {action1} C {action2} D 
-   * </pre>
-   * 
-   * then it will be factored into:
-   * 
-   * <pre>
-   *    A ::= B NT$1 C NT$2 D
-   *    NT$1 ::= {action1}
-   *    NT$2 ::= {action2}
-   * </pre>
-   * 
-   * where NT$1 and NT$2 are new system created non terminals.
-   */
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /**
    * Check to see if the production (now) appears to be nullable. A production
    * is nullable if its RHS could derive the empty string. This results when the
    * RHS is empty or contains only non terminals which themselves are nullable.
    */
   public boolean check_nullable()
     {
-      production_part part;
-      symbol sym;
-      int pos;
-
       /* if we already know bail out early */
-      if (nullable_known())
-	return nullable();
+      if (_nullable_known)
+	return _nullable;
 
       /* if we have a zero size RHS we are directly nullable */
       if (rhs_length() == 0)
@@ -369,23 +232,18 @@ public class production {
 	}
 
       /* otherwise we need to test all of our parts */
-      for (pos = 0; pos < rhs_length(); pos++)
+      for (int pos = 0; pos < rhs_length(); pos++)
 	{
-	  part = rhs(pos);
-
 	  /* only look at non-actions */
-	  if (!part.is_action())
-	    {
-	      sym = ((symbol_part) part).the_symbol();
+	  symbol sym = _rhs[pos].the_symbol;
 
-	      /* if its a terminal we are definitely not nullable */
-	      if (!sym.is_non_term())
-		return set_nullable(false);
-	      /* its a non-term, is it marked nullable */
-	      else if (!((non_terminal) sym).nullable())
-		/* this one not (yet) nullable, so we aren't */
-		return false;
-	    }
+	  /* if its a terminal we are definitely not nullable */
+	  if (!sym.is_non_term())
+	    return set_nullable(false);
+	  /* its a non-term, is it marked nullable */
+	  else if (!((non_terminal) sym).nullable())
+	    /* this one not (yet) nullable, so we aren't */
+	    return false;
 	}
 
       /* if we make it here all parts are nullable */
@@ -393,7 +251,7 @@ public class production {
     }
 
   /** set (and return) nullability */
-  boolean set_nullable(boolean v)
+  private boolean set_nullable(boolean v)
     {
       _nullable_known = true;
       _nullable = v;
@@ -409,49 +267,7 @@ public class production {
    */
   public terminal_set first_set(Grammar grammar)
     {
-      int part;
-      symbol sym;
-      terminal_set first_set = new terminal_set(grammar);
-
-      /* walk down the right hand side till we get past all nullables */
-      for (part = 0; part < rhs_length(); part++)
-	{
-	  /* only look at non-actions */
-	  if (!rhs(part).is_action())
-	    {
-	      sym = ((symbol_part) rhs(part)).the_symbol();
-
-	      /* is it a non-terminal? */
-	      if (sym.is_non_term())
-		{
-		  /* add in current firsts from that NT */
-		  first_set.add(((non_terminal) sym).first_set());
-
-		  /* if its not nullable, we are done */
-		  if (!((non_terminal) sym).nullable())
-		    break;
-		} else
-		{
-		  /* its a terminal -- add that to the set */
-		  first_set.add((terminal) sym);
-
-		  /* we are done */
-		  break;
-		}
-	    }
-	}
-
-      /* return our updated first set */
-      return first_set;
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Produce a hash code. */
-  public int hashCode()
-    {
-      /* just use a simple function of the index */
-      return _index;
+      return item().calc_lookahead(grammar);
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -461,11 +277,9 @@ public class production {
     {
       StringBuilder result = new StringBuilder();
 
-      result.append((lhs() != null) ? lhs().name() : "NULL_LHS");
-      result.append(" ::= ");
+      result.append(lhs().name()).append(" ::= ");
       for (int i = 0; i < rhs_length(); i++)
-	if (!rhs(i).is_action())
-	  result.append(((symbol_part) rhs(i)).the_symbol().name()).append(" ");
+	result.append(rhs(i).the_symbol.name()).append(" ");
 
       return result.toString();
     }
