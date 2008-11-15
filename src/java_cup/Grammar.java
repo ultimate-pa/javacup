@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
 /**
@@ -406,7 +407,7 @@ public class Grammar {
 	"Attempt to build viable prefix recognizer using a null production";
 
       /* build item with dot at front of start production and EOF lookahead */	
-      HashMap<lr_item, terminal_set> start_items = new HashMap<lr_item, terminal_set>();
+      TreeMap<lr_item, terminal_set> start_items = new TreeMap<lr_item, terminal_set>();
       terminal_set lookahead = new terminal_set(this);
       lookahead.add(terminal.EOF);
       lr_item core = _start_production.item();

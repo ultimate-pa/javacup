@@ -613,10 +613,10 @@ public class emit {
 		encoded.append('u').append(hex);
 	      }
 	    utf8len++;
-	    if (c >= 128)
+	    if (c >= 128 || c == 0)
 	      {
 		utf8len++;
-		if (c >= 4096)
+		if (c >= 2048)
 		  utf8len++;
 	      }
 	  }
@@ -624,7 +624,10 @@ public class emit {
 	if (i+11 < str.length())
 	  {
 	    if (utf8len > 65000)
-	      encoded.append(",");
+	      {
+		encoded.append(",");
+		utf8len = 0;
+	      }
 	    else
 	      encoded.append(" +");
 	  }
