@@ -606,7 +606,7 @@ production ::=
 	|
 	error SEMI
 	;
-rhs_list ::= rhs_list blub ::= rhs_list;
+
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 rhs_list ::= rhs_list BAR rhs | rhs;
