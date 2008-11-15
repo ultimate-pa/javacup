@@ -45,22 +45,8 @@ import java.util.Stack;
  *  special Symbols (e.g., EOF and error), etc.  Specifically, the following
  *  abstract methods are normally supplied by generated code:
  *  <dl compact>
- *  <dt> short[][] production_table()
- *  <dd> Provides a reference to the production table (indicating the index of
- *       the left hand side non terminal and the length of the right hand side
- *       for each production in the grammar).
- *  <dt> short[][] action_table()
- *  <dd> Provides a reference to the parse action table.
- *  <dt> short[][] reduce_table()
- *  <dd> Provides a reference to the reduce-goto table.
- *  <dt> int start_state()      
- *  <dd> Indicates the index of the start state.
- *  <dt> int start_production() 
- *  <dd> Indicates the index of the starting production.
- *  <dt> int EOF_sym() 
- *  <dd> Indicates the index of the EOF Symbol.
- *  <dt> int error_sym() 
- *  <dd> Indicates the index of the error Symbol.
+ *  <dt> String[] action_table()
+ *  <dd> Provides the parse table.
  *  <dt> Symbol do_action() 
  *  <dd> Executes a piece of user supplied action code.  This always comes at 
  *       the point of a reduce in the parse, so this code also allocates and 
@@ -106,8 +92,6 @@ import java.util.Stack;
  *  </dl>
  *
  * @see     java_cup.runtime.Symbol
- * @see     java_cup.runtime.Symbol
- * @see     java_cup.runtime.virtual_parse_stack
  * @version last updated: 7/3/96
  * @author  Frank Flannery
  */

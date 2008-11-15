@@ -14,7 +14,6 @@ package java_cup;
  *  and use of items.
  *
  * @see     java_cup.lalr_state
- * @version last updated: 11/25/95
  * @author  Scott Hudson
 */
 

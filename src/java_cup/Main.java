@@ -1,11 +1,11 @@
 package java_cup;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.PrintWriter;
 
 import java_cup.runtime.ComplexSymbolFactory;
@@ -171,17 +171,11 @@ public class Main {
     {
       boolean did_output = false;
 
-      /* open output files */
-      if (print_progress)
-	System.err.println("Opening files...");
-      /* use a buffered version of standard input */
-      input_file = new BufferedInputStream(System.in);
-
       prelim_end = System.currentTimeMillis();
 
       /* parse spec into internal data structures */
       if (print_progress)
-	System.err.println("Parsing specification from standard input...");
+	System.err.println("Parsing specification...");
       Grammar grammar = parse_grammar_spec();
 
       parse_end = System.currentTimeMillis();
@@ -216,6 +210,10 @@ public class Main {
 	      open_files();
 	      emit_parser(grammar);
 	      did_output = true;
+	      /* close input/output files */
+	      if (print_progress)
+		System.err.println("Closing files...");
+	      close_files();
 	    }
 	}
       /* fix up the times to make the summary easier */
@@ -230,11 +228,6 @@ public class Main {
 	grammar.dump_tables();
 
       dump_end = System.currentTimeMillis();
-
-      /* close input/output files */
-      if (print_progress)
-	System.err.println("Closing files...");
-      close_files();
 
       /* produce a summary if desired */
       if (!no_summary)
@@ -478,7 +471,7 @@ public class Main {
     {
       int len = argv.length;
       int i;
-
+      
       /* parse the options */
       for (i=0; i<len; i++)
 	{
@@ -513,7 +506,7 @@ public class Main {
 	    {
 	      /* use input from file. */
 	      try {
-		  System.setIn(new FileInputStream(argv[i]));
+		  input_file = new FileInputStream(argv[i]);
 	      } catch (FileNotFoundException e) {
 		  System.err.println("Unable to open \"" + argv[i] +"\" for input");
 		  usage();
@@ -533,8 +526,8 @@ public class Main {
   /* Files */
   /*-------*/
 
-  /** Input file. This is a buffered version of System.in. */
-  private BufferedInputStream input_file;
+  /** Input file. This defaults to System.in. */
+  private InputStream input_file = System.in;
 
   /** Output file for the parser class. */
   private PrintWriter parser_class_file;
@@ -587,8 +580,6 @@ public class Main {
   /** Close various files used by the system. */
   private void close_files() throws java.io.IOException
     {
-      if (input_file != null)
-	input_file.close();
       if (parser_class_file != null)
 	parser_class_file.close();
       if (symbol_class_file != null)
@@ -604,13 +595,13 @@ public class Main {
    * variables (mostly in the emit class) for small user supplied items such as
    * the code to scan with.
    */
-  private Grammar parse_grammar_spec() throws java.lang.Exception
+  private Grammar parse_grammar_spec()
     {
       parser parser_obj;
 
       /* create a parser and parse with it */
       ComplexSymbolFactory csf = new ComplexSymbolFactory();
-      parser_obj = new parser(new Lexer(csf), csf);
+      parser_obj = new parser(new Lexer(input_file, csf), csf);
       parser_obj.main = this;
       parser_obj.emit = emit;
       try
@@ -620,17 +611,16 @@ public class Main {
 	    grammar = (Grammar) parser_obj.debug_parse().value;
 	  else
 	    grammar = (Grammar) parser_obj.parse().value;
+	  if (input_file != System.in)
+	    input_file.close();
 	  return grammar;
 	}
       catch (Exception e)
 	{
-	  /*
-	   * something threw an exception. catch it and emit a message so we
-	   * have a line number to work with, then re-throw it
-	   */
-	  ErrorManager.getManager().emit_error(
-	      "Internal error: Unexpected exception");
-	  throw e;
+	  /* The parser should never throw an exception */
+	  AssertionError error = new AssertionError("Exception in parser");
+	  error.initCause(e); 
+	  throw error;
 	}
     }
 
@@ -793,9 +783,6 @@ public class Main {
     {
       final_time = System.currentTimeMillis();
 
-      if (no_summary)
-	return;
-
       System.err.println("------- " + version.title_str
 	  + " Parser Generation Summary -------");
 
@@ -922,38 +909,20 @@ public class Main {
    */
   private String timestr(long time_val, long total_time)
     {
-      boolean neg;
-      long ms = 0;
-      long sec = 0;
       long percent10;
-      String pad;
-
-      /* work with positives only */
-      neg = time_val < 0;
-      if (neg)
-	time_val = -time_val;
 
       /* pull out seconds and ms */
-      ms = time_val % 1000;
-      sec = time_val / 1000;
-
       /* construct a pad to blank fill seconds out to 4 places */
-      if (sec < 10)
-	pad = "   ";
-      else if (sec < 100)
-	pad = "  ";
-      else if (sec < 1000)
-	pad = " ";
-      else
-	pad = "";
+      String sec = "   "+(time_val / 1000);
+      String ms  = "00"+(time_val % 1000);
 
       /* calculate 10 times the percentage of total */
       percent10 = (time_val * 1000) / total_time;
 
       /* build and return the output string */
-      return (neg ? "-" : "") + pad + sec + "." + ((ms % 1000) / 100)
-	  + ((ms % 100) / 10) + (ms % 10) + "sec" + " (" + percent10 / 10 + "."
-	  + percent10 % 10 + "%)";
+      return sec.substring(sec.length() - 4) + "."
+          + ms.substring(ms.length() - 3) + "sec"
+          + " (" + percent10 / 10 + "." + percent10 % 10 + "%)";
     }
 
   /*-----------------------------------------------------------*/

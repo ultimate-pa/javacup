@@ -8,9 +8,7 @@ import java.util.BitSet;
  *  each terminal symbol.  Each entry contains a state number to shift to
  *  as the last step of a reduce. 
  *
- * @see     java_cup.parse_reduce_row
- * @version last updated: 11/25/95
- * @author  Scott Hudson
+ * @author  Scott Hudson, Jochen Hoenicke
  */
 public class parse_reduce_table {
  
@@ -53,6 +51,13 @@ public class parse_reduce_table {
   /*--- General Methods ---------------------------------------*/
   /*-----------------------------------------------------------*/
 
+  /**
+   * Compress the reduce table into it's runtime form.  This returns
+   * an array red_tab, such that <pre>
+   * red_tab[red_tab[state]+nonterm] = table[state][nonterm].index()
+   * </pre>
+   * for all non-null table entries.
+   */
   public short[] compress()
     {
       int[] baseaddrs = new int[_num_states];

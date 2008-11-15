@@ -2,7 +2,7 @@ package java_cup;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.ComplexSymbolFactory.Location;
 import java_cup.runtime.Symbol;
-import java.lang.Error;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 %%
@@ -15,8 +15,8 @@ import java.io.InputStreamReader;
 %column
 %cup
 %{
-    public Lexer(ComplexSymbolFactory sf){
-	this(new InputStreamReader(System.in));
+    public Lexer(InputStream is, ComplexSymbolFactory sf){
+	this(new InputStreamReader(is));
         symbolFactory = sf;
     }
     private StringBuffer sb;

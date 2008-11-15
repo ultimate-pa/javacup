@@ -166,7 +166,6 @@ parser code {:
   emit emit;
   
  /* override error routines */
-  protected Lexer lexer;
   public void report_fatal_error(
     String   message,
     Object   info)
@@ -184,17 +183,6 @@ parser code {:
       else
          ErrorManager.getManager().emit_error(message,cur_token);
     }
-:};
-
-/*---------------------------------------------------------------- */
-
-init with {: 
-    ComplexSymbolFactory f = new ComplexSymbolFactory();
-    symbolFactory = f;
-    lexer = new Lexer(f); 
-:}
-scan with {: 
-    return lexer.next_token(); 
 :};
 
 /*----------------------------------------------------------------*/ 

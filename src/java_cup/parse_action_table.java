@@ -142,6 +142,18 @@ public class parse_action_table {
       return default_action;
     }
 
+  /**
+   * Compress the action table into it's runtime form.  This returns
+   * an array act_tab and initializes base_table, such that for all
+   * entries with table[state][term] != default/error: <pre>
+   * act_tab[base_table[state]+2*term] == state
+   * act_tab[base_table[state]+2*term+1] == table[state][term]
+   * </pre>
+   * For all entries that equal default_action[state], we have: <pre>
+   * act_tab[base_table[state]+2*term] != state
+   * act_tab[state] == default_action[state]
+   * </pre>
+   */
   public short[] compress(boolean compact_reduces, int[] base_table)
     {
       int _num_states = table.length;
