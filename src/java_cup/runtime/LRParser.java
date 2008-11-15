@@ -127,6 +127,7 @@ public abstract class LRParser {
   /** 
    * Constructor that sets the default scanner. [CSA/davidm] 
    */
+  @SuppressWarnings("deprecation")
   public LRParser(Scanner s) {
     this(s,new DefaultSymbolFactory()); // TUM 20060327 old cup v10 Symbols as default
   }
