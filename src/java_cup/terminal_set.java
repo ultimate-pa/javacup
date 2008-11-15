@@ -9,16 +9,18 @@ public class terminal_set {
   private final static int LOG_BITS_PER_UNIT = 6;
   private final static int BITS_PER_UNIT = 64;
   private long[] _elements;
+  private Grammar _grammar;
 
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
 
   /** Constructor for an empty set. */
-  public terminal_set() 
+  public terminal_set(Grammar g) 
     { 
       /* allocate the bitset at what is probably the right size */
-      _elements = new long[((terminal.number()-1) >>> LOG_BITS_PER_UNIT)+1];
+      _grammar = g;
+      _elements = new long[((g.num_terminals()-1) >>> LOG_BITS_PER_UNIT)+1];
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -28,6 +30,7 @@ public class terminal_set {
    */
   public terminal_set(terminal_set other) 
     {
+      this (other._grammar);
       _elements = other._elements.clone();
     }
 
@@ -185,11 +188,11 @@ public class terminal_set {
     {
       StringBuilder result = new StringBuilder("{");
       String comma = "";
-      for (int t = 0; t < terminal.number(); t++)
+      for (int t = 0; t < _grammar.num_terminals(); t++)
 	{
 	  if (contains(t))
 	    {
-	      result.append(comma).append(terminal.find(t).name());
+	      result.append(comma).append(_grammar.find_terminal(t));
 	      comma = ", ";
 	    }
 	}

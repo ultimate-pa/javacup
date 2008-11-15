@@ -1,7 +1,5 @@
 package java_cup;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -25,16 +23,11 @@ public class non_terminal extends symbol {
    * @param nm  the name of the non terminal.
    * @param tp  the type string for the non terminal.
    */
-  public non_terminal(String nm, String tp) 
+  public non_terminal(String nm, String tp, int index) 
     {
       /* super class does most of the work */
       super(nm, tp);
-
-      /* assign a unique index */
-      _index = _all_by_index.size();
-
-      /* add to by_index set */
-      _all_by_index.add(this);
+      _index = index;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -42,9 +35,9 @@ public class non_terminal extends symbol {
   /** Constructor with default type. 
    * @param nm  the name of the non terminal.
    */
-  public non_terminal(String nm) 
+  public non_terminal(String nm, int index) 
     {
-      this(nm, null);
+      this(nm, null, index);
     }
 
   /*-----------------------------------------------------------*/
@@ -56,142 +49,15 @@ public class non_terminal extends symbol {
    */
   protected static HashMap<String, non_terminal> _all = new HashMap<String, non_terminal>();
 
-  //Hm Added clear  to clear all static fields
-  public static void clear() {
-      _all_by_index.clear();
-      next_nt=0;
-  }
-
-  /** Access to all non-terminals. */
-  public static Collection<non_terminal> all() {return _all_by_index;}
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Table of all non terminals indexed by their index number. */
-  protected static ArrayList<non_terminal> _all_by_index = new ArrayList<non_terminal>();
-
-  /** Lookup a non terminal by index. */
-  public static non_terminal find(int indx)
-    {
-      return _all_by_index.get(indx);
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Total number of non-terminals. */
-  public static int number() {return _all_by_index.size();}
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Static counter for creating unique non-terminal names */
-  private static int next_nt = 0;
-
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** special non-terminal for start symbol */
-  public static final non_terminal START_nt = new non_terminal("$START", "Object");
+  public static final non_terminal START_nt = new non_terminal("$START", "Object", 0);
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** flag non-terminals created to embed action productions */
   public boolean is_embedded_action = false; /* added 24-Mar-1998, CSA */
-
-  /*-----------------------------------------------------------*/
-  /*--- Static Methods ----------------------------------------*/
-  /*-----------------------------------------------------------*/
-	 
-  /** Method for creating a new uniquely named hidden non-terminal using 
-   *  the given string as a base for the name (or "NT$" if null is passed).
-   * @param prefix base name to construct unique name from. 
-   */
-  static non_terminal create_new(String prefix)
-    {
-      return create_new(prefix,null); // TUM 20060608 embedded actions patch
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** static routine for creating a new uniquely named hidden non-terminal */
-  static non_terminal create_new()
-    { 
-      return create_new(null); 
-    }
-    /**
-     * TUM 20060608 bugfix for embedded action codes
-     */
-    static non_terminal create_new(String prefix, String type) {
-        if (prefix==null) prefix = "NT$";
-        return new non_terminal(prefix + next_nt++,type);
-    }
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Compute nullability of all non-terminals. */
-  public static void compute_nullability()
-    {
-      boolean      change = true;
-
-      /* repeat this process until there is no change */
-      while (change)
-	{
-	  /* look for a new change */
-	  change = false;
-
-	  /* consider each non-terminal */
-	  for (non_terminal nt : all())
-	    {
-	      /* only look at things that aren't already marked nullable */
-	      if (!nt.nullable())
-		{
-		  if (nt.looks_nullable())
-		    {
-		      nt._nullable = true;
-		      change = true;
-		    }
-		}
-	    }
-	}
-      
-      /* do one last pass over the productions to finalize all of them */
-      for (production prod : production.all())
-	{
-	  prod.set_nullable(prod.check_nullable());
-	}
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Compute first sets for all non-terminals.  This assumes nullability has
-   *  already computed.
-   */
-  public static void compute_first_sets()
-    {
-      boolean      change = true;
-
-      /* repeat this process until we have no change */
-      while (change)
-	{
-	  /* look for a new change */
-	  change = false;
-
-	  /* consider each non-terminal */
-	  for (non_terminal nt : all() )
-	    {
-	      /* consider every production of that non terminal */
-	      for (production prod : nt.productions())
-		{
-		  /* get the updated first of that production */
-		  terminal_set prod_first = prod.check_first_set();
-
-		  /* if this going to add anything, add it */
-		  if (!prod_first.is_subset_of(nt._first_set))
-		    {
-		      change = true;
-		      nt._first_set.add(prod_first);
-		    }
-		}
-	    }
-	}
-    }
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/
@@ -214,7 +80,7 @@ public class non_terminal extends symbol {
   public void add_production(production prod)
     {
       /* catch improper productions */
-      assert (prod != null && prod.lhs() != null && prod.lhs().the_symbol() == this) :
+      assert (prod != null && prod.lhs() == this) :
 	  "Attempt to add invalid production to non terminal production table";
 
       /* add it to the table, keyed with itself */
@@ -232,7 +98,7 @@ public class non_terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** First set for this non-terminal. */
-  protected terminal_set _first_set = new terminal_set();
+  protected terminal_set _first_set;
 
   /** First set for this non-terminal. */
   public terminal_set first_set() {return _first_set;}

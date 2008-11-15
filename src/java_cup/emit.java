@@ -145,11 +145,6 @@ public class emit {
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
-  /** The start production of the grammar. */
-  public production start_production = null;
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** List of imports (Strings containing class names) to go with actions. */
   public ArrayList<String> import_list = new ArrayList<String>();
 
@@ -236,7 +231,7 @@ public class emit {
       if (index == 1)
 	access = pre("stack") + ".peek()";
       else
-	access = pre("stack") + ".elementAt(" + pre("size") + "-" + index + ")";
+	access = pre("stack") + ".elementAt(" + pre("size") + " - " + index + ")";
       return is_java15 ? access : "((java_cup.runtime.Symbol) "+access+")";
     }
 
@@ -246,7 +241,7 @@ public class emit {
    * @param emit_non_terms do we emit constants for non terminals?
    * @param sym_interface  should we emit an interface, rather than a class?
    */
-  public void symbols(PrintWriter out, 
+  public void symbols(PrintWriter out, Grammar grammar, 
 			     boolean emit_non_terms, boolean sym_interface)
     {
       String class_or_interface = (sym_interface)?"interface":"class";
@@ -272,7 +267,7 @@ public class emit {
       out.println("  /* terminals */");
 
       /* walk over the terminals */              /* later might sort these */
-      for (terminal term : terminal.all())
+      for (terminal term : grammar.terminals())
 	{
 
 	  /* output a constant decl for the terminal */
@@ -287,7 +282,7 @@ public class emit {
           out.println("  /* non terminals */");
 
           /* walk over the non terminals */       /* later might sort these */
-          for (non_terminal nt : non_terminal.all())
+          for (non_terminal nt : grammar.non_terminals())
 	    {
           // ****
           // TUM Comment: here we could add a typesafe enumeration
@@ -312,7 +307,7 @@ public class emit {
    * @param out        stream to produce output on.
    * @param start_prod the start production of the grammar.
    */
-  protected void emit_action_code(PrintWriter out, production start_prod, 
+  protected void emit_action_code(PrintWriter out, Grammar grammar, String action_class, production start_prod, 
       boolean lr_values, boolean old_lr_values, boolean is_java15)
     {
       long start_time = System.currentTimeMillis();
@@ -326,7 +321,7 @@ public class emit {
        "/** Cup generated class to encapsulate user supplied action code.*/"
       );  
       /* TUM changes; proposed by Henning Niss 20050628: added type argument */
-      out.println("class " +  pre(parser_class_name+"$actions") + typeArgument() + " {");
+      out.println((is_java15 ? "static ": "") + "class " +  action_class + " {");
       /* user supplied code */
       if (action_code != null)
 	{
@@ -342,7 +337,7 @@ public class emit {
       out.println();
       out.println("  /** Constructor */");
       /* TUM changes; proposed by Henning Niss 20050628: added typeArgument */
-      out.println("  " + pre(parser_class_name+"$actions") + "("+parser_class_name+typeArgument()+" parser) {");
+      out.println("  " + action_class + "("+parser_class_name+typeArgument()+" parser) {");
       out.println("    this.parser = parser;");
       out.println("  }");
 
@@ -372,7 +367,7 @@ public class emit {
       out.println("        {");
 
       /* emit action code for each production as a separate case */
-      for (production prod : production.all())
+      for (production prod : grammar.productions())
 	{
 	  /* case label */
           out.println("          /*. . . . . . . . . . . . . . . . . . . .*/");
@@ -382,22 +377,22 @@ public class emit {
 	  /* give them their own block to work in */
 	  out.println("            {");
 
-	  if (prod.lhs().the_symbol().stack_type() != null)
+	  if (prod.lhs().stack_type() != null)
 	    {
 	      int lastResult = prod.getIndexOfIntermediateResult();
 	      String result = "null";
 	      if (lastResult!=-1)
 		{
-		  result =  "(" + prod.lhs().the_symbol().stack_type() + ") " +
-		  stackelem(prod.rhs_params() - lastResult, is_java15)+".value";
+		  result =  "(" + prod.lhs().stack_type() + ") " +
+		  stackelem(prod.rhs_stackdepth() - lastResult, is_java15)+".value";
 		}
 
 	      /* create the result symbol */
 	      /* make the variable RESULT which will point to the new Symbol 
 	       * (see below) and be changed by action code
 	       * 6/13/96 frankf */
-	      out.println("              " +  prod.lhs().the_symbol().stack_type() +
-		  " RESULT ="+result+";");
+	      out.println("              " +  prod.lhs().stack_type() +
+		  " RESULT = "+result+";");
 	    }
 	  production baseprod;
 	  if (prod instanceof action_production)
@@ -409,19 +404,19 @@ public class emit {
 	   * action code embedded in a production (ie, non-rightmost
 	   * action code). 24-Mar-1998 CSA
 	   */
-	  for (int i=prod.rhs_params()-1; i>=0; i--) 
+	  for (int i=prod.rhs_stackdepth()-1; i>=0; i--) 
 	    {
 	      symbol_part symbol = baseprod.rhs(i);
 	      if (symbol.label() != null)
 		{
 		  if (i == 0)
 		    leftsym = symbol.label()+"$";
-		  if (i == prod.rhs_params()-1)
+		  if (i == prod.rhs_stackdepth()-1)
 		    rightsym = symbol.label()+"$";
 		  
 		  out.println("              java_cup.runtime.Symbol " + 
 		      symbol.label() + "$ = " +
-		      stackelem(prod.rhs_params() - i, is_java15) + ";");
+		      stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
 	      		
 		  /* Put in the left/right value labels */
 		  if (old_lr_values)
@@ -466,16 +461,16 @@ public class emit {
 		  if (rightsym == null)
 		    rightsym = stackelem(1, is_java15);
 		  if (leftsym == null)
-		    leftsym = stackelem(prod.rhs_params(), is_java15);
+		    leftsym = stackelem(prod.rhs_stackdepth(), is_java15);
 		}
 	      leftright = ", " + leftsym + ", " + rightsym;
 	    }
-	  String result = prod.lhs().the_symbol().stack_type() != null 
+	  String result = prod.lhs().stack_type() != null 
 	  	? ", RESULT" : "";
 
 	  out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
-	      "\"" + prod.lhs().the_symbol().name() +  "\", " +
-	      prod.lhs().the_symbol().index() + leftright + result + ");");
+	      "\"" + prod.lhs().name() +  "\", " +
+	      prod.lhs().index() + leftright + result + ");");
 	  
 	  /* end of their block */
 	  out.println("            }");
@@ -516,16 +511,16 @@ public class emit {
   /** Emit the production table. 
    * @param out stream to produce output on.
    */
-  protected String do_production_table()
+  protected String do_production_table(Grammar grammar)
     {
       long start_time = System.currentTimeMillis();
 
       // make short[][]
-      short[] prod_table = new short[2*production.number()];
-      for (production prod : production.all())
+      short[] prod_table = new short[2*grammar.num_productions()];
+      for (production prod : grammar.productions())
 	{
 	  // { lhs symbol , rhs size }
-	  prod_table[2*prod.index()+0] = (short) prod.lhs().the_symbol().index();
+	  prod_table[2*prod.index()+0] = (short) prod.lhs().index();
 	  prod_table[2*prod.index()+1] = (short) prod.rhs_length();
 	}
       String result = do_array_as_string(prod_table);
@@ -642,6 +637,7 @@ public class emit {
    */
   public void parser(
     PrintWriter        out, 
+    Grammar            grammar,
     parse_action_table action_table,
     parse_reduce_table reduce_table,
     int                start_st,
@@ -653,6 +649,8 @@ public class emit {
     boolean            is_java15)
     {
       long start_time = System.currentTimeMillis();
+      
+      String action_class = is_java15 ? "Action$" : pre(parser_class_name+"$action");
 
       /* top of file */
       out.println();
@@ -694,7 +692,7 @@ public class emit {
       }
 
       /* emit the various tables */
-      String tables = do_production_table() + 
+      String tables = do_production_table(grammar) + 
       	do_action_table(action_table, compact_reduces) +
       	do_reduce_table(reduce_table);
 
@@ -709,15 +707,14 @@ public class emit {
 
       /* instance of the action encapsulation class */
       out.println("  /** Instance of action encapsulation class. */");
-      out.println("  protected " + pre(parser_class_name+"$actions") + " action_obj;");
+      out.println("  protected " + action_class + " action_obj;");
       out.println();
 
       /* action object initializer */
       out.println("  /** Action encapsulation object initializer. */");
       out.println("  protected void init_actions()");
       out.println("    {");
-      /* TUM changes; proposed by Henning Niss 20050628: added typeArgument */
-      out.println("      action_obj = new " + pre(parser_class_name+"$actions") + typeArgument() +"(this);");
+      out.println("      action_obj = new " + action_class + "(this);");
       out.println("    }");
       out.println();
 
@@ -767,14 +764,29 @@ public class emit {
           out.println(parser_code);
 	}
 
-      /* end of class */
-      out.println("}");
+      if (is_java15)
+	{
+	  /* put out the action code class as inner class */
+	  emit_action_code(out, grammar, action_class, start_prod, lr_values, old_lr_values, is_java15);
 
-      /* put out the action code class */
-      emit_action_code(out, start_prod, lr_values, old_lr_values, is_java15);
+	  /* end of class */
+	  out.println("}");
+	} 
+      else
+	{
+	  /* end of class */
+	  out.println("}");
+
+	  /* put out the action code class */
+	  emit_action_code(out, grammar, action_class, start_prod, lr_values, old_lr_values, is_java15);
+	}
 
       parser_time = System.currentTimeMillis() - start_time;
     }
 
-    /*-----------------------------------------------------------*/
+  public void usage(String message)
+    {
+    }
+  
+
 }

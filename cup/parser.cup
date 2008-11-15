@@ -92,24 +92,18 @@ package java_cup;
 import java_cup.runtime.*;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Iterator;
 /*----------------------------------------------------------------*/ 
 
+option java15, compact_red, interface, newpositions;
+
 action code {:
-  /** helper routine to clone a new production part adding a given label */
-  private production_part add_lab(production_part part, String lab)
-    {
-      /* if there is no label, or this is an action, just return the original */
-      if (lab == null || part.is_action()) return part;
-
-      /* otherwise build a new one with the given label attached */
-      return new symbol_part(((symbol_part)part).the_symbol(),lab);
-    }
-
   /** table of declared symbols -- contains production parts indexed by name */
-  private HashMap<String, symbol_part> symbols = new HashMap<String, symbol_part>();
+  private HashMap<String, symbol> symbols = new HashMap<String, symbol>();
 
-  /** table of just non terminals -- contains non_terminals indexed by name */
-  private HashMap<String, non_terminal> non_terms = new HashMap<String, non_terminal>();
+  private ArrayList<terminal> terminals = new ArrayList<terminal>();
+  private ArrayList<non_terminal> non_terminals = new ArrayList<non_terminal>();
+  private ArrayList<production> productions = new ArrayList<production>();
 
   /** declared start non_terminal */
   private non_terminal start_nt = null;
@@ -118,11 +112,13 @@ action code {:
   private non_terminal lhs_nt;
 
   {
-    /* declare "error" as a terminal */
-    symbols.put("error", new symbol_part(terminal.error));
+    /* declare "error" and "EOF" as a terminal */
+    terminals.add(terminal.error);
+    terminals.add(terminal.EOF);
+    symbols.put("error", terminal.error);
 
     /* declare start non terminal */
-    non_terms.put("$START", non_terminal.START_nt);
+    non_terminals.add(non_terminal.START_nt);
   }  
 
   /** Current symbol type */
@@ -135,58 +131,180 @@ action code {:
   int _cur_side = assoc.no_prec;
 
   /** update the precedences we are declaring */
-  protected void update_precedence(int p) {
-    _cur_side = p;
-    _cur_prec++;
-  }
-  /** add relevant data to terminals */ 
-  protected void add_precedence(String term) {
-    if (term == null) {
-      System.err.println("Unable to add precedence to nonexistent terminal");
-    } else {
-      symbol_part sp = symbols.get(term);
-      if (sp == null) {
-	System.err.println("Could find terminal " + term + " while declaring precedence");
-      } else {
-	java_cup.symbol sym = sp.the_symbol();
-	if (sym instanceof terminal) 
-	  ((terminal)sym).set_precedence(_cur_side, _cur_prec);
-	else System.err.println("Precedence declaration: Can't find terminal " + term);
-      }
+  protected void update_precedence(int p)
+    {
+      _cur_side = p;
+      _cur_prec++;
     }
-  }
   
+  private terminal get_term(String id)
+    {
+      symbol sym = symbols.get(id);
+
+      /* if it wasn't declared of the right type, emit a message */
+      if (!(sym instanceof terminal))
+	{
+	  if (ErrorManager.getManager().getErrorCount() == 0)
+	    ErrorManager.getManager().emit_warning("Terminal \"" + id + 
+	    "\" has not been declared");
+	  return null;
+	}
+      return (terminal)sym;
+    }
+  
+  private non_terminal get_nonterm(String id)
+    {
+      symbol sym = symbols.get(id);
+
+      /* if it wasn't declared of the right type, emit a message */
+      if (!(sym instanceof non_terminal))
+	{
+	  if (ErrorManager.getManager().getErrorCount() == 0)
+	    ErrorManager.getManager().emit_warning("Non-terminal \"" + id + 
+	    "\" has not been declared");
+	  return null;
+	}
+      return (non_terminal)sym;
+    }
+
   /** set start non terminal symbol */
   private void set_start_symbol(non_terminal nt)
     {
       start_nt = nt;
       /* build a special start production */
-      production_part[] rhs;
+      symbol_part[] rhs = new symbol_part[2];
+      action_part action = null;
       if (start_nt.stack_type() != null)
 	{
-	  rhs = new production_part[] 
-	    {
-	      add_lab(new symbol_part(start_nt),"start_val"),
-	      new symbol_part(terminal.EOF),
-	      new action_part("RESULT = start_val;")
-	    };
+	  rhs[0] = new symbol_part(start_nt, "start_val");
+	  action = new action_part("RESULT = start_val;");
 	}
       else
+	rhs[0] = new symbol_part(start_nt);
+      rhs[1] = new symbol_part(terminal.EOF);
+      parser.main.start_production = 
+	  new production(0, non_terminal.START_nt, rhs, action, null);
+      productions.add(parser.main.start_production);
+      non_terminal.START_nt.note_use();
+    }
+  
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+  private int next_nt = 0; 
+  non_terminal create_anon_nonterm(String type) 
+    {
+        non_terminal nt = new non_terminal
+        	("NT$" + next_nt++, type, non_terminals.size());
+        non_terminals.add(nt);
+        return nt;
+    }
+
+  /**
+   * Create a production. Takes a LHS non terminal, a list of
+   * RHS parts (including terminals, non terminals, and actions) and a
+   * precedence.  We factor out embedded actions into separate action_production
+   * using temporary non-terminals.  Adjacent actions are merge immediately.
+   * 
+   * <p>Factoring out of actions is accomplished by creating new "hidden" non
+   * terminals. For example if the production was originally:</p>
+   * 
+   * <pre>
+   *    A ::= B {action} C D
+   * </pre>
+   * 
+   * then it is factored into two productions:
+   * 
+   * <pre>
+   *    A ::= B X C D
+   *    X ::= {action}
+   * </pre>
+   * 
+   * (where X is a unique new non terminal). This has the effect of placing all
+   * actions at the end where they can be handled as part of a reduce by the
+   * parser.
+   */
+  private void build_production(non_terminal lhs_sym, ArrayList<production_part> rhs_parts, terminal precedence)
+    {
+      int i;
+
+      /* make sure we have a valid left-hand-side */
+      assert lhs_sym != null : "Attempt to construct a production with a null LHS";
+
+      /* count use of lhs */
+      lhs_sym.note_use();
+      if (precedence != null)
+	precedence.note_use();
+
+      /* merge adjacent actions (if any) */
+      Iterator<production_part> it = rhs_parts.iterator();
+      action_part prev_action = null;
+      while (it.hasNext())
 	{
-	  rhs = new production_part[] 
+	  production_part part = it.next();
+	  if (part instanceof action_part)
 	    {
-	      new symbol_part(start_nt),
-	      new symbol_part(terminal.EOF)
-	    };
+	      if (prev_action != null)
+		{
+		  prev_action.add_code_string(((action_part)part).code_string());
+		  it.remove();
+		}
+	      else
+		prev_action = (action_part) part;
+	    }
+	  else
+	    prev_action = null;
 	}
-      parser.emit.start_production = 
-	  new production(non_terminal.START_nt, rhs, rhs.length);
+      
+      action_part action = null;
+      /* strip off any trailing action */
+      if (rhs_parts.size() > 0 && rhs_parts.get(rhs_parts.size() - 1).is_action())
+	{
+	  action = (action_part) rhs_parts.remove(rhs_parts.size()-1);
+	}
+
+      /* allocate and copy over the right-hand-side */
+      symbol_part[] rhs = new symbol_part[rhs_parts.size()];
+      /* count use of each rhs symbol */
+      for (i = 0; i < rhs.length; i++)
+	{
+	  production_part prod = rhs_parts.get(i);
+	  if (prod.is_action())
+	    {
+	      /* create a new non terminal for the action production */
+	      non_terminal new_nt = create_anon_nonterm(lhs_sym.stack_type()); 
+	      new_nt.is_embedded_action = true;
+	      new_nt.note_use();
+	      rhs[i] = new symbol_part(new_nt);
+	    }
+	  else
+	    {
+	      rhs[i] = (symbol_part) prod;
+	    }
+	}
+      
+      /* put the production in the production list of the lhs non terminal */
+      production prod = new production(productions.size(), lhs_sym, rhs, action, precedence);
+      productions.add(prod);
+      int last_act_loc = -1;
+      for (i = 0; i < rhs.length; i++)
+	{
+	  production_part part = rhs_parts.get(i);
+	  if (part.is_action())
+	    {
+	      production actprod = new action_production
+	      	(productions.size(), prod, (non_terminal) rhs[i].the_symbol(), 
+	      	    (action_part) part, i, last_act_loc);
+	      productions.add(actprod);
+	      last_act_loc = i;
+	    }
+	}
     }
 :};
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 parser code {:
+  Main main;
   emit emit;
   
  /* override error routines */
@@ -227,23 +345,27 @@ terminal
   PACKAGE, IMPORT, CODE, ACTION, PARSER, TERMINAL, NON, INIT, SCAN, WITH, 
   START, SEMI, COMMA, STAR, DOT, COLON, COLON_COLON_EQUALS, BAR, PRECEDENCE,
   LEFT, RIGHT, NONASSOC, PERCENT_PREC, LBRACK, RBRACK, NONTERMINAL, GT, LT,
-  QUESTION, SUPER, EXTENDS;
+  QUESTION, SUPER, EXTENDS, EQUALS, OPTION;
 
 terminal String  ID, CODE_STRING;
 
 non terminal
-  spec, package_spec, import_list, action_code_part, 
+  package_spec, import_list, parser_spec,
+  option_spec, option_list, option_, action_code_part, 
   code_parts, code_part, opt_semi, non_terminal,
   parser_code_part, symbol_list, start_spec, production_list, 
   import_spec, init_code, scan_code, symbol, 
   term_name_list, non_term_name_list, production, 
   new_term_id, new_non_term_id, rhs_list, rhs, empty,
-  precedence_list, preced, terminal_list, precedence_l, declares_term, 
-  declares_non_term;
+  precedence_list, preced, assoc, precterminal_list, precterminal_id,
+  declares_term, declares_non_term;
+  
+non terminal Grammar spec;
 
-non terminal String  symbol_id, label_id, opt_label, terminal_id,
-                     term_id, robust_id, typearglist, typeargument, wildcard;
+non terminal String  symbol_id, label_id, opt_label,
+                     robust_id, typearglist, typeargument, wildcard;
 non terminal StringBuilder multipart_id, import_id, type_id;
+non terminal terminal term_id;
 
 non terminal production_part prod_part;
 non terminal ArrayList<production_part> prod_part_list;
@@ -256,8 +378,6 @@ start with spec;
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 spec ::= 
-	{:
-	:}
 	package_spec
 	import_list
 	code_parts
@@ -265,6 +385,7 @@ spec ::=
 	precedence_list
 	start_spec
 	production_list
+        {: RESULT = new Grammar(terminals, non_terminals, productions); :}
 	|
 	/* error recovery assuming something went wrong before symbols 
 	   and we have TERMINAL or NON TERMINAL to sync on.  if we get
@@ -276,6 +397,7 @@ spec ::=
 	precedence_list
 	start_spec
 	production_list
+        {: RESULT = new Grammar(terminals, non_terminals, productions); :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -285,7 +407,7 @@ package_spec ::=
 	multipart_id:id
 	{:
 	  /* save the package name */
-	  parser.emit.package_name = id.toString();
+	  parser.main.setOption("package", id.toString());
 	:}
 	SEMI
 	|
@@ -313,15 +435,31 @@ import_spec ::=
 	:}
 	;
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 // allow any order; all parts are optional. [CSA, 23-Jul-1999]
 // (we check in the part action to make sure we don't have 2 of any part)
 code_part ::=
+    option_spec | parser_spec |
 	action_code_part | parser_code_part | init_code | scan_code ;
 code_parts ::= 
 	| code_parts code_part;
 
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+
+parser_spec ::= 
+	  PARSER multipart_id:name SEMI
+         {: parser.main.setOption("parser", name.toString()); :}
+	| PARSER multipart_id:name LT typearglist:types GT SEMI
+         {: parser.main.setOption("parser", name.toString());
+	    parser.main.setOption("typearg", types.toString()); :}
+       	;
+
+
+option_spec ::= OPTION option_list SEMI;
+option_list ::= option_list COMMA option_ | option_;
+option_ ::= robust_id:opt {: parser.main.setOption(opt); :} 
+	| robust_id:opt EQUALS robust_id:val
+          {: parser.main.setOption(opt, val); :};
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 action_code_part ::= 
@@ -430,82 +568,44 @@ non_term_name_list ::=
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-
-precedence_list ::= precedence_l | empty; 
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-precedence_l ::= precedence_l preced | preced;
+precedence_list ::= precedence_list preced | empty; 
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-preced ::= 
-	PRECEDENCE LEFT 
-	{:
-	  update_precedence(assoc.left);
-	:}	
-        terminal_list SEMI
+preced ::= PRECEDENCE assoc precterminal_list SEMI;
+
+assoc ::= LEFT     {: update_precedence(assoc.left); :}
+        | RIGHT    {: update_precedence(assoc.right); :}
+        | NONASSOC {: update_precedence(assoc.nonassoc); :}
+        ;
+      
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+
+precterminal_list ::= precterminal_list COMMA precterminal_id
 	|
-	PRECEDENCE RIGHT 
-	{:
-	  update_precedence(assoc.right);
-	:}	
-        terminal_list SEMI
-	|
-	PRECEDENCE NONASSOC 
-	{:
-	  update_precedence(assoc.nonassoc);
-	:}	
-        terminal_list SEMI
+	precterminal_id
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-terminal_list ::= terminal_list COMMA terminal_id
-	|
-	terminal_id
-	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-terminal_id ::= term_id:sym
+precterminal_id ::= term_id:term
 	{:	
-	  add_precedence(sym);
-	  RESULT = sym;
+	  term.set_precedence(_cur_side, _cur_prec);
 	:};
 	  
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 term_id ::= symbol_id:sym
-        {:
-	  /* check that the symbol_id is a terminal */
-	  if (symbols.get(sym) == null)
-	    {
-	      /* issue a message */
-	      ErrorManager.getManager().emit_error("Terminal \"" + sym + 
-			   "\" has not been declared");
-	    }
-          RESULT = sym;
-         :};
+        {: RESULT = get_term(sym); :};
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 start_spec ::= 
-	START WITH symbol_id:start_name 
-	{: 
-	  /* verify that the name has been declared as a non terminal */
-	  non_terminal nt = non_terms.get(start_name);
-	  if (nt == null)
-	    {
-	    ErrorManager.getManager().emit_error( "Start non terminal \"" + start_name + 
-	  		         "\" has not been declared");
-	    }
-          else
-	    {
-	      set_start_symbol(nt);
-	    }
+	START WITH symbol_id:start_name SEMI 
+	{: non_terminal nt = get_nonterm(start_name);
+	   if (nt != null) 
+	     set_start_symbol(nt); 
 	:}
-	SEMI
 	|
 	empty
 	;
@@ -520,15 +620,7 @@ production ::=
 	symbol_id:lhs_id
 	{:
 	  /* lookup the lhs nt */
-	  lhs_nt = non_terms.get(lhs_id);
-
-          /* if it wasn't declared, emit a message */
-	  if (lhs_nt == null)
-	    {
-	      if (ErrorManager.getManager().getErrorCount() == 0)
-	      ErrorManager.getManager().emit_warning("LHS non terminal \"" + lhs_id + 
-			       "\" has not been declared");
-	    }
+	  lhs_nt = get_nonterm(lhs_id);
 	:}
 	COLON_COLON_EQUALS
 	rhs_list
@@ -545,27 +637,8 @@ rhs_list ::= rhs_list BAR rhs | rhs;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
-prod_precedence ::= PERCENT_PREC term_id:term_name
-	{: 
-	      RESULT = null;
-	      /* Find the precedence symbol */
-	      if (term_name == null)
-	        {
-		  System.err.println("No terminal for contextual precedence");
-	        }
-	      else
-		{
-		  symbol sym = symbols.get(term_name).the_symbol();
-		  if ((sym!=null) && (sym instanceof terminal))
-		    {
-		      RESULT = sym;
-		      sym.note_use();
-		    }
-		  else
-		    System.err.println("Invalid terminal " + term_name + 
-				   " for contextual precedence assignment");
-		}
-	:}
+prod_precedence ::= PERCENT_PREC term_id:term
+	{: RESULT = term; :}
 	| empty {: RESULT = null; :};
 	      
 
@@ -583,15 +656,7 @@ rhs ::=
 		}
 
 	      /* build the production */
-	      production p;
-	      production_part[] rhs_parts = rhs.toArray(new production_part[rhs.size()]);
-	      if (precsym!=null) {
-		p = new production(lhs_nt, rhs_parts, rhs.size(),
-				   ((terminal)precsym).precedence_num(),
-				   ((terminal)precsym).precedence_side());
-	      } else {
-		p = new production(lhs_nt, rhs_parts, rhs.size());
-	      }
+	      build_production(lhs_nt, rhs, (terminal) precsym);
 	    }
 	:}
 	;
@@ -609,7 +674,7 @@ prod_part ::=
 	symbol_id:symid opt_label:labid
 	{: 
 	  /* try to look up the id */
-	  production_part symb = (production_part)symbols.get(symid);
+	  symbol symb = symbols.get(symid);
 
 	  /* if that fails, symbol is undeclared */
 	  if (symb == null)
@@ -622,7 +687,7 @@ prod_part ::=
 	  else
 	    {
 	      /* add a labeled production part */
-	      RESULT = add_lab(symb, labid);
+	      RESULT = new symbol_part(symb, labid);
 	    }
 	:}
 	|
@@ -648,10 +713,6 @@ opt_label ::=
 multipart_id ::=
 	multipart_id:id DOT robust_id:another_id
 	{: id.append('.').append(another_id); RESULT=id; :}
-	|multipart_id:id 
-        LT typearglist:types GT
-         {: id.append('<').append(types).append('>');
-            RESULT=id; :}
         |
 	robust_id:an_id
 	{: RESULT = new StringBuilder(an_id); :}
@@ -676,10 +737,10 @@ typeargument ::=
 wildcard ::=
          QUESTION
          {: RESULT = "?"; :}
-         | QUESTION EXTENDS type_id:id
-         {: RESULT = "? extends "+id; :}
-         | QUESTION SUPER type_id:id
-         {: RESULT = "? super "+id; :}
+         | wildcard:w EXTENDS type_id:id
+         {: RESULT = w + " extends "+id; :}
+         | wildcard:w SUPER type_id:id
+         {: RESULT = w + " super "+id; :}
          ;
 
 /*. . . . . . . . . . .END TUM CHANGES. . . . . . . . . . . . . . */ 
@@ -699,6 +760,10 @@ import_id ::=
 type_id ::= multipart_id:id {: RESULT = id; :}
 	| type_id:id LBRACK RBRACK
 	{: id.append("[]"); RESULT = id; :}
+	|multipart_id:id 
+        LT typearglist:types GT
+         {: id.append('<').append(types).append('>');
+            RESULT=id; :}
        	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -710,14 +775,15 @@ new_term_id ::=
 	  if (symbols.get(term_id) != null)
 	    {
 	      /* issue a message */
-	      ErrorManager.getManager().emit_error("java_cup.runtime.Symbol \"" + term_id + 
+	      ErrorManager.getManager().emit_error("Symbol \"" + term_id + 
 			   "\" has already been declared");
 	    }
 	  else
 	    {
-	      /* build a production_part and put it in the table */ 
-	      symbols.put(term_id, 
-	        new symbol_part(new terminal(term_id, _cur_symbol_type)));
+	      /* build a production_part and put it in the table */
+	      terminal term = new terminal(term_id, _cur_symbol_type, terminals.size());
+	      terminals.add(term);
+	      symbols.put(term_id, term);
 	    }
 	:}
 	;
@@ -731,20 +797,18 @@ new_non_term_id ::=
 	  if (symbols.get(non_term_id) != null)
 	    {
 	      /* issue a message */
-	      ErrorManager.getManager().emit_error( "java_cup.runtime.Symbol \"" + non_term_id + 
+	      ErrorManager.getManager().emit_error( "Symbol \"" + non_term_id + 
 			                      "\" has already been declared");
 	    }
 	  else
 	    {
 	      /* build the non terminal object */
               non_terminal this_nt = 
-		new non_terminal(non_term_id, _cur_symbol_type);
+		new non_terminal(non_term_id, _cur_symbol_type, non_terminals.size());
+	      non_terminals.add(this_nt);
 
-	      /* put it in the non_terms table */
-	      non_terms.put(non_term_id, this_nt);
-
-	      /* build a production_part and put it in the symbols table */ 
-	      symbols.put(non_term_id, new symbol_part(this_nt));
+	      /* put it in the symbols table */ 
+	      symbols.put(non_term_id, this_nt);
 	    }
 	:}
 	;
@@ -771,6 +835,7 @@ robust_id ::= /* all ids that aren't reserved words in Java */
 	ID:the_id	{: RESULT = the_id; :}
 	/* package is reserved. */
 	/* import is reserved. */
+	| OPTION	{: RESULT = "option"; :}
 	| CODE		{: RESULT = "code"; :}
 	| ACTION	{: RESULT = "action"; :}
 	| PARSER	{: RESULT = "parser"; :}

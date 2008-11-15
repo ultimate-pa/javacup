@@ -54,12 +54,10 @@
   <target name="compile" depends="jflex">
     <copy todir="${java}"><fileset dir="${src}"></fileset></copy>
     <javac srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="on" source="1.5" target="jsr14">
-      <classpath refid="libraries"/>
       <include name="java_cup.anttask.**"/>
       <include name="java_cup.runtime.**"/>
     </javac>
     <javac srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="on" source="1.5" target="1.5">
-      <classpath refid="libraries"/>
       <exclude name="java_cup.anttask.**"/>
       <exclude name="java_cup.runtime.**"/>
     </javac>

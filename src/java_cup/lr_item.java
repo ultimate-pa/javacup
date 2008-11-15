@@ -215,9 +215,8 @@ public class lr_item {
       production_part part;
 
       if (_the_production.lhs() != null && 
-	  _the_production.lhs().the_symbol() != null &&
-	  _the_production.lhs().the_symbol().name() != null)
-	result = _the_production.lhs().the_symbol().name();
+	  _the_production.lhs().name() != null)
+	result = _the_production.lhs().name();
       else
 	result = "$$NULL$$";
 
@@ -263,7 +262,7 @@ public class lr_item {
    *   not be invoked before first sets and nullability has been calculated
    *   for all non terminals. 
    */ 
-  public terminal_set calc_lookahead() 
+  public terminal_set calc_lookahead(Grammar grammar) 
     {
       terminal_set    result;
       int             pos;
@@ -271,7 +270,7 @@ public class lr_item {
       symbol          sym;
 
       /* start with an empty result */
-      result = new terminal_set();
+      result = new terminal_set(grammar);
 
       /* consider all nullable symbols after the one to the right of the dot */
       for (pos = dot_pos(); pos < the_production().rhs_length(); pos++) 

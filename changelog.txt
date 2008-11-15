@@ -40,7 +40,10 @@ not meant to be accessed by user code.
 Error handling is improved, by allowing reducing productions that contain error
 as lookahead symbol.
 
-For each labelled (non-)terminal there is now an additional variable <label>$
+Precedence handling is fixed.  This may result in shift/reduce-conflicts that 
+were not reported by previous versions of java cup.  You need to fix your grammar.
+
+For each labeled (non-)terminal there is now an additional variable <label>$
 that allows access to the Symbol object.  On the other hand some variables with
 a dollar sign are no longer generated like CUP$parser$top and some variables
 are renamed.  You should not use variables in your code containing a $, except

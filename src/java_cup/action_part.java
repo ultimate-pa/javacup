@@ -38,6 +38,11 @@ public class action_part extends production_part {
 
   /** String containing code for the action in question. */
   public String code_string() {return _code_string;}
+  
+  public void add_code_string(String more_action)
+    {
+      _code_string += more_action;
+    }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

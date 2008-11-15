@@ -14,7 +14,7 @@ import java.util.BitSet;
  * @author  Scott Hudson
  */
 public class parse_action_table {
-
+  
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -23,15 +23,16 @@ public class parse_action_table {
    *  already have been entered, and the viable prefix recognizer should
    *  have been constructed before this is called.
    */
-  public parse_action_table()
+  public parse_action_table(Grammar grammar)
     {
       /* determine how many states we are working with */
-      _num_states = lalr_state.number();
+      _num_states = grammar.lalr_states().size();
+      _num_terminals = grammar.num_terminals();
 
       /* allocate the array and fill it in with empty rows */
       under_state = new parse_action_row[_num_states];
       for (int i=0; i<_num_states; i++)
-	under_state[i] = new parse_action_row();
+	under_state[i] = new parse_action_row(grammar);
     }
 
   /*-----------------------------------------------------------*/
@@ -39,12 +40,11 @@ public class parse_action_table {
   /*-----------------------------------------------------------*/
 
   /** How many rows/states are in the machine/table. */
-  protected int _num_states;
+  private int _num_states;
+  private int _num_terminals;
+  
+  public int num_states() { return _num_states; }
 
-  /** How many rows/states are in the machine/table. */
-  public int num_states() {return _num_states;}
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Actual array of rows, one per state. */
   public  parse_action_row[] under_state;
@@ -55,7 +55,7 @@ public class parse_action_table {
   
   public short[] compress(boolean compact_reduces, int[] base_table)
     {
-      int[] rowidx = new int[terminal.number()];
+      int[] rowidx = new int[_num_terminals];
       int maxbase = 0;
       BitSet used = new BitSet();
       for (int i = 0; i < _num_states; i++)
@@ -68,7 +68,7 @@ public class parse_action_table {
 	    row.default_reduce = -1;
 	  
 	  int rowcnt = 0;
-	  for (int j = 0; j < terminal.number(); j++)
+	  for (int j = 0; j < _num_terminals; j++)
 	    {
 	      parse_action act = row.under_term[j];
 	      if (act.kind() == parse_action.SHIFT ||
@@ -95,15 +95,15 @@ public class parse_action_table {
 	    }
 	}
       short[] compressed = 
-	new short[_num_states + 2*(maxbase + terminal.number())];
-      for (int i = 0; i < maxbase + terminal.number(); i++)
+	new short[_num_states + 2*(maxbase + _num_terminals)];
+      for (int i = 0; i < maxbase + _num_terminals; i++)
 	compressed[_num_states+2*i] = (short) _num_states;
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_action_row row = under_state[i];
 	  int base = base_table[i];
 	  compressed[i] = (short) (2*row.default_reduce+2);
-	  for (int j = 0; j < terminal.number(); j++)
+	  for (int j = 0; j < _num_terminals; j++)
 	    {
 	      parse_action act = row.under_term[j];
 	      if (act.kind() == parse_action.SHIFT)
@@ -130,12 +130,12 @@ public class parse_action_table {
    *  Issue a warning message (to System.err) for each production that
    *  is never reduced.
    */
-  public void check_reductions(boolean warn)
+  public void check_reductions(Grammar grammar, boolean warn)
     {
       /* tabulate reductions -- look at every table entry */
-      for (int row = 0; row < num_states(); row++)
+      for (int row = 0; row < _num_states; row++)
 	{
-	  for (int col = 0; col < terminal.number(); col++)
+	  for (int col = 0; col < _num_terminals; col++)
 	    {
 	      /* look at the action entry to see if its a reduce */
 	      parse_action act = under_state[row].under_term[col];
@@ -148,7 +148,7 @@ public class parse_action_table {
 	}
 
       /* now go across every production and make sure we hit it */
-      for (production prod : production.all())
+      for (production prod : grammar.productions())
 	{
 	  /* if we didn't hit it give a warning */
 	  if (prod.num_reductions() == 0)
@@ -176,11 +176,11 @@ public class parse_action_table {
       int cnt;
 
       result.append("-------- ACTION_TABLE --------\n");
-      for (int row = 0; row < num_states(); row++)
+      for (int row = 0; row < _num_states; row++)
 	{
 	  result.append("From state #").append(row).append("\n");
 	  cnt = 0;
-	  for (int col = 0; col < terminal.number(); col++)
+	  for (int col = 0; col < _num_terminals; col++)
 	    {
 	      /* if the action is not an error print it */ 
 	      if (under_state[row].under_term[col].kind() != parse_action.ERROR)

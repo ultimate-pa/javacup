@@ -86,7 +86,7 @@ public abstract class production_part {
       if (label() != null)
 	return label() + ":";
       else
-	return " ";
+	return "";
     }
 
   /*-----------------------------------------------------------*/

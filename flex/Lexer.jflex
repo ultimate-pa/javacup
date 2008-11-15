@@ -70,6 +70,7 @@ ident = ([:jletter:] | "_" ) ([:jletterdigit:] | [:jletter:] | "_" )*
   "["           { return symbol("LBRACK",LBRACK);              }
   "]"           { return symbol("RBRACK",RBRACK);              }
   ":"           { return symbol("COLON",COLON);                }
+  "="      	{ return symbol("EQUALS",EQUALS);              }
   "::="         { return symbol("COLON_COLON_EQUALS",COLON_COLON_EQUALS);   }
   "%prec"       { return symbol("PERCENT_PREC",PERCENT_PREC);  }
   ">"           { return symbol("GT",GT);                      }
@@ -78,6 +79,7 @@ ident = ([:jletter:] | "_" ) ([:jletterdigit:] | [:jletter:] | "_" )*
   "{:"          { sb = new StringBuffer(); csline=yyline+1; cscolumn=yycolumn+1; yybegin(CODESEG);    }
   "package"     { return symbol("PACKAGE",PACKAGE);            } 
   "import"      { return symbol("IMPORT",IMPORT);	       }
+  "option"      { return symbol("OPTION",OPTION);	       }
   "code"        { return symbol("CODE",CODE);		       }
   "action"      { return symbol("ACTION",ACTION);	       }
   "parser"      { return symbol("PARSER",PARSER);	       }

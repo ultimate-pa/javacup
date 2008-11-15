@@ -1,6 +1,8 @@
 
 package java_cup;
 
+import java.util.HashMap;
+
 /** This class represents one row (corresponding to one machine state) of the 
  *  parse action table.
  */
@@ -13,9 +15,9 @@ public class parse_action_row {
   /** Simple constructor.  Note: this should not be used until the number of
    *  terminals in the grammar has been established.
    */
-  public parse_action_row()
+  public parse_action_row(Grammar g)
     {
-      int num_terminals = terminal.number();
+      int num_terminals = g.num_terminals();
       /* allocate the array */
       under_term = new parse_action[num_terminals];
 
@@ -52,11 +54,27 @@ public class parse_action_row {
    */
   public void compute_default()
     {
+      /* Check if there is already an action for the error symbol.
+       * This must be the default action.
+       */
+      parse_action error_action = under_term[terminal.error.index()]; 
+      if (error_action.kind() != parse_action.ERROR)
+	{
+	  if (error_action.kind() == parse_action.REDUCE)
+	    default_reduce = 
+	      ((reduce_action) error_action).reduce_with().index();
+	  else
+	    default_reduce = -1;
+	  return;
+	}
+      
       /* allocate the count table */
-      int[] reduction_count = new int[production.number()];
+      HashMap<production, Integer> reduction_count
+      	= new HashMap<production, Integer>();
 
       /* clear the reduction count table and maximums */
       int max_prod = -1;
+      int max_count = 0;
      
       /* walk down the row and look at the reduces */
       for (int i = 0; i < under_term.length; i++)
@@ -64,10 +82,15 @@ public class parse_action_row {
 	  {
 	    /* count the reduce in the proper production slot and keep the 
 	       max up to date */
-	    int prod = ((reduce_action)under_term[i]).reduce_with().index();
-	    reduction_count[prod]++;
-	    if (max_prod < 0 || reduction_count[prod] > reduction_count[max_prod])
-	      max_prod = prod;
+	    production prod = ((reduce_action)under_term[i]).reduce_with();
+	    Integer oldcount = reduction_count.get(prod);
+	    int count = oldcount == null ? 1 : oldcount+1; 
+	    reduction_count.put(prod, count);
+	    if (count > max_count)
+	      {
+		max_prod = prod.index();
+		max_count = count;
+	      }
 	  }
 
        /* record the max as the default (or -1 for not found) */
@@ -77,4 +100,3 @@ public class parse_action_row {
   /*-----------------------------------------------------------*/
 
 }
-

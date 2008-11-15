@@ -2,9 +2,6 @@ package java_cup;
 
 import java_cup.assoc;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 /** This class represents a terminal symbol in the grammar.  Each terminal 
  *  has a textual name, an index, and a string which indicates the type of 
  *  object it will be implemented with at runtime (i.e. the class of object 
@@ -24,7 +21,7 @@ public class terminal extends symbol {
    * @param nm the name of the terminal.
    * @param tp the type of the terminal.
    */
-  public terminal(String nm, String tp, int precedence_side, int precedence_num) 
+  public terminal(String nm, String tp, int precedence_side, int precedence_num, int index) 
     {
       /* superclass does most of the work */
       super(nm, tp);
@@ -32,10 +29,7 @@ public class terminal extends symbol {
       /* set the precedence */
       _precedence_num = precedence_num;
       _precedence_side = precedence_side;
-
-      /* add to by_index set */
-      _index = _all_by_index.size();
-      _all_by_index.add(this);
+      this._index = index;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -43,9 +37,9 @@ public class terminal extends symbol {
   /** Constructor for non-precedented terminal
     */ 
 
-  public terminal(String nm, String tp) 
+  public terminal(String nm, String tp, int index) 
     {
-      this(nm, tp, assoc.no_prec, -1);
+      this(nm, tp, assoc.no_prec, -1, index);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -53,9 +47,9 @@ public class terminal extends symbol {
   /** Constructor with default type. 
    * @param nm the name of the terminal.
    */
-  public terminal(String nm) 
+  public terminal(String nm, int index) 
     {
-      this(nm, null);
+      this(nm, null, index);
     }
 
   /*-----------------------------------------------------------*/
@@ -69,41 +63,13 @@ public class terminal extends symbol {
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
-  //Hm Added clear  to clear all static fields
-  public static void clear() {
-      _all_by_index.clear();
-      EOF = new terminal("EOF");
-      error = new terminal ("error");
-  }
-  
-  /** Access to all terminals. */
-  public static Collection<terminal> all() {return _all_by_index;}
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Table of all terminals indexed by their index number. */
-  protected static ArrayList<terminal> _all_by_index = new ArrayList<terminal>();
-
-  /** Lookup a terminal by index. */
-  public static terminal find(int indx)
-    {
-      return _all_by_index.get(indx);
-    }
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
-  /** Total number of terminals. */
-  public static int number() {return _all_by_index.size();}
-
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** Special terminal for end of input. */
-  public static terminal EOF = new terminal("EOF");
+  public static terminal EOF = new terminal("EOF", 1);
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** special terminal used for error recovery */
-  public static terminal error = new terminal("error");
+  public static terminal error = new terminal("error", 0);
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/

@@ -19,13 +19,14 @@ public class action_production extends production {
    * @param indexOfIntermediateResult the index of the result of the previous intermediate action on the stack relative to top, -1 if no previous action
    */ 
   public action_production(
+    int             index,
     production      base,
     non_terminal    lhs_sym, 
-    production_part action,
+    action_part     action,
     int             indexOfAction,
     int             indexOfIntermediateResult)
     {
-      super(lhs_sym, new production_part[] { action }, 1);
+      super(index, lhs_sym, new symbol_part[0],  action, null);
       _base_production = base;
       this.indexOfAction = indexOfAction;
       this.indexOfIntermediateResult = indexOfIntermediateResult;
@@ -33,7 +34,7 @@ public class action_production extends production {
   
   private int indexOfAction;
   
-  public int rhs_params() {
+  public int rhs_stackdepth() {
     return indexOfAction;
   }
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/

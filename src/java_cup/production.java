@@ -1,8 +1,5 @@
 package java_cup;
 
-import java.util.Collection;
-import java.util.ArrayList;
-
 /**
  * This class represents a production in the grammar. It contains a LHS non
  * terminal, and an array of RHS symbols. As various transformations are done on
@@ -60,128 +57,51 @@ public class production {
    * actions at the end where they can be handled as part of a reduce by the
    * parser.
    */
-  public production(non_terminal lhs_sym, production_part rhs_parts[], int rhs_len)
+  public production(int index, non_terminal lhs_sym, symbol_part rhs[], action_part action, terminal precedence)
     {
-      int i;
-
-      /* make sure we have a valid left-hand-side */
-      assert lhs_sym != null : "Attempt to construct a production with a null LHS";
-
-
-      /* count use of lhs */
-      lhs_sym.note_use();
-
-      /* create the part for left-hand-side */
-      _lhs = new symbol_part(lhs_sym);
-
-      /* merge adjacent actions (if any) */
-      rhs_len = merge_adjacent_actions(rhs_parts, rhs_len);
-
-      /* strip off any trailing action */
-      if (rhs_len > 0 && rhs_parts[rhs_len-1].is_action())
-	{
-	  _action = (action_part) rhs_parts[--rhs_len];
-	}
-
       int last_act_loc = -1;
-      /* allocate and copy over the right-hand-side */
-      /* count use of each rhs symbol */
-      _rhs_length = rhs_len;
-      _rhs = new symbol_part[rhs_len];
-      for (i = 0; i < rhs_len; i++)
+      if (precedence != null)
 	{
-	  if (rhs_parts[i].is_action())
+	  _rhs_prec = precedence.precedence_num();
+	  _rhs_assoc = precedence.precedence_side();
+	}
+      _lhs = lhs_sym;
+      _rhs = rhs;
+      _action = action;
+      _index = index;
+      for (int i = 0; i < rhs.length; i++)
+	{
+	  symbol rhs_sym = rhs[i].the_symbol();
+	  if (rhs_sym.is_non_term() &&
+	      ((non_terminal)rhs_sym).is_embedded_action)
 	    {
-	      /* create a new non terminal for the action production */
-	      non_terminal new_nt = non_terminal.create_new(
-		  null, lhs().the_symbol().stack_type()); 
-	      new_nt.is_embedded_action = true;
-
-	      /* create a new production with just the action */
-	      new action_production(this, new_nt, (action_part) rhs_parts[i], 
-		  i, last_act_loc);
 	      last_act_loc = i;
-
-	      /* replace the action with the generated non terminal */
-	      _rhs[i] = new symbol_part(new_nt);
 	    }
 	  else
 	    {
-	      _rhs[i] = (symbol_part) rhs_parts[i];
-	      symbol rhs_sym = _rhs[i].the_symbol();
 	      rhs_sym.note_use();
-	      if (rhs_sym instanceof terminal)
+	      if (precedence == null && rhs_sym instanceof terminal)
 		{
 		  terminal term = (terminal) rhs_sym;
 		  if (term.precedence_num() != assoc.no_prec)
 		    {
-		      _rhs_prec = term.precedence_num();
-		      _rhs_assoc = term.precedence_side();
+		      if (_rhs_prec == assoc.no_prec)
+			{
+			  _rhs_prec = term.precedence_num();
+			  _rhs_assoc = term.precedence_side();
+			}
+		      else if (term.precedence_num() != _rhs_prec)
+			{
+			  ErrorManager.getManager().emit_error("Production "+this+
+			      " has more than one precedence symbol");
+			}
 		    }
 		}
 	    }
 	}
       indexOfIntermediateResult = last_act_loc;
-
-      /* assign an index */
-      _index = _all.size();
-
-      /* put us in the global collection of productions */
-      _all.add(this);
-
       /* put us in the production list of the lhs non terminal */
       lhs_sym.add_production(this);
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /*
-   * Constructor w/ no action string and contextual precedence defined
-   */
-  public production(non_terminal lhs_sym, production_part rhs_parts[], int rhs_len, 
-      int prec_num, int prec_side)
-    {
-      this(lhs_sym, rhs_parts, rhs_len);
-      /* set the precedence */
-      set_precedence_num(prec_num);
-      set_precedence_side(prec_side);
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /*-----------------------------------------------------------*/
-  /*--- (Access to) Static (Class) Variables ------------------*/
-  /*-----------------------------------------------------------*/
-
-  /**
-   * Table of all productions. Elements are stored using their index as the key.
-   */
-  protected static ArrayList<production> _all = new ArrayList<production>();
-
-  /** Access to all productions. */
-  public static Collection<production> all()
-    {
-      return _all;
-    }
-
-  /** Lookup a production by index. */
-  public static production find(int indx)
-    {
-      return _all.get(indx);
-    }
-
-  // Hm Added clear to clear all static fields
-  public static void clear()
-    {
-      _all.clear();
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Total number of productions. */
-  public static int number()
-    {
-      return _all.size();
     }
 
   /*-----------------------------------------------------------*/
@@ -189,10 +109,10 @@ public class production {
   /*-----------------------------------------------------------*/
 
   /** The left hand side non-terminal. */
-  protected symbol_part _lhs;
+  protected symbol _lhs;
 
   /** The left hand side non-terminal. */
-  public symbol_part lhs()
+  public symbol lhs()
     {
       return _lhs;
     }
@@ -231,24 +151,20 @@ public class production {
   /** Access to the collection of parts for the right hand side. */
   public symbol_part rhs(int indx)
     {
-      assert indx >= 0 && indx < _rhs_length : "Index out of range for right hand side of production";
       return _rhs[indx];
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /** How much of the right hand side array we are presently using. */
-  protected int _rhs_length;
-
-  /** How much of the right hand side array we are presently using. */
   public int rhs_length()
     {
-      return _rhs_length;
+      return _rhs.length;
     }
 
-  public int rhs_params() 
+  public int rhs_stackdepth() 
     {
-      return _rhs_length;
+      return _rhs.length;
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -333,21 +249,6 @@ public class production {
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
-  /**
-   * First set of the production. This is the set of terminals that could appear
-   * at the front of some string derived from this production.
-   */
-  protected terminal_set _first_set = new terminal_set();
-
-  /**
-   * First set of the production. This is the set of terminals that could appear
-   * at the front of some string derived from this production.
-   */
-  public terminal_set first_set()
-    {
-      return _first_set;
-    }
-
   /*-----------------------------------------------------------*/
   /*--- Static Methods ----------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -390,39 +291,6 @@ public class production {
       return indexOfIntermediateResult;
   }
   
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /**
-   * Helper routine to merge adjacent actions in a set of RHS parts
-   * 
-   * @param rhs_parts
-   *                array of RHS parts.
-   * @param len
-   *                amount of that array that is valid.
-   * @return remaining valid length.
-   */
-  protected int merge_adjacent_actions(production_part rhs_parts[], int len)
-    {
-      int from_loc, to_loc;
-
-      to_loc = 0;
-      for (from_loc = 0; from_loc < len; from_loc++)
-	{
-	  if (from_loc < len - 1 && rhs_parts[from_loc].is_action()
-	      && rhs_parts[from_loc+1].is_action())
-	    {
-	      rhs_parts[from_loc+1] = new action_part(
-		  ((action_part)rhs_parts[from_loc]).code_string()+
-		  ((action_part)rhs_parts[from_loc+1]).code_string());
-	    }
-	  else
-	    rhs_parts[to_loc++] = rhs_parts[from_loc];
-	}
-
-      /* return the used length */
-      return to_loc;
-    }
-
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /**
@@ -535,14 +403,15 @@ public class production {
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /**
-   * Update (and return) the first set based on current NT firsts. This assumes
+   * Return the first set based on current NT firsts. This assumes
    * that nullability has already been computed for all non terminals and
    * productions.
    */
-  public terminal_set check_first_set()
+  public terminal_set first_set(Grammar grammar)
     {
       int part;
       symbol sym;
+      terminal_set first_set = new terminal_set(grammar);
 
       /* walk down the right hand side till we get past all nullables */
       for (part = 0; part < rhs_length(); part++)
@@ -556,7 +425,7 @@ public class production {
 	      if (sym.is_non_term())
 		{
 		  /* add in current firsts from that NT */
-		  _first_set.add(((non_terminal) sym).first_set());
+		  first_set.add(((non_terminal) sym).first_set());
 
 		  /* if its not nullable, we are done */
 		  if (!((non_terminal) sym).nullable())
@@ -564,7 +433,7 @@ public class production {
 		} else
 		{
 		  /* its a terminal -- add that to the set */
-		  _first_set.add((terminal) sym);
+		  first_set.add((terminal) sym);
 
 		  /* we are done */
 		  break;
@@ -573,28 +442,7 @@ public class production {
 	}
 
       /* return our updated first set */
-      return first_set();
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Equality comparison. */
-  public boolean equals(production other)
-    {
-      if (other == null)
-	return false;
-      return other._index == _index;
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Generic equality comparison. */
-  public boolean equals(Object other)
-    {
-      if (!(other instanceof production))
-	return false;
-      else
-	return equals((production) other);
+      return first_set;
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -603,7 +451,7 @@ public class production {
   public int hashCode()
     {
       /* just use a simple function of the index */
-      return _index * 13;
+      return _index;
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -613,7 +461,7 @@ public class production {
     {
       StringBuilder result = new StringBuilder();
 
-      result.append((lhs() != null) ? lhs().the_symbol().name() : "NULL_LHS");
+      result.append((lhs() != null) ? lhs().name() : "NULL_LHS");
       result.append(" ::= ");
       for (int i = 0; i < rhs_length(); i++)
 	if (!rhs(i).is_action())

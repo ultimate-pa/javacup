@@ -22,15 +22,16 @@ public class parse_reduce_table {
    *  must already have been entered, and the viable prefix recognizer should
    *  have been constructed before this is called.
    */
-  public parse_reduce_table()
+  public parse_reduce_table(Grammar grammar)
     {
       /* determine how many states we are working with */
-      _num_states = lalr_state.number();
+      _num_states = grammar.lalr_states().size();
+      _num_nonterm = grammar.num_non_terminals();
 
       /* allocate the array and fill it in with empty rows */
       under_state = new parse_reduce_row[_num_states];
       for (int i=0; i<_num_states; i++)
-	under_state[i] = new parse_reduce_row();
+	under_state[i] = new parse_reduce_row(grammar);
     }
 
    
@@ -40,6 +41,7 @@ public class parse_reduce_table {
 
   /** How many rows/states in the machine/table. */
   protected int _num_states;
+  private int _num_nonterm;
 
   /** How many rows/states in the machine/table. */
   public int num_states() {return _num_states;}
@@ -56,14 +58,14 @@ public class parse_reduce_table {
   public short[] compress()
     {
       int[] baseaddrs = new int[_num_states];
-      int[] rowidx = new int[non_terminal.number()];
+      int[] rowidx = new int[_num_nonterm];
       int maxbase = 0;
       BitSet used = new BitSet();
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_reduce_row row = under_state[i];
 	  int rowcnt = 0;
-	  for (int j = 0; j < non_terminal.number(); j++)
+	  for (int j = 0; j < _num_nonterm; j++)
 	    {
 	      if (row.under_non_term[j] != null)
 		rowidx[rowcnt++] = j;
@@ -100,9 +102,9 @@ public class parse_reduce_table {
       for (int i = 0; i < _num_states; i++)
 	{
 	  parse_reduce_row row = under_state[i];
-	  int base = _num_states + baseaddrs[i];
+	  int base = _num_states + baseaddrs[i] - minbase;
 	  compressed[i] = (short) base;
-	  for (int j = 0; j < non_terminal.number(); j++)
+	  for (int j = 0; j < _num_nonterm; j++)
 	    {
 	      lalr_state st = row.under_non_term[j];
 	      if (st != null)
@@ -124,7 +126,7 @@ public class parse_reduce_table {
 	{
 	  result.append("From state #").append(row).append("\n");
 	  cnt = 0;
-	  for (int col = 0; col < non_terminal.number(); col++)
+	  for (int col = 0; col < _num_nonterm; col++)
 	    {
 	      /* pull out the table entry */
 	      goto_st = under_state[row].under_non_term[col];
