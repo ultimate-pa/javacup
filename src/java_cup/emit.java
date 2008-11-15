@@ -357,9 +357,6 @@ public class emit {
       out.println("      /* Stack size for peeking into the stack */");
       out.println("      int " + pre("size") + " = "+pre("stack")+".size();");
       out.println();
-      out.println("      /* Symbol object for return from actions */");
-      out.println("      java_cup.runtime.Symbol " + pre("result") + ";");
-      out.println();
 
       /* switch top */
       out.println("      /* select the action based on the action number */");
@@ -468,13 +465,6 @@ public class emit {
 	  String result = prod.lhs().stack_type() != null 
 	  	? ", RESULT" : "";
 
-	  out.println("              " + pre("result") + " = parser.getSymbolFactory().newSymbol(" + 
-	      "\"" + prod.lhs().name() +  "\", " +
-	      prod.lhs().index() + leftright + result + ");");
-	  
-	  /* end of their block */
-	  out.println("            }");
-
 	  /* if this was the start production, do action for accept */
 	  if (prod == grammar.start_production())
 	    {
@@ -483,14 +473,19 @@ public class emit {
 	    }
 
 	  /* code to return lhs symbol */
-	  out.println("          return " + pre("result") + ";");
+	  out.println("              return parser.getSymbolFactory().newSymbol(" + 
+	      "\"" + prod.lhs().name() +  "\", " +
+	      prod.lhs().index() + leftright + result + ");");
+	  
+	  /* end of their block */
+	  out.println("            }");
 	  out.println();
 	}
 
       /* end of switch */
       out.println("          /* . . . . . .*/");
       out.println("          default:");
-      out.println("            throw new Exception(");
+      out.println("            throw new InternalError(");
       out.println("               \"Invalid action number found in " +
 				  "internal parse table\");");
       out.println();

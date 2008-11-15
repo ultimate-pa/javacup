@@ -594,7 +594,7 @@ new_term_id ::=
 	    }
 	  else
 	    {
-	      /* build a production_part and put it in the table */
+	      /* build the terminal and put it in the symbol table */
 	      terminal term = grammar.add_terminal(term_id, _cur_symbol_type);
 	      symbols.put(term_id, term);
 	    }
