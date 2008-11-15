@@ -113,42 +113,49 @@ import java.util.Stack;
  */
 
 public abstract class LRParser {
-    /*-----------------------------------------------------------*/
-    /*--- Constructor(s) ----------------------------------------*/
-    /*-----------------------------------------------------------*/
+  /*-----------------------------------------------------------*/
+  /*--- Constructor(s) ----------------------------------------*/
+  /*-----------------------------------------------------------*/
 
-    /** 
-     * Simple constructor. 
-     */
-    public LRParser() {
-      this(null);
-    }
-    
-    /** 
-     * Constructor that sets the default scanner. [CSA/davidm] 
-     */
-    public LRParser(Scanner s) {
-        this(s,new DefaultSymbolFactory()); // TUM 20060327 old cup v10 Symbols as default
-    }
-    /** 
-     * Constructor that sets the default scanner and a SymbolFactory
-     */
-    public LRParser(Scanner s, SymbolFactory symfac) {
-        symbolFactory = symfac;
-        setScanner(s);
-    }
-    public SymbolFactory symbolFactory;// = new DefaultSymbolFactory();
-    /**
-     * Whenever creation of a new Symbol is necessary, one should use this factory.
-     */
-    public SymbolFactory getSymbolFactory(){
-        return symbolFactory;
-    }
+  /** 
+   * Simple constructor. 
+   */
+  public LRParser() {
+    this(null);
+  }
+
+  /** 
+   * Constructor that sets the default scanner. [CSA/davidm] 
+   */
+  public LRParser(Scanner s) {
+    this(s,new DefaultSymbolFactory()); // TUM 20060327 old cup v10 Symbols as default
+  }
+  /** 
+   * Constructor that sets the default scanner and a SymbolFactory
+   */
+  public LRParser(Scanner s, SymbolFactory symfac) {
+    symbolFactory = symfac;
+    setScanner(s);
+  }
+  public SymbolFactory symbolFactory;// = new DefaultSymbolFactory();
+  /**
+   * Whenever creation of a new Symbol is necessary, one should use this factory.
+   */
+  public SymbolFactory getSymbolFactory(){
+    return symbolFactory;
+  }
   /*-----------------------------------------------------------*/
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** The symbol number of the error symbol (hardcoded)
+   */
+  private final static int ERROR = 0;
+  /** The symbol number of the eof symbol (hardcoded)
+   */
+  private final static int EOF = 1;
 
   /** The number of Symbols after an error we much match to consider it 
    *  recovered from. 
@@ -442,7 +449,8 @@ public abstract class LRParser {
 	  else
 	    {
 	      error_recovery(false);
-	      parse_state = stack.peek().parse_state;
+	      if (!stack.isEmpty())
+		parse_state = stack.peek().parse_state;
 	    }
 	}
       /* clean-up tables to save space */
@@ -621,6 +629,8 @@ public abstract class LRParser {
 	    {
 	      /* try to error recover */
 	      error_recovery(true);
+	      if (!stack.isEmpty())
+		parse_state = stack.peek().parse_state;
 	    }
 	}
       /* clean-up tables to save space */
@@ -698,7 +708,7 @@ public abstract class LRParser {
 	    }
 
 	  /* if we are now at EOF, we have failed */
-	  if (lookaheads[0].sym == 0) 
+	  if (lookaheads[0].sym == EOF) 
 	    {
 	      if (debug) debug_message("# Error recovery fails at EOF");
 	      /* if that fails give up with a fatal syntax error */
@@ -757,7 +767,7 @@ public abstract class LRParser {
       Symbol left  = right;	
 
       /* get the action for error Symbol */
-      act = get_action(left.parse_state, 1); 
+      act = get_action(left.parse_state, ERROR); 
       
       /* First fire reduce actions that have error as lookahead */
       while ((act & 1) == 0 && act > 0)
@@ -786,7 +796,7 @@ public abstract class LRParser {
 
 	  if (debug) debug_message("# Goto state #" + act);
 
-	  act = get_action(act, 1);
+	  act = get_action(act, ERROR);
 	}
 
       /* pop down until we can shift under error Symbol */
@@ -797,7 +807,7 @@ public abstract class LRParser {
 	    debug_message("# Pop stack by one, state was # " +
 		stack.peek().parse_state);
 	  left = stack.pop();
-	  act = get_action(left.parse_state, 1);
+	  act = get_action(left.parse_state, ERROR);
 
 	  /* if we have hit bottom, we fail */
 	  if (stack.empty()) 

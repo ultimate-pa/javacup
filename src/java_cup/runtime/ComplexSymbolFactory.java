@@ -15,7 +15,7 @@ package java_cup.runtime;
  ***************************************************/
 public class ComplexSymbolFactory implements SymbolFactory{
     public static class Location {
-        private String unit="unknown";
+        private String unit=null;
         private int line, column;
         public Location(String unit, int line, int column){
             this.unit=unit;
@@ -27,7 +27,7 @@ public class ComplexSymbolFactory implements SymbolFactory{
             this.column=column;
         }
         public String toString(){
-            return unit+":"+line+"/"+column;
+            return (unit == null ? "" : unit+":")+line+"/"+column;
         }
         public int getColumn(){
             return column;
@@ -55,7 +55,7 @@ public class ComplexSymbolFactory implements SymbolFactory{
         }
         public String toString(){
             if (xleft==null || xright==null) return "Symbol: "+name;
-            return "Symbol: "+name+" ("+xleft+" - "+xright+")";
+            return "#"+sym+"["+name+"]("+xleft+" - "+xright+")";
         }
         public ComplexSymbol(String name, int id, int state) {
             super(id,state);
