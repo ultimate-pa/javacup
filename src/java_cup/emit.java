@@ -307,7 +307,7 @@ public class emit {
    * @param out        stream to produce output on.
    * @param start_prod the start production of the grammar.
    */
-  protected void emit_action_code(PrintWriter out, Grammar grammar, String action_class, production start_prod, 
+  protected void emit_action_code(PrintWriter out, Grammar grammar, String action_class, 
       boolean lr_values, boolean old_lr_values, boolean is_java15)
     {
       long start_time = System.currentTimeMillis();
@@ -476,7 +476,7 @@ public class emit {
 	  out.println("            }");
 
 	  /* if this was the start production, do action for accept */
-	  if (prod == start_prod)
+	  if (prod == grammar.start_production())
 	    {
 	      out.println("          /* ACCEPT */");
 	      out.println("          " + pre("parser") + ".done_parsing();");
@@ -515,11 +515,9 @@ public class emit {
     {
       long start_time = System.currentTimeMillis();
 
-      // make short[][]
       short[] prod_table = new short[2*grammar.num_productions()];
       for (production prod : grammar.productions())
 	{
-	  // { lhs symbol , rhs size }
 	  prod_table[2*prod.index()+0] = (short) prod.lhs().index();
 	  prod_table[2*prod.index()+1] = (short) prod.rhs_length();
 	}
@@ -536,10 +534,11 @@ public class emit {
    * @param compact_reduces do we use the most frequent reduce as default?
    */
   private String do_action_table(
-    parse_action_table act_tab,
+    Grammar            grammar,
     boolean            compact_reduces)
     {
       long start_time = System.currentTimeMillis();
+      parse_action_table act_tab = grammar.action_table();
       int[] base_tab = new int[act_tab.num_states()];
       short[] action_tab = act_tab.compress(compact_reduces, base_tab);
       String result = do_array_as_string(base_tab) + do_array_as_string(action_tab);
@@ -552,8 +551,9 @@ public class emit {
   /** Create the compressed reduce-goto table. 
    * @param red_tab the internal representation of the reduce-goto table.
    */
-  private String do_reduce_table(parse_reduce_table red_tab)
+  private String do_reduce_table(Grammar grammar)
     {
+      parse_reduce_table red_tab = grammar.reduce_table();
       long start_time = System.currentTimeMillis();
       String result = do_array_as_string(red_tab.compress());
       goto_table_time = System.currentTimeMillis() - start_time;
@@ -638,10 +638,6 @@ public class emit {
   public void parser(
     PrintWriter        out, 
     Grammar            grammar,
-    parse_action_table action_table,
-    parse_reduce_table reduce_table,
-    int                start_st,
-    production         start_prod,
     boolean            compact_reduces,
     boolean            suppress_scanner,
     boolean            lr_values,
@@ -693,8 +689,8 @@ public class emit {
 
       /* emit the various tables */
       String tables = do_production_table(grammar) + 
-      	do_action_table(action_table, compact_reduces) +
-      	do_reduce_table(reduce_table);
+      	do_action_table(grammar, compact_reduces) +
+      	do_reduce_table(grammar);
 
       /* instance of the action encapsulation class */
       out.println("  /** Return action table */");
@@ -767,7 +763,7 @@ public class emit {
       if (is_java15)
 	{
 	  /* put out the action code class as inner class */
-	  emit_action_code(out, grammar, action_class, start_prod, lr_values, old_lr_values, is_java15);
+	  emit_action_code(out, grammar, action_class, lr_values, old_lr_values, is_java15);
 
 	  /* end of class */
 	  out.println("}");
@@ -778,7 +774,7 @@ public class emit {
 	  out.println("}");
 
 	  /* put out the action code class */
-	  emit_action_code(out, grammar, action_class, start_prod, lr_values, old_lr_values, is_java15);
+	  emit_action_code(out, grammar, action_class, lr_values, old_lr_values, is_java15);
 	}
 
       parser_time = System.currentTimeMillis() - start_time;

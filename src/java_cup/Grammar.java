@@ -3,6 +3,7 @@ package java_cup;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 /**
@@ -20,6 +21,8 @@ public class Grammar {
   private final ArrayList<terminal>     _terminals;
   private final ArrayList<non_terminal> _nonterminals;
   private final ArrayList<production>   _productions;
+  
+  private production _start_production;
 
   /** Hash table to find states by their kernels (i.e, the original, 
    *  unclosed, set of items -- which uniquely define the state).  This table 
@@ -31,17 +34,35 @@ public class Grammar {
 
   /** Number of conflict found while building tables. */
   private int _num_conflicts = 0;
+  
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . */
+  /* . . Internal Results of Generating the Parser . . */
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . */
 
-  public Grammar(ArrayList<terminal> t, ArrayList<non_terminal> nt, ArrayList<production> p)
+  /** Resulting parse action table. */
+  private parse_action_table action_table;
+
+  /** Resulting reduce-goto table. */
+  private parse_reduce_table reduce_table;
+
+  public Grammar(ArrayList<terminal> t, ArrayList<non_terminal> nt, ArrayList<production> p,
+      production start)
     {
       _nonterminals = nt;
       _terminals = t;
       _productions =p;
+      _start_production = start;
     }
-  
-  public void build_states(non_terminal startsymbol)
+
+  public Grammar()
     {
+      _terminals = new ArrayList<terminal>();
+      _nonterminals = new ArrayList<non_terminal>();
+      _productions = new ArrayList<production>();
       
+      _terminals.add(terminal.error);
+      _terminals.add(terminal.EOF);
+      _nonterminals.add(non_terminal.START_nt);
     }
   
   public non_terminal find_nonterminal(int i)
@@ -52,6 +73,11 @@ public class Grammar {
   public terminal find_terminal(int i)
     {
       return _terminals.get(i);
+    }
+  
+  public production start_production()
+    {
+      return _start_production;
     }
   public int num_terminals()
     {
@@ -85,6 +111,164 @@ public class Grammar {
     {
       return _num_conflicts;
     }
+
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+  public terminal add_terminal(String name, String type)
+    {
+      terminal term = new terminal(name, type, _terminals.size());
+      _terminals.add(term);
+      return term;
+    }
+  
+  public non_terminal add_non_terminal(String name, String type)
+    {
+      non_terminal nt = new non_terminal(name, type, _nonterminals.size());
+      _nonterminals.add(nt);
+      return nt;
+    }
+  
+  /** set start non terminal symbol */
+  public void set_start_symbol(non_terminal start_nt)
+    {
+      /* build a special start production */
+      symbol_part[] rhs = new symbol_part[2];
+      action_part action = null;
+      if (start_nt.stack_type() != null)
+	{
+	  rhs[0] = new symbol_part(start_nt, "start_val");
+	  action = new action_part("RESULT = start_val;");
+	}
+      else
+	rhs[0] = new symbol_part(start_nt);
+      rhs[1] = new symbol_part(terminal.EOF);
+      _start_production = 
+	  new production(0, non_terminal.START_nt, rhs, action, null);
+      _productions.add(_start_production);
+      non_terminal.START_nt.note_use();
+    }
+  
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+  private int next_nt = 0; 
+  private non_terminal create_anon_nonterm(String type) 
+    {
+        return add_non_terminal("NT$" + next_nt++, type);
+    }
+
+  /**
+   * Create a production. Takes a LHS non terminal, a list of
+   * RHS parts (including terminals, non terminals, and actions) and a
+   * precedence.  We factor out embedded actions into separate action_production
+   * using temporary non-terminals.  Adjacent actions are merge immediately.
+   * 
+   * <p>Factoring out of actions is accomplished by creating new "hidden" non
+   * terminals. For example if the production was originally:</p>
+   * 
+   * <pre>
+   *    A ::= B {action} C D
+   * </pre>
+   * 
+   * then it is factored into two productions:
+   * 
+   * <pre>
+   *    A ::= B X C D
+   *    X ::= {action}
+   * </pre>
+   * 
+   * (where X is a unique new non terminal). This has the effect of placing all
+   * actions at the end where they can be handled as part of a reduce by the
+   * parser.
+   */
+  public void build_production(non_terminal lhs, ArrayList<production_part> rhs_parts, terminal precedence)
+    {
+      int i;
+
+      /* if we have no start non-terminal declared and this is 
+	 the first production, make its lhs nt the start_nt 
+	 and build a special start production for it. */
+      if (_start_production == null)
+	{
+	  set_start_symbol(lhs);
+	}
+
+      
+      /* make sure start_production was created */
+      assert _start_production != null;
+
+      /* make sure we have a valid left-hand-side */
+      assert lhs != null : "Attempt to construct a production with a null LHS";
+
+      /* count use of lhs */
+      lhs.note_use();
+      if (precedence != null)
+	precedence.note_use();
+
+      /* merge adjacent actions (if any) */
+      Iterator<production_part> it = rhs_parts.iterator();
+      action_part prev_action = null;
+      while (it.hasNext())
+	{
+	  production_part part = it.next();
+	  if (part instanceof action_part)
+	    {
+	      if (prev_action != null)
+		{
+		  prev_action.add_code_string(((action_part)part).code_string());
+		  it.remove();
+		}
+	      else
+		prev_action = (action_part) part;
+	    }
+	  else
+	    prev_action = null;
+	}
+      
+      action_part action = null;
+      /* strip off any trailing action */
+      if (rhs_parts.size() > 0 && rhs_parts.get(rhs_parts.size() - 1).is_action())
+	{
+	  action = (action_part) rhs_parts.remove(rhs_parts.size()-1);
+	}
+
+      /* allocate and copy over the right-hand-side */
+      symbol_part[] rhs = new symbol_part[rhs_parts.size()];
+      /* count use of each rhs symbol */
+      for (i = 0; i < rhs.length; i++)
+	{
+	  production_part prod = rhs_parts.get(i);
+	  if (prod.is_action())
+	    {
+	      /* create a new non terminal for the action production */
+	      non_terminal new_nt = create_anon_nonterm(lhs.stack_type()); 
+	      new_nt.is_embedded_action = true;
+	      new_nt.note_use();
+	      rhs[i] = new symbol_part(new_nt);
+	    }
+	  else
+	    {
+	      rhs[i] = (symbol_part) prod;
+	    }
+	}
+      
+      /* put the production in the production list of the lhs non terminal */
+      production prod = new production(_productions.size(), lhs, rhs, action, precedence);
+      _productions.add(prod);
+      int last_act_loc = -1;
+      for (i = 0; i < rhs.length; i++)
+	{
+	  production_part part = rhs_parts.get(i);
+	  if (part.is_action())
+	    {
+	      production actprod = new action_production
+	      	(_productions.size(), prod, (non_terminal) rhs[i].the_symbol(), 
+	      	    (action_part) part, i, last_act_loc);
+	      _productions.add(actprod);
+	      last_act_loc = i;
+	    }
+	}
+    }
+
   
   public lalr_state get_lalr_state(HashMap<lr_item, terminal_set> kernel)
     {
@@ -213,22 +397,21 @@ public class Grammar {
    *  propagate_all_lookaheads().  This makes use of propagation links 
    *  constructed during the closure and transition process.
    *
-   * @param start_prod the start production of the grammar
    * @see   java_cup.lalr_item_set#compute_closure
    * @see   java_cup.lalr_state#propagate_all_lookaheads
    */
 
-  public lalr_state build_machine(production start_prod) 
+  public lalr_state build_machine() 
     {
       /* sanity check */
-      assert start_prod != null:
+      assert _start_production != null:
 	"Attempt to build viable prefix recognizer using a null production";
 
       /* build item with dot at front of start production and EOF lookahead */	
       HashMap<lr_item, terminal_set> start_items = new HashMap<lr_item, terminal_set>();
       terminal_set lookahead = new terminal_set(this);
       lookahead.add(terminal.EOF);
-      lr_item core = start_prod.item();
+      lr_item core = _start_production.item();
       start_items.put(core, lookahead);
       lalr_state start_state = get_lalr_state(start_items);
 
@@ -290,6 +473,30 @@ public class Grammar {
       System.err.println();
     }
   
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+  /**
+   * Produce a (semi-) human readable dump of the complete viable prefix
+   * recognition state machine.
+   */
+  public void dump_machine()
+    {
+      System.err.println("===== Viable Prefix Recognizer =====");
+      for (lalr_state st : lalr_states())
+	{
+	  System.err.println(st);
+	  System.err.println("-------------------");
+	}
+    }
+
+  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+  /** Produce a (semi-) human readable dumps of the parse tables */
+  public void dump_tables()
+    {
+      System.err.println(action_table);
+      System.err.println(reduce_table);
+    }
   
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -364,5 +571,28 @@ public class Grammar {
       ErrorManager.getManager().emit_warning(message.toString());
     }
 
-  
+  public void build_tables()
+    {
+      action_table = new parse_action_table(this);
+      reduce_table = new parse_reduce_table(this);
+      for (lalr_state lst : lalr_states())
+	{
+	  lst.build_table_entries(this, action_table, reduce_table);
+	}
+    }
+
+  public void check_tables(boolean warn)
+    {
+      action_table.check_reductions(this, warn);
+    }
+
+  public parse_action_table action_table()
+    {
+      return action_table;
+    }
+
+  public parse_reduce_table reduce_table()
+    {
+      return reduce_table;
+    }
 }

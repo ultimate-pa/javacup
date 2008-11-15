@@ -14,7 +14,6 @@ package java_cup;
  *  letter will be incremented for small bug fixes and changes that
  *  probably wouldn't be noticed by a user.  
  *
- * @version last updated: 12/22/97 [CSA]
  * @author  Frank Flannery
  */
 
@@ -30,7 +29,7 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The update letter. */
-  public static final String update = "joho 20081109";
+  public static final String update = "joho 20081115";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

@@ -156,9 +156,6 @@ public class Main {
 
   emit emit = new emit();
 
-  /** The start production of the grammar. */
-  public production start_production = null;
-
   /* Additional timing information is also collected in emit */
 
   /*-----------------------------------------------------------*/
@@ -170,7 +167,7 @@ public class Main {
       start_time = System.currentTimeMillis();
     }
 
-  public void run() throws Exception
+  public boolean run() throws Exception
     {
       boolean did_output = false;
 
@@ -228,9 +225,9 @@ public class Main {
       if (opt_dump_grammar)
 	grammar.dump_grammar();
       if (opt_dump_states)
-	dump_machine(grammar);
+	grammar.dump_machine();
       if (opt_dump_tables)
-	dump_tables();
+	grammar.dump_tables();
 
       dump_end = System.currentTimeMillis();
 
@@ -243,12 +240,7 @@ public class Main {
       if (!no_summary)
 	emit_summary(grammar, did_output);
 
-      /*
-       * If there were errors during the run, exit with non-zero status
-       * (makefile-friendliness). --CSA
-       */
-      if (ErrorManager.getManager().getErrorCount() != 0)
-	System.exit(100);
+      return ErrorManager.getManager().getErrorCount() == 0; 
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -374,7 +366,7 @@ public class Main {
 	      /* record the number */
 	      try
 		{
-		  expect_conflicts = Integer.parseInt(option);
+		  expect_conflicts = Integer.parseInt(arg);
 		  return true;
 		} catch (NumberFormatException e)
 		{
@@ -698,19 +690,6 @@ public class Main {
 
     }
 
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . */
-  /* . . Internal Results of Generating the Parser . . */
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Start state in the overall state machine. */
-  private lalr_state start_state;
-
-  /** Resulting parse action table. */
-  private parse_action_table action_table;
-
-  /** Resulting reduce-goto table. */
-  private parse_reduce_table reduce_table;
-
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /**
@@ -743,27 +722,21 @@ public class Main {
       /* build the LR viable prefix recognition machine */
       if (opt_do_debug || print_progress)
 	System.err.println("  Building state machine...");
-      start_state = grammar.build_machine(start_production);
+      grammar.build_machine();
 
       machine_end = System.currentTimeMillis();
 
       /* build the LR parser action and reduce-goto tables */
       if (opt_do_debug || print_progress)
 	System.err.println("  Filling in tables...");
-      action_table = new parse_action_table(grammar);
-      reduce_table = new parse_reduce_table(grammar);
-      for (lalr_state lst : grammar.lalr_states())
-	{
-	  lst.build_table_entries(grammar, action_table, reduce_table);
-	}
+      grammar.build_tables();
 
       table_end = System.currentTimeMillis();
 
       /* check and warn for non-reduced productions */
       if (opt_do_debug || print_progress)
 	System.err.println("  Checking for non-reduced productions...");
-      action_table.check_reductions(grammar, !emit.nowarn);
-
+      grammar.check_tables(!emit.nowarn);
       reduce_check_end = System.currentTimeMillis();
 
       /* if we have more conflicts than we expected issue a message and die */
@@ -783,8 +756,8 @@ public class Main {
   private void emit_parser(Grammar grammar)
     {
       emit.symbols(symbol_class_file, grammar, include_non_terms, sym_interface);
-      emit.parser(parser_class_file, grammar, action_table, reduce_table, start_state
-	  .index(), start_production, opt_compact_red, suppress_scanner,
+      emit.parser(parser_class_file, grammar,
+	  opt_compact_red, suppress_scanner,
 	  opt_lr_values, opt_old_lr_values, opt_java15);
     }
 
@@ -982,33 +955,6 @@ public class Main {
 	  + percent10 % 10 + "%)";
     }
 
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /**
-   * Produce a (semi-) human readable dump of the complete viable prefix
-   * recognition state machine.
-   */
-  public void dump_machine(Grammar grammar)
-    {
-      System.err.println("===== Viable Prefix Recognizer =====");
-      for (lalr_state st : grammar.lalr_states())
-	{
-	  if (st == start_state)
-	    System.err.print("START ");
-	  System.err.println(st);
-	  System.err.println("-------------------");
-	}
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Produce a (semi-) human readable dumps of the parse tables */
-  public void dump_tables()
-    {
-      System.err.println(action_table);
-      System.err.println(reduce_table);
-    }
-
   /*-----------------------------------------------------------*/
 
   /*-----------------------------------------------------------*/
@@ -1027,7 +973,14 @@ public class Main {
 
       /* process user options and arguments */
       main.parse_args(argv);
-      main.run();
+      boolean success = main.run();
+
+      /*
+       * If there were errors during the run, exit with non-zero status
+       * (makefile-friendliness). --CSA
+       */
+      if (!success)
+	System.exit(1);
     }
 
 }

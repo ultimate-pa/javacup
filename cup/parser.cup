@@ -51,7 +51,6 @@
       accessible via static methods of those classes.  In addition, two 
       symbol tables are kept:  
 	symbols   maintains the name to object mapping for all symbols
-	non_terms maintains a separate mapping containing only the non terms
 
       Several intermediate working structures are also declared in the action
       code section.  These include: rhs_parts, rhs_pos, and lhs_nt which
@@ -85,6 +84,8 @@
 	    spelling mistake that's been around since the beginning.
 	    For backwards compatibility, you can still misspell the
 	    word if you like.
+    v0.11a  Added support for generic types on symbols.
+    v0.12a  Clean up, added options, added parser name.
 */
 /*================================================================*/ 
 
@@ -92,33 +93,23 @@ package java_cup;
 import java_cup.runtime.*;
 import java.util.HashMap;
 import java.util.ArrayList;
-import java.util.Iterator;
 /*----------------------------------------------------------------*/ 
 
 option java15, compact_red, interface, newpositions;
 
 action code {:
+  Grammar grammar = new Grammar();
+
   /** table of declared symbols -- contains production parts indexed by name */
   private HashMap<String, symbol> symbols = new HashMap<String, symbol>();
-
-  private ArrayList<terminal> terminals = new ArrayList<terminal>();
-  private ArrayList<non_terminal> non_terminals = new ArrayList<non_terminal>();
-  private ArrayList<production> productions = new ArrayList<production>();
-
-  /** declared start non_terminal */
-  private non_terminal start_nt = null;
 
   /** left hand side non terminal of the current production */
   private non_terminal lhs_nt;
 
   {
-    /* declare "error" and "EOF" as a terminal */
-    terminals.add(terminal.error);
-    terminals.add(terminal.EOF);
+    /* declare "error" and "EOF" as a symbols */
     symbols.put("error", terminal.error);
-
-    /* declare start non terminal */
-    non_terminals.add(non_terminal.START_nt);
+    symbols.put("EOF", terminal.EOF);
   }  
 
   /** Current symbol type */
@@ -165,139 +156,6 @@ action code {:
 	  return null;
 	}
       return (non_terminal)sym;
-    }
-
-  /** set start non terminal symbol */
-  private void set_start_symbol(non_terminal nt)
-    {
-      start_nt = nt;
-      /* build a special start production */
-      symbol_part[] rhs = new symbol_part[2];
-      action_part action = null;
-      if (start_nt.stack_type() != null)
-	{
-	  rhs[0] = new symbol_part(start_nt, "start_val");
-	  action = new action_part("RESULT = start_val;");
-	}
-      else
-	rhs[0] = new symbol_part(start_nt);
-      rhs[1] = new symbol_part(terminal.EOF);
-      parser.main.start_production = 
-	  new production(0, non_terminal.START_nt, rhs, action, null);
-      productions.add(parser.main.start_production);
-      non_terminal.START_nt.note_use();
-    }
-  
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  private int next_nt = 0; 
-  non_terminal create_anon_nonterm(String type) 
-    {
-        non_terminal nt = new non_terminal
-        	("NT$" + next_nt++, type, non_terminals.size());
-        non_terminals.add(nt);
-        return nt;
-    }
-
-  /**
-   * Create a production. Takes a LHS non terminal, a list of
-   * RHS parts (including terminals, non terminals, and actions) and a
-   * precedence.  We factor out embedded actions into separate action_production
-   * using temporary non-terminals.  Adjacent actions are merge immediately.
-   * 
-   * <p>Factoring out of actions is accomplished by creating new "hidden" non
-   * terminals. For example if the production was originally:</p>
-   * 
-   * <pre>
-   *    A ::= B {action} C D
-   * </pre>
-   * 
-   * then it is factored into two productions:
-   * 
-   * <pre>
-   *    A ::= B X C D
-   *    X ::= {action}
-   * </pre>
-   * 
-   * (where X is a unique new non terminal). This has the effect of placing all
-   * actions at the end where they can be handled as part of a reduce by the
-   * parser.
-   */
-  private void build_production(non_terminal lhs_sym, ArrayList<production_part> rhs_parts, terminal precedence)
-    {
-      int i;
-
-      /* make sure we have a valid left-hand-side */
-      assert lhs_sym != null : "Attempt to construct a production with a null LHS";
-
-      /* count use of lhs */
-      lhs_sym.note_use();
-      if (precedence != null)
-	precedence.note_use();
-
-      /* merge adjacent actions (if any) */
-      Iterator<production_part> it = rhs_parts.iterator();
-      action_part prev_action = null;
-      while (it.hasNext())
-	{
-	  production_part part = it.next();
-	  if (part instanceof action_part)
-	    {
-	      if (prev_action != null)
-		{
-		  prev_action.add_code_string(((action_part)part).code_string());
-		  it.remove();
-		}
-	      else
-		prev_action = (action_part) part;
-	    }
-	  else
-	    prev_action = null;
-	}
-      
-      action_part action = null;
-      /* strip off any trailing action */
-      if (rhs_parts.size() > 0 && rhs_parts.get(rhs_parts.size() - 1).is_action())
-	{
-	  action = (action_part) rhs_parts.remove(rhs_parts.size()-1);
-	}
-
-      /* allocate and copy over the right-hand-side */
-      symbol_part[] rhs = new symbol_part[rhs_parts.size()];
-      /* count use of each rhs symbol */
-      for (i = 0; i < rhs.length; i++)
-	{
-	  production_part prod = rhs_parts.get(i);
-	  if (prod.is_action())
-	    {
-	      /* create a new non terminal for the action production */
-	      non_terminal new_nt = create_anon_nonterm(lhs_sym.stack_type()); 
-	      new_nt.is_embedded_action = true;
-	      new_nt.note_use();
-	      rhs[i] = new symbol_part(new_nt);
-	    }
-	  else
-	    {
-	      rhs[i] = (symbol_part) prod;
-	    }
-	}
-      
-      /* put the production in the production list of the lhs non terminal */
-      production prod = new production(productions.size(), lhs_sym, rhs, action, precedence);
-      productions.add(prod);
-      int last_act_loc = -1;
-      for (i = 0; i < rhs.length; i++)
-	{
-	  production_part part = rhs_parts.get(i);
-	  if (part.is_action())
-	    {
-	      production actprod = new action_production
-	      	(productions.size(), prod, (non_terminal) rhs[i].the_symbol(), 
-	      	    (action_part) part, i, last_act_loc);
-	      productions.add(actprod);
-	      last_act_loc = i;
-	    }
-	}
     }
 :};
 
@@ -384,7 +242,7 @@ spec ::=
 	precedence_list
 	start_spec
 	production_list
-        {: RESULT = new Grammar(terminals, non_terminals, productions); :}
+        {: RESULT = grammar; :}
 	|
 	/* error recovery assuming something went wrong before symbols 
 	   and we have TERMINAL or NON TERMINAL to sync on.  if we get
@@ -396,7 +254,7 @@ spec ::=
 	precedence_list
 	start_spec
 	production_list
-        {: RESULT = new Grammar(terminals, non_terminals, productions); :}
+        {: RESULT = grammar; :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -582,7 +440,7 @@ start_spec ::=
 	START WITH symbol_id:start_name SEMI 
 	{: non_terminal nt = get_nonterm(start_name);
 	   if (nt != null) 
-	     set_start_symbol(nt); 
+	     grammar.set_start_symbol(nt); 
 	:}
 	|
 	/* empty */
@@ -623,16 +481,8 @@ rhs ::=
 	{:
 	  if (lhs_nt != null) 
 	    {
-	      /* if we have no start non-terminal declared and this is 
-		 the first production, make its lhs nt the start_nt 
-		 and build a special start production for it. */
-	      if (start_nt == null)
-		{
-		  set_start_symbol(lhs_nt);
-		}
-
 	      /* build the production */
-	      build_production(lhs_nt, rhs, (terminal) precsym);
+	      grammar.build_production(lhs_nt, rhs, (terminal) precsym);
 	    }
 	:}
 	;
@@ -757,8 +607,7 @@ new_term_id ::=
 	  else
 	    {
 	      /* build a production_part and put it in the table */
-	      terminal term = new terminal(term_id, _cur_symbol_type, terminals.size());
-	      terminals.add(term);
+	      terminal term = grammar.add_terminal(term_id, _cur_symbol_type);
 	      symbols.put(term_id, term);
 	    }
 	:}
@@ -780,8 +629,7 @@ new_non_term_id ::=
 	    {
 	      /* build the non terminal object */
               non_terminal this_nt = 
-		new non_terminal(non_term_id, _cur_symbol_type, non_terminals.size());
-	      non_terminals.add(this_nt);
+              	grammar.add_non_terminal(non_term_id, _cur_symbol_type); 
 
 	      /* put it in the symbols table */ 
 	      symbols.put(non_term_id, this_nt);
