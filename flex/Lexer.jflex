@@ -48,6 +48,7 @@ EndOfLineComment = "//" [^\r\n]* {Newline}
 CommentContent = ( [^*] | \*+[^*/] )*
 
 ident = ([:jletter:] | "_" ) ([:jletterdigit:] | [:jletter:] | "_" )*
+      | [:jletterdigit:]*  // Parse number as ident for options
 
 
 %eofval{
