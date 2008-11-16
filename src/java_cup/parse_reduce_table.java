@@ -61,6 +61,7 @@ public class parse_reduce_table {
    */
   public short[] compress()
     {
+      BitSet used = new BitSet();
       TreeSet<CombRow> rows = new TreeSet<CombRow>();
       for (int i = 0; i < _num_states; i++)
 	{
@@ -70,7 +71,8 @@ public class parse_reduce_table {
 	      len++;
 	  if (len == 0)
 	    continue;
-
+	  
+	  used.set(i);
 	  int[] rowidx = new int[len];
 	  len = 0;
 	  for (int j = 0; j < _num_nonterm; j++)
@@ -80,26 +82,22 @@ public class parse_reduce_table {
 	  rows.add(row);
 	}
       
-      BitSet used = new BitSet();
       for (CombRow row : rows)
 	{
 	  row.fitInComb(used);
 	}
-      int minbase = 0;
       int maxbase = used.size();
-      while (!used.get(minbase))
-	minbase++;
       while (!used.get(maxbase-1))
 	maxbase--;
 
-      short[] compressed = new short[_num_states + maxbase - minbase];
+      short[] compressed = new short[maxbase];
       /* initialize compressed table with 1 (shortest UTF-8 encoding) */
-      for (int i = 0; i < _num_states + maxbase - minbase; i++)
+      for (int i = 0; i < maxbase; i++)
 	compressed[i] = (short) 1;
 	
       for (CombRow row : rows)
 	{
-	  int base = _num_states + row.base - minbase;
+	  int base = row.base;
 	  compressed[row.index] = (short) base;
 	  for (int j = 0; j < row.comb.length; j++)
 	    {
