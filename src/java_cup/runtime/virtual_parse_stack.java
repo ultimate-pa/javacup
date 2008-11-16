@@ -35,9 +35,7 @@ public class virtual_parse_stack {
       /* set up our internals */
       real_stack = shadowing_stack;
       vstack     = new Stack<Integer>();
-      real_next  = 0;
-
-      /* get one element onto the virtual portion of the stack */
+      real_top   = shadowing_stack.size();
       get_from_real();
     }
 
@@ -49,15 +47,16 @@ public class virtual_parse_stack {
    *  the bottom of the virtual portion of the stack, but is always left
    *  unmodified.
    */
-  protected Stack<Symbol> real_stack;
+  private Stack<Symbol> real_stack;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Top of stack indicator for where we leave off in the real stack.
-   *  This is measured from top of stack, so 0 would indicate that no
-   *  elements have been "moved" from the real to virtual stack. 
+   *  This is measured from bottom of stack, so 0 would indicate that no
+   *  elements are left on the real stack.  This points to the element
+   *  after the one that needs to be popped from the real stack next. 
    */
-  protected int real_next;
+  private int real_top;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -67,7 +66,7 @@ public class virtual_parse_stack {
    *  on the virtual stack).  When this portion of the stack becomes empty we 
    *  transfer elements from the underlying stack onto this stack. 
    */
-  protected Stack<Integer> vstack;
+  private Stack<Integer> vstack;
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
@@ -81,13 +80,10 @@ public class virtual_parse_stack {
       Symbol stack_sym;
 
       /* don't transfer if the real stack is empty */
-      if (real_next >= real_stack.size()) return;
+      if (real_top == 0) return;
 
       /* get a copy of the first Symbol we have not transfered */
-      stack_sym = (Symbol)real_stack.elementAt(real_stack.size()-1-real_next);
-
-      /* record the transfer */
-      real_next++;
+      stack_sym = (Symbol)real_stack.elementAt(--real_top);
 
       /* put the state number from the Symbol onto the virtual stack */
       vstack.push(stack_sym.parse_state);
@@ -140,7 +136,7 @@ public class virtual_parse_stack {
       else 
 	{
 	  vstack.setSize(0);
-	  real_stack.setSize(real_stack.size() - (num_elems - vsize));
+	  real_top -= (num_elems - vsize);
 	  get_from_real();
 	}
     }
