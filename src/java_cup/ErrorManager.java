@@ -35,7 +35,7 @@ public class ErrorManager{
         warnings++;	
     }
     public void emit_warning(String message, Symbol sym){
-        System.err.println("Warning: "+message+" @ "+sym);
+        System.err.println("Warning: " + message+" @ "+sym);
         warnings++;
     }
     public void emit_error(String message){

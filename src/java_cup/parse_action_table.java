@@ -3,6 +3,7 @@ package java_cup;
 
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.TreeSet;
 
 /** This class represents the complete "action" table of the parser. 
  *  It has one row for each state in the parse machine, and a column for
@@ -90,6 +91,16 @@ public class parse_action_table {
       return ((code-1) >> 1);
     }
   
+  public static String toString(int code)
+    {
+      if (code == ERROR)
+	return "ERROR";
+      else if (isShift(code))
+	return "SHIFT("+index(code)+")";
+      else
+	return "REDUCE("+index(code)+")";
+    }
+  
   /** Compute the default (reduce) action for this row and return it. 
    *  In the case of non-zero default we will have the 
    *  effect of replacing all errors by that reduction.  This may cause 
@@ -98,50 +109,54 @@ public class parse_action_table {
    *  be used to encode the fact that no reduction can be used as a 
    *  default (in which case error will be used).
    *  @param row the action row.
+   *  @param compact_reduces whether we should compact reduces even if 
+   *         it changes error recovery behavior.
    *  @return the action code of the reduce action.
    */
-  public static int compute_default(int[] row)
+  private static int compute_default(int[] row, boolean compact_reduces)
     {
-      /* Check if there is already an action for the error symbol.
-       * This must be the default action.
-       */
-      int action = row[terminal.error.index()]; 
-      if (action != ERROR)
-	{
-	  if (isReduce(action))
-	    return action;
+	/* Check if there is already an action for the error symbol.
+	 * This must be the default action.
+	 */
+	int action = row[terminal.error.index()]; 
+	if (action != ERROR)
+	  {
+	    if (isReduce(action))
+	      return action;
+	    return ERROR;
+	  }
+	if (!compact_reduces)
 	  return ERROR;
-	}
-      
-      /* allocate the count table */
-      HashMap<Integer, Integer> reduction_count
-      	= new HashMap<Integer, Integer>();
 
-      /* clear the reduction count table and maximums */
-      int max_count = 0;
-      int default_action = ERROR;
-     
-      /* walk down the row and look at the reduces */
-      for (int i = 0; i < row.length; i++)
-	{
-	  if (isReduce(row[i]))
-	    {
-	      /* count the reduce in the proper production slot and keep the 
-	       max up to date */
-	      int prod = index(i);
-	      Integer oldcount = reduction_count.get(prod);
-	      int count = oldcount == null ? 1 : oldcount+1; 
-	      reduction_count.put(prod, count);
-	      if (count > max_count)
-		{
-		  default_action = row[i];
-		  max_count = count;
-		}
-	    }
-	}
-      return default_action;
+	/* allocate the count table */
+	HashMap<Integer, Integer> reduction_count
+	  = new HashMap<Integer, Integer>();
+
+	/* clear the reduction count table and maximums */
+	int max_count = 0;
+	int default_action = ERROR;
+
+	/* walk down the row and look at the reduces */
+	for (int i = 0; i < row.length; i++)
+	  {
+	    if (isReduce(row[i]))
+	      {
+		/* count the reduce in the proper production slot and keep the 
+		       max up to date */
+		int prod = index(i);
+		Integer oldcount = reduction_count.get(prod);
+		int count = oldcount == null ? 1 : oldcount+1; 
+		reduction_count.put(prod, count);
+		if (count > max_count)
+		  {
+		    default_action = row[i];
+		    max_count = count;
+		  }
+	      }
+	  }
+	return default_action;
     }
-
+  
   /**
    * Compress the action table into it's runtime form.  This returns
    * an array act_tab and initializes base_table, such that for all
@@ -156,64 +171,66 @@ public class parse_action_table {
    */
   public short[] compress(boolean compact_reduces, int[] base_table)
     {
-      int _num_states = table.length;
-      int _num_terminals = table[0].length;
-      int[] rowidx = new int[_num_terminals];
-      int maxbase = 0;
-      BitSet used = new BitSet();
-      int[] default_action = new int[_num_states];
-      for (int i = 0; i < _num_states; i++)
+      int[] default_actions = new int[table.length];
+      TreeSet<CombRow> rows = new TreeSet<CombRow>();
+      for (int i = 0; i < table.length; i++)
 	{
 	  int[] row = table[i];
-	  /* determine the default for the row */
-	  if (compact_reduces)
-	    default_action[i] = compute_default(row);
-	  
-	  int rowcnt = 0;
-	  for (int j = 0; j < _num_terminals; j++)
-	    {
-	      if (row[j] != 0 && row[j] != default_action[i])
-		rowidx[rowcnt++] = j;
-	    }
+	  default_actions[i] = compute_default(row, compact_reduces);
+	  int len = 0;
+	  for (int j = 0; j < row.length; j++)
+	    if (row[j] != ERROR && row[j] != default_actions[i])
+	      len++;
+	  if (len == 0)
+	    continue;
 
-	next_base:
-	  for (int base = 0; true; base++)
-	    {
-	      for (int j = 0; j < rowcnt; j++)
-		{
-		  if (used.get(base+rowidx[j]))
-		    continue next_base;
-		}
-	      for (int j = 0; j < rowcnt; j++)
-		used.set(base+rowidx[j]);
-	      base_table[i] = (_num_states + 2*base);
-	      if (base > maxbase)
-		maxbase = base;
-	      break;
-	    }
+	  int[] comb = new int[len];
+	  len = 0;
+	  for (int j = 0; j < row.length; j++)
+	    if (row[j] != ERROR && row[j] != default_actions[i])
+	      comb[len++] = j;
+	  rows.add(new CombRow(i, comb));
 	}
-      short[] compressed = 
-	new short[_num_states + 2*(maxbase + _num_terminals)];
-      for (int i = 0; i < maxbase + _num_terminals; i++)
-	compressed[_num_states+2*i] = (short) _num_states;
+      
+      BitSet used = new BitSet();
+      int combsize = 0;
+      for (CombRow row : rows) 
+	{
+	  row.fitInComb(used);
+	  int lastidx = row.base + table[row.index].length; 
+	  if (lastidx > combsize)
+	    combsize = lastidx;
+	}
+	
+      int _num_states = table.length;
+      short[] compressed = new short[_num_states + 2*(combsize)];
+      /* Fill default actions */
       for (int i = 0; i < _num_states; i++)
 	{
-	  int base = base_table[i];
-	  compressed[i] = (short) default_action[i];
-	  for (int j = 0; j < _num_terminals; j++)
+	  base_table[i] = (short) _num_states;
+	  compressed[i] = (short) default_actions[i];
+	}
+      /* Mark entries in comb as invalid */
+      for (int i = 0; i < combsize; i++)
+	{
+	  compressed[_num_states+2*i] = (short) _num_states;
+	  compressed[_num_states+2*i+1] = 1;
+	}
+      for (CombRow row : rows)
+	{
+	  int base = table.length + 2 * row.base;
+	  base_table[row.index] = base;
+	  for (int j = 0; j < row.comb.length; j++)
 	    {
-	      int act = table[i][j];
-	      if (act != 0 && act != default_action[i])
-		{
-		  compressed[base+2*j] = (short) i;
-		  compressed[base+2*j+1] = (short) act;
-		}
+	      int t = row.comb[j];
+	      compressed[base+2*t] = (short) row.index;
+	      compressed[base+2*t+1] = (short) table[row.index][t];
 	    }
 	}
       return compressed;
     }
 
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Convert to a string. */
   public String toString()
@@ -232,7 +249,7 @@ public class parse_action_table {
 	      if (table[row][col] != ERROR)
 		{
 		  result.append(" [term ").append(col).append(":")
-		    .append(table[row][col]).append("]");
+		    .append(toString(table[row][col])).append("]");
 
 		  /* end the line after the 2nd one */
 		  cnt++;

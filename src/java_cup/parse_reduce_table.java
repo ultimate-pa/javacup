@@ -2,6 +2,7 @@
 package java_cup;
 
 import java.util.BitSet;
+import java.util.TreeSet;
 
 /** This class represents the complete "reduce-goto" table of the parser.
  *  It has one row for each state in the parse machines, and a column for
@@ -60,58 +61,50 @@ public class parse_reduce_table {
    */
   public short[] compress()
     {
-      int[] baseaddrs = new int[_num_states];
-      int[] rowidx = new int[_num_nonterm];
-      int maxbase = 0;
-      BitSet used = new BitSet();
+      TreeSet<CombRow> rows = new TreeSet<CombRow>();
       for (int i = 0; i < _num_states; i++)
 	{
-	  lalr_state[] row = table[i];
-	  int rowcnt = 0;
+	  int len = 0;
 	  for (int j = 0; j < _num_nonterm; j++)
-	    {
-	      if (row[j] != null)
-		rowidx[rowcnt++] = j;
-	    }
+	    if (table[i][j] != null)
+	      len++;
+	  if (len == 0)
+	    continue;
 
-	next_base:
-	  for (int base = 0; true; base++)
-	    {
-	      if (_num_states+base > Short.MAX_VALUE)
-		{
-		  throw new AssertionError("Reduce table overflow!");
-		}
-	      for (int j = 0; j < rowcnt; j++)
-		{
-		  if (used.get(base+rowidx[j]))
-		    continue next_base;
-		}
-	      for (int j = 0; j < rowcnt; j++)
-		{
-		  used.set(base+rowidx[j]);
-		  if (base+rowidx[j] >= maxbase)
-		    maxbase = base+rowidx[j]+1;
-		}
-
-	      baseaddrs[i] = base;
-	      break;
-	    }
+	  int[] rowidx = new int[len];
+	  len = 0;
+	  for (int j = 0; j < _num_nonterm; j++)
+	    if (table[i][j] != null)
+	      rowidx[len++] = j;
+	  CombRow row = new CombRow(i, rowidx);
+	  rows.add(row);
+	}
+      
+      BitSet used = new BitSet();
+      for (CombRow row : rows)
+	{
+	  row.fitInComb(used);
 	}
       int minbase = 0;
+      int maxbase = used.size();
       while (!used.get(minbase))
 	minbase++;
-      
+      while (!used.get(maxbase-1))
+	maxbase--;
+
       short[] compressed = new short[_num_states + maxbase - minbase];
-      for (int i = 0; i < _num_states; i++)
+      /* initialize compressed table with 1 (shortest UTF-8 encoding) */
+      for (int i = 0; i < _num_states + maxbase - minbase; i++)
+	compressed[i] = (short) 1;
+	
+      for (CombRow row : rows)
 	{
-	  lalr_state[] row = table[i];
-	  int base = _num_states + baseaddrs[i] - minbase;
-	  compressed[i] = (short) base;
-	  for (int j = 0; j < _num_nonterm; j++)
+	  int base = _num_states + row.base - minbase;
+	  compressed[row.index] = (short) base;
+	  for (int j = 0; j < row.comb.length; j++)
 	    {
-	      lalr_state st = row[j];
-	      if (st != null)
-		compressed[base+j] = (short) st.index();
+	      compressed[base+row.comb[j]] = 
+		(short) table[row.index][row.comb[j]].index();
 	    }
 	}
       return compressed;

@@ -349,7 +349,6 @@ public class emit {
       out.println("  public final java_cup.runtime.Symbol " + 
 		     pre("do_action") + "(");
       out.println("    int                        " + pre("act_num,"));
-      out.println("    java_cup.runtime.LRParser  " + pre("parser,"));
       out.println("    java.util.Stack"+genericArg+" " + pre("stack)"));
       out.println("    throws java.lang.Exception");
       out.println("    {");
@@ -468,8 +467,8 @@ public class emit {
 	  /* if this was the start production, do action for accept */
 	  if (prod == grammar.start_production())
 	    {
-	      out.println("          /* ACCEPT */");
-	      out.println("          " + pre("parser") + ".done_parsing();");
+	      out.println("              /* ACCEPT */");
+	      out.println("              parser.done_parsing();");
 	    }
 
 	  /* code to return lhs symbol */
@@ -732,7 +731,7 @@ public class emit {
       out.println("  {");
       out.println("    /* call code in generated class */");
       out.println("    return action_obj." + pre("do_action(") +
-                  "act_num, this, stack);");
+                  "act_num, stack);");
       out.println("  }");
       out.println("");
 

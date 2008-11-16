@@ -112,6 +112,8 @@ action code {:
     symbols.put("EOF", terminal.EOF);
   }  
 
+  /** true, if declaring non-terminals. */
+  boolean _cur_is_nonterm;
   /** Current symbol type */
   String _cur_symbol_type;
 
@@ -128,7 +130,7 @@ action code {:
       _cur_prec++;
     }
   
-  private terminal get_term(String id)
+  private terminal get_term(Symbol location, String id)
     {
       symbol sym = symbols.get(id);
 
@@ -137,13 +139,13 @@ action code {:
 	{
 	  if (ErrorManager.getManager().getErrorCount() == 0)
 	    ErrorManager.getManager().emit_warning("Terminal \"" + id + 
-	    "\" has not been declared");
+	    "\" has not been declared", location);
 	  return null;
 	}
       return (terminal)sym;
     }
   
-  private non_terminal get_nonterm(String id)
+  private non_terminal get_nonterm(Symbol location, String id)
     {
       symbol sym = symbols.get(id);
 
@@ -152,7 +154,7 @@ action code {:
 	{
 	  if (ErrorManager.getManager().getErrorCount() == 0)
 	    ErrorManager.getManager().emit_warning("Non-terminal \"" + id + 
-	    "\" has not been declared");
+	    "\" has not been declared", location);
 	  return null;
 	}
       return (non_terminal)sym;
@@ -198,19 +200,18 @@ terminal String  ID, CODE_STRING;
 non terminal
   package_spec, import_list, parser_spec,
   option_spec, option_list, option_, action_code_part, 
-  code_parts, code_part, opt_semi, non_terminal,
+  code_parts, code_part, opt_semi, 
   parser_code_part, symbol_list, start_spec, production_list, 
   import_spec, init_code, scan_code, symbol, 
-  decl_term_list, decl_non_term_list, production, 
-  new_term_id, new_non_term_id, rhs_list, rhs,
-  precedence_list, preced, assoc, precterminal_list, precterminal_id;
+  terminal_non_terminal, decl_symbol_list, new_symbol_id,  
+  precedence_list, preced, assoc, precterminal_list, precterminal_id,
+  production, rhs_list, rhs;
   
 non terminal Grammar spec;
 
-non terminal String  symbol_id, label_id, opt_label,
-                     robust_id, typearglist, typeargument, wildcard;
-non terminal StringBuilder multipart_id, import_id, type_id;
-non terminal terminal term_id;
+non terminal String  symbol_id, opt_label_id, robust_id;
+non terminal StringBuilder multipart_id, import_id, type_id,
+			   typearglist, typeargument, wildcard;
 
 non terminal production_part prod_part;
 non terminal ArrayList<production_part> prod_part_list;
@@ -353,48 +354,56 @@ scan_code ::=
 
 symbol_list ::= symbol_list symbol | symbol;
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
 symbol ::= 
-	TERMINAL
+	terminal_non_terminal
 	type_id:id  {: _cur_symbol_type = id.toString(); :}
-	decl_term_list SEMI  {: _cur_symbol_type = null; :}
+	decl_symbol_list SEMI {: _cur_symbol_type = null; :}
 	|
-	TERMINAL
-	decl_term_list SEMI  {: _cur_symbol_type = null; :}
-	|
-	non_terminal
-	type_id:id  {: _cur_symbol_type = id.toString(); :}
-	decl_non_term_list SEMI {: _cur_symbol_type = null; :}
-	|
-	non_terminal
-	decl_non_term_list SEMI {: _cur_symbol_type = null; :}
+	terminal_non_terminal
+	decl_symbol_list SEMI {: _cur_symbol_type = null; :}
 	|
 	/* error recovery productions -- sync on semicolon */
-	TERMINAL
-	error
-	SEMI  {: _cur_symbol_type = null; :}
-	|
-	non_terminal
+	terminal_non_terminal
 	error
 	SEMI  {: _cur_symbol_type = null; :}
 	;
 	
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-decl_term_list ::= decl_term_list COMMA new_term_id 
-	| new_term_id;
+terminal_non_terminal ::=
+	  TERMINAL     {: _cur_is_nonterm = false; :} 
+        | NON TERMINAL {: _cur_is_nonterm = true; :}
+        | NONTERMINAL  {: _cur_is_nonterm = true; :};
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+decl_symbol_list ::= decl_symbol_list COMMA new_symbol_id 
+	| new_symbol_id;
 
-decl_non_term_list ::= decl_non_term_list COMMA new_non_term_id
-	| new_non_term_id;
+new_symbol_id ::= 
+	symbol_id:sym_id 
+	{: 
+	  /* see if this terminal has been declared before */
+	  if (symbols.get(sym_id) != null)
+	    {
+	      /* issue a message */
+	      ErrorManager.getManager().emit_error("Symbol \"" + sym_id + 
+			   "\" has already been declared", sym_id$);
+	    }
+	  else
+	    {
+	      /* build the symbol and put it in the symbol table */
+	      symbol sym;
+	      if (_cur_is_nonterm) 
+	      	sym = grammar.add_non_terminal(sym_id, _cur_symbol_type);
+	      else
+	      	sym = grammar.add_terminal(sym_id, _cur_symbol_type);
+	      symbols.put(sym_id, sym);
+	    }
+	:}
+	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 precedence_list ::= precedence_list preced | /* empty */; 
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 preced ::= PRECEDENCE assoc precterminal_list SEMI;
 
@@ -410,23 +419,16 @@ precterminal_list ::= precterminal_list COMMA precterminal_id
 	precterminal_id
 	;
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-precterminal_id ::= term_id:term
+precterminal_id ::= symbol_id:term
 	{:	
-	  term.set_precedence(_cur_side, _cur_prec);
+	  get_term(term$, term).set_precedence(_cur_side, _cur_prec);
 	:};
 	  
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-term_id ::= symbol_id:sym
-        {: RESULT = get_term(sym); :};
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
 start_spec ::= 
 	START WITH symbol_id:start_name SEMI 
-	{: non_terminal nt = get_nonterm(start_name);
+	{: non_terminal nt = get_nonterm(start_name$, start_name);
 	   if (nt != null) 
 	     grammar.set_start_symbol(nt); 
 	:}
@@ -444,7 +446,7 @@ production ::=
 	symbol_id:lhs_id
 	{:
 	  /* lookup the lhs nt */
-	  lhs_nt = get_nonterm(lhs_id);
+	  lhs_nt = get_nonterm(lhs_id$, lhs_id);
 	:}
 	COLON_COLON_EQUALS
 	rhs_list
@@ -459,8 +461,8 @@ rhs_list ::= rhs_list BAR rhs | rhs;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
-prod_precedence ::= PERCENT_PREC term_id:term
-	{: RESULT = term; :}
+prod_precedence ::= PERCENT_PREC symbol_id:term
+	{: RESULT = get_term(term$, term); :}
 	| /* empty */ {: RESULT = null; :};
 	      
 
@@ -485,7 +487,7 @@ prod_part_list ::= prod_part_list:list prod_part:prod
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 prod_part ::=
-	symbol_id:symid opt_label:labid
+	symbol_id:symid opt_label_id:labid
 	{: 
 	  /* try to look up the id */
 	  symbol symb = symbols.get(symid);
@@ -514,8 +516,8 @@ prod_part ::=
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-opt_label ::=
-	COLON label_id:labid
+opt_label_id ::=
+	COLON robust_id:labid
 	{: RESULT = labid; :}
 	|
 	/* empty */
@@ -531,34 +533,6 @@ multipart_id ::=
 	robust_id:an_id
 	{: RESULT = new StringBuilder(an_id); :}
 	;
-/*. . . . . . . . . . . .TUM CHANGES. . . . . . . . . . . . . . . */
-
-
-typearglist ::= 
-            typeargument:arg
-            {: RESULT = arg; :}
-            | typearglist:list COMMA typeargument:arg
-            {: RESULT = list + "," + arg; :}
-            ;
-
-typeargument ::=
-              type_id:id
-              {: RESULT = id.toString(); :}
-              | wildcard:w
-              {: RESULT = w; :}
-              ;
-
-wildcard ::=
-         QUESTION
-         {: RESULT = "?"; :}
-         | wildcard:w EXTENDS type_id:id
-         {: RESULT = w + " extends "+id; :}
-         | wildcard:w SUPER type_id:id
-         {: RESULT = w + " super "+id; :}
-         ;
-
-/*. . . . . . . . . . .END TUM CHANGES. . . . . . . . . . . . . . */ 
-
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
@@ -582,48 +556,28 @@ type_id ::= multipart_id:id {: RESULT = id; :}
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-new_term_id ::= 
-	symbol_id:term_id 
-	{: 
-	  /* see if this terminal has been declared before */
-	  if (symbols.get(term_id) != null)
-	    {
-	      /* issue a message */
-	      ErrorManager.getManager().emit_error("Symbol \"" + term_id + 
-			   "\" has already been declared");
-	    }
-	  else
-	    {
-	      /* build the terminal and put it in the symbol table */
-	      terminal term = grammar.add_terminal(term_id, _cur_symbol_type);
-	      symbols.put(term_id, term);
-	    }
-	:}
-	;
+typearglist ::= 
+            typeargument:arg
+            {: RESULT = arg; :}
+            | typearglist:list COMMA typeargument:arg
+            {: RESULT = list.append(",").append(arg); :}
+            ;
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+typeargument ::=
+              type_id:id
+              {: RESULT = id; :}
+              | wildcard:w
+              {: RESULT = w; :}
+              ;
 
-new_non_term_id ::=
-	symbol_id:non_term_id
-	{: 
-	  /* see if this non terminal has been declared before */
-	  if (symbols.get(non_term_id) != null)
-	    {
-	      /* issue a message */
-	      ErrorManager.getManager().emit_error( "Symbol \"" + non_term_id + 
-			                      "\" has already been declared");
-	    }
-	  else
-	    {
-	      /* build the non terminal object */
-              non_terminal this_nt = 
-              	grammar.add_non_terminal(non_term_id, _cur_symbol_type); 
-
-	      /* put it in the symbols table */ 
-	      symbols.put(non_term_id, this_nt);
-	    }
-	:}
-	;
+wildcard ::=
+         QUESTION
+         {: RESULT = new StringBuilder("?"); :}
+         | wildcard:w EXTENDS type_id:id
+         {: RESULT = w.append(" extends ").append(id); :}
+         | wildcard:w SUPER type_id:id
+         {: RESULT = w.append(" super ").append(id); :}
+         ;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
@@ -632,13 +586,6 @@ symbol_id ::=
 	| OPTION	{: RESULT = "option"; :}
 	| SUPER		{: RESULT = "super"; :}
 	| EXTENDS	{: RESULT = "extends"; :}
-	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-label_id ::= 
-	robust_id:the_id
-	{: RESULT = the_id; :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -668,10 +615,6 @@ robust_id ::= /* all ids that aren't reserved words in Java */
 		RESULT="ILLEGAL";
 	:}
 	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-non_terminal ::= NON TERMINAL | NONTERMINAL;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
