@@ -3,6 +3,8 @@ Bundle-ManifestVersion: 2
 Bundle-Name: JavaCup Plug-in
 Bundle-SymbolicName: JavaCup
 Bundle-Version: 1.0.0
-Export-Package: java_cup.runtime
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Bundle-ClassPath: src/
+Bundle-ClassPath: src/,
+ bin/
+Export-Package: java_cup.runtime
+
