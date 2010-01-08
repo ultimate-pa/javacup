@@ -362,9 +362,9 @@ public class lalr_state {
    * precedences.  --frankf 6/26/96
    *  
    *  if a production (also called rule) and the lookahead terminal
-   *  has a precedence, then the table can be fixed.  if the rule
+   *  have a precedence, then the table can be fixed.  if the rule
    *  has greater precedence than the terminal, a reduce by that rule
-   *  in inserted in the table.  If the terminal has a higher precedence, 
+   *  is inserted in the table.  If the terminal has a higher precedence, 
    *  it is shifted.  if they have equal precedence, then the associativity
    *  of the precedence is used to determine what to put in the table:
    *  if the precedence is left associative, the action is to reduce. 

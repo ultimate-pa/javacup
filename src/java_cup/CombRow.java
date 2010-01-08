@@ -29,6 +29,8 @@ public class CombRow implements Comparable<CombRow> {
 	return other.width - width;
       if (comb.length != other.comb.length)
 	return other.comb.length - comb.length;
+      if (comb[comb.length-1] != other.comb[other.comb.length-1])
+	return comb[comb.length-1] - other.comb[other.comb.length-1];
       return other.index - index;
       //return index - other.index;
     }

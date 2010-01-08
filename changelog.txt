@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
-CUP version 0.12joho 20061112
+CUP version 0.12joho 20081112
 
 INCOMPATIBILITIES:
 The super class of parser is now LRParser instead of lr_parser.  This class
