@@ -36,7 +36,7 @@ final class TableDecoder {
     {
       int val = advance();
       if (val >= 0x8000)
-	val = (val & 0x7fff)<<16 + advance();
+	val = ((val & 0x7fff)<<16) + advance();
       return val;
     }
   
