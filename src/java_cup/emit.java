@@ -227,11 +227,7 @@ public class emit {
   
   public String stackelem(int index, boolean is_java15)
     {
-      String access;
-      if (index == 1)
-	access = pre("stack") + ".peek()";
-      else
-	access = pre("stack") + ".elementAt(" + pre("size") + " - " + index + ")";
+      String access = pre("stack") + ".get(" + pre("size") + " - " + index + ")";
       return is_java15 ? access : "((java_cup.runtime.Symbol) "+access+")";
     }
 
@@ -349,7 +345,7 @@ public class emit {
       out.println("  public final java_cup.runtime.Symbol " + 
 		     pre("do_action") + "(");
       out.println("    int                        " + pre("act_num,"));
-      out.println("    java.util.Stack"+genericArg+" " + pre("stack)"));
+      out.println("    java.util.ArrayList"+genericArg+" " + pre("stack)"));
       out.println("    throws java.lang.Exception");
       out.println("    {");
 
@@ -724,9 +720,9 @@ public class emit {
       out.println("  public java_cup.runtime.Symbol do_action(");
       out.println("    int                        act_num,");
       if (is_java15)
-	out.println("    java.util.Stack<java_cup.runtime.Symbol> stack)");
+	out.println("    java.util.ArrayList<java_cup.runtime.Symbol> stack)");
       else
-	out.println("    java.util.Stack            stack)");
+	out.println("    java.util.ArrayList        stack)");
       out.println("    throws java.lang.Exception");
       out.println("  {");
       out.println("    /* call code in generated class */");

@@ -202,7 +202,7 @@ public class parser extends java_cup.runtime.LRParser {
   /** Invoke a user supplied parse action. */
   public java_cup.runtime.Symbol do_action(
     int                        act_num,
-    java.util.Stack<java_cup.runtime.Symbol> stack)
+    java.util.ArrayList<java_cup.runtime.Symbol> stack)
     throws java.lang.Exception
   {
     /* call code in generated class */
@@ -311,7 +311,7 @@ static class Action$ {
   @SuppressWarnings({ "unused", "unchecked" })
   public final java_cup.runtime.Symbol CUP$do_action(
     int                        CUP$act_num,
-    java.util.Stack<java_cup.runtime.Symbol> CUP$stack)
+    java.util.ArrayList<java_cup.runtime.Symbol> CUP$stack)
     throws java.lang.Exception
     {
       /* Stack size for peeking into the stack */
@@ -324,12 +324,12 @@ static class Action$ {
           case 0: // $START ::= spec EOF 
             {
               Object RESULT = null;
-              java_cup.runtime.Symbol start_val$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol start_val$ = CUP$stack.get(CUP$size - 2);
               Grammar start_val = (Grammar) start_val$.value;
 RESULT = start_val;
               /* ACCEPT */
               parser.done_parsing();
-              return parser.getSymbolFactory().newSymbol("$START", 0, start_val$, CUP$stack.peek(), RESULT);
+              return parser.getSymbolFactory().newSymbol("$START", 0, start_val$, CUP$stack.get(CUP$size-1), RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
@@ -337,7 +337,7 @@ RESULT = start_val;
             {
               Grammar RESULT = null;
  RESULT = grammar; 
-              return parser.getSymbolFactory().newSymbol("spec", 30, CUP$stack.elementAt(CUP$size - 7), CUP$stack.peek(), RESULT);
+              return parser.getSymbolFactory().newSymbol("spec", 30, CUP$stack.get(CUP$size - 7), CUP$stack.get(CUP$size-1), RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
@@ -345,152 +345,152 @@ RESULT = start_val;
             {
               Grammar RESULT = null;
  RESULT = grammar; 
-              return parser.getSymbolFactory().newSymbol("spec", 30, CUP$stack.elementAt(CUP$size - 5), CUP$stack.peek(), RESULT);
+              return parser.getSymbolFactory().newSymbol("spec", 30, CUP$stack.get(CUP$size - 5), CUP$stack.get(CUP$size-1), RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 3: // package_spec ::= PACKAGE multipart_id SEMI 
             {
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 2);
               StringBuilder id = (StringBuilder) id$.value;
 
 	  /* save the package name */
 	  parser.main.setOption("package", id.toString());
 	
-              return parser.getSymbolFactory().newSymbol("package_spec", 1, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("package_spec", 1, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 4: // package_spec ::= 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("package_spec", 1, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 5: // import_list ::= import_list import_spec 
             {
-              return parser.getSymbolFactory().newSymbol("import_list", 2, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("import_list", 2, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 6: // import_list ::= 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("import_list", 2, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 7: // import_spec ::= IMPORT import_id SEMI 
             {
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 2);
               StringBuilder id = (StringBuilder) id$.value;
  
 	  /* save this import on the imports list */
 	  parser.emit.import_list.add(id.toString());
 	
-              return parser.getSymbolFactory().newSymbol("import_spec", 15, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("import_spec", 15, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 8: // code_part ::= option_spec 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_part", 9, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 9: // code_part ::= parser_spec 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_part", 9, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 10: // code_part ::= action_code_part 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_part", 9, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 11: // code_part ::= parser_code_part 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_part", 9, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 12: // code_part ::= init_code 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_part", 9, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 13: // code_part ::= scan_code 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_part", 9, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 14: // code_parts ::= 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("code_parts", 8, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 15: // code_parts ::= code_parts code_part 
             {
-              return parser.getSymbolFactory().newSymbol("code_parts", 8, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("code_parts", 8, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 16: // parser_spec ::= PARSER multipart_id SEMI 
             {
-              java_cup.runtime.Symbol name$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol name$ = CUP$stack.get(CUP$size - 2);
               StringBuilder name = (StringBuilder) name$.value;
  parser.main.setOption("parser", name.toString()); 
-              return parser.getSymbolFactory().newSymbol("parser_spec", 3, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("parser_spec", 3, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 17: // parser_spec ::= PARSER multipart_id LT typearglist GT SEMI 
             {
-              java_cup.runtime.Symbol types$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol types$ = CUP$stack.get(CUP$size - 3);
               StringBuilder types = (StringBuilder) types$.value;
-              java_cup.runtime.Symbol name$ = CUP$stack.elementAt(CUP$size - 5);
+              java_cup.runtime.Symbol name$ = CUP$stack.get(CUP$size - 5);
               StringBuilder name = (StringBuilder) name$.value;
  parser.main.setOption("parser", name.toString());
 	    parser.main.setOption("typearg", types.toString()); 
-              return parser.getSymbolFactory().newSymbol("parser_spec", 3, CUP$stack.elementAt(CUP$size - 6), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("parser_spec", 3, CUP$stack.get(CUP$size - 6), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 18: // option_spec ::= OPTION option_list SEMI 
             {
-              return parser.getSymbolFactory().newSymbol("option_spec", 4, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("option_spec", 4, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 19: // option_list ::= option_list COMMA option_ 
             {
-              return parser.getSymbolFactory().newSymbol("option_list", 5, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("option_list", 5, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 20: // option_list ::= option_ 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("option_list", 5, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 21: // option_ ::= robust_id 
             {
-              java_cup.runtime.Symbol opt$ = CUP$stack.peek();
+              java_cup.runtime.Symbol opt$ = CUP$stack.get(CUP$size-1);
               String opt = (String) opt$.value;
  parser.main.setOption(opt); 
               return parser.getSymbolFactory().newSymbol("option_", 6, opt$, opt$);
@@ -499,9 +499,9 @@ RESULT = start_val;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 22: // option_ ::= robust_id EQUALS robust_id 
             {
-              java_cup.runtime.Symbol val$ = CUP$stack.peek();
+              java_cup.runtime.Symbol val$ = CUP$stack.get(CUP$size-1);
               String val = (String) val$.value;
-              java_cup.runtime.Symbol opt$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol opt$ = CUP$stack.get(CUP$size - 3);
               String opt = (String) opt$.value;
  parser.main.setOption(opt, val); 
               return parser.getSymbolFactory().newSymbol("option_", 6, opt$, val$);
@@ -510,7 +510,7 @@ RESULT = start_val;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 23: // action_code_part ::= ACTION CODE CODE_STRING opt_semi 
             {
-              java_cup.runtime.Symbol user_code$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol user_code$ = CUP$stack.get(CUP$size - 2);
               String user_code = (String) user_code$.value;
 
 	  if (parser.emit.action_code!=null)
@@ -518,13 +518,13 @@ RESULT = start_val;
 	  else /* save the user included code string */
 	    parser.emit.action_code = user_code;
 	
-              return parser.getSymbolFactory().newSymbol("action_code_part", 7, CUP$stack.elementAt(CUP$size - 4), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("action_code_part", 7, CUP$stack.get(CUP$size - 4), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 24: // parser_code_part ::= PARSER CODE CODE_STRING opt_semi 
             {
-              java_cup.runtime.Symbol user_code$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol user_code$ = CUP$stack.get(CUP$size - 2);
               String user_code = (String) user_code$.value;
 
 	  if (parser.emit.parser_code!=null)
@@ -532,13 +532,13 @@ RESULT = start_val;
 	  else /* save the user included code string */
 	    parser.emit.parser_code = user_code;
 	
-              return parser.getSymbolFactory().newSymbol("parser_code_part", 11, CUP$stack.elementAt(CUP$size - 4), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("parser_code_part", 11, CUP$stack.get(CUP$size - 4), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 25: // init_code ::= INIT WITH CODE_STRING opt_semi 
             {
-              java_cup.runtime.Symbol user_code$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol user_code$ = CUP$stack.get(CUP$size - 2);
               String user_code = (String) user_code$.value;
  
 	  if (parser.emit.init_code!=null)
@@ -546,13 +546,13 @@ RESULT = start_val;
 	  else /* save the user code */
 	    parser.emit.init_code = user_code;
 	
-              return parser.getSymbolFactory().newSymbol("init_code", 16, CUP$stack.elementAt(CUP$size - 4), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("init_code", 16, CUP$stack.get(CUP$size - 4), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 26: // scan_code ::= SCAN WITH CODE_STRING opt_semi 
             {
-              java_cup.runtime.Symbol user_code$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol user_code$ = CUP$stack.get(CUP$size - 2);
               String user_code = (String) user_code$.value;
  
 	  if (parser.emit.scan_code!=null)
@@ -560,59 +560,59 @@ RESULT = start_val;
 	  else /* save the user code */
 	    parser.emit.scan_code = user_code;
 	
-              return parser.getSymbolFactory().newSymbol("scan_code", 17, CUP$stack.elementAt(CUP$size - 4), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("scan_code", 17, CUP$stack.get(CUP$size - 4), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 27: // symbol_list ::= symbol_list symbol 
             {
-              return parser.getSymbolFactory().newSymbol("symbol_list", 12, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("symbol_list", 12, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 28: // symbol_list ::= symbol 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("symbol_list", 12, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 29: // symbol ::= terminal_non_terminal type_id NT$0 decl_symbol_list SEMI 
             {
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 4);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 4);
               StringBuilder id = (StringBuilder) id$.value;
  _cur_symbol_type = null; 
-              return parser.getSymbolFactory().newSymbol("symbol", 18, CUP$stack.elementAt(CUP$size - 5), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("symbol", 18, CUP$stack.get(CUP$size - 5), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 30: // NT$0 ::= 
             {
-              java_cup.runtime.Symbol id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size-1);
               StringBuilder id = (StringBuilder) id$.value;
  _cur_symbol_type = id.toString(); 
-              return parser.getSymbolFactory().newSymbol("NT$0", 43, CUP$stack.elementAt(CUP$size - 2), id$);
+              return parser.getSymbolFactory().newSymbol("NT$0", 43, CUP$stack.get(CUP$size - 2), id$);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 31: // symbol ::= terminal_non_terminal decl_symbol_list SEMI 
             {
  _cur_symbol_type = null; 
-              return parser.getSymbolFactory().newSymbol("symbol", 18, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("symbol", 18, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 32: // symbol ::= terminal_non_terminal error SEMI 
             {
  _cur_symbol_type = null; 
-              return parser.getSymbolFactory().newSymbol("symbol", 18, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("symbol", 18, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 33: // terminal_non_terminal ::= TERMINAL 
             {
  _cur_is_nonterm = false; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("terminal_non_terminal", 19, CUP$sym, CUP$sym);
             }
 
@@ -620,34 +620,34 @@ RESULT = start_val;
           case 34: // terminal_non_terminal ::= NON TERMINAL 
             {
  _cur_is_nonterm = true; 
-              return parser.getSymbolFactory().newSymbol("terminal_non_terminal", 19, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("terminal_non_terminal", 19, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 35: // terminal_non_terminal ::= NONTERMINAL 
             {
  _cur_is_nonterm = true; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("terminal_non_terminal", 19, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 36: // decl_symbol_list ::= decl_symbol_list COMMA new_symbol_id 
             {
-              return parser.getSymbolFactory().newSymbol("decl_symbol_list", 20, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("decl_symbol_list", 20, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 37: // decl_symbol_list ::= new_symbol_id 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("decl_symbol_list", 20, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 38: // new_symbol_id ::= symbol_id 
             {
-              java_cup.runtime.Symbol sym_id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol sym_id$ = CUP$stack.get(CUP$size-1);
               String sym_id = (String) sym_id$.value;
  
 	  /* see if this terminal has been declared before */
@@ -674,27 +674,27 @@ RESULT = start_val;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 39: // precedence_list ::= precedence_list preced 
             {
-              return parser.getSymbolFactory().newSymbol("precedence_list", 22, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("precedence_list", 22, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 40: // precedence_list ::= 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("precedence_list", 22, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 41: // preced ::= PRECEDENCE assoc precterminal_list SEMI 
             {
-              return parser.getSymbolFactory().newSymbol("preced", 23, CUP$stack.elementAt(CUP$size - 4), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("preced", 23, CUP$stack.get(CUP$size - 4), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 42: // assoc ::= LEFT 
             {
  update_precedence(assoc.left); 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("assoc", 24, CUP$sym, CUP$sym);
             }
 
@@ -702,7 +702,7 @@ RESULT = start_val;
           case 43: // assoc ::= RIGHT 
             {
  update_precedence(assoc.right); 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("assoc", 24, CUP$sym, CUP$sym);
             }
 
@@ -710,27 +710,27 @@ RESULT = start_val;
           case 44: // assoc ::= NONASSOC 
             {
  update_precedence(assoc.nonassoc); 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("assoc", 24, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 45: // precterminal_list ::= precterminal_list COMMA precterminal_id 
             {
-              return parser.getSymbolFactory().newSymbol("precterminal_list", 25, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("precterminal_list", 25, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 46: // precterminal_list ::= precterminal_id 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("precterminal_list", 25, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 47: // precterminal_id ::= symbol_id 
             {
-              java_cup.runtime.Symbol term$ = CUP$stack.peek();
+              java_cup.runtime.Symbol term$ = CUP$stack.get(CUP$size-1);
               String term = (String) term$.value;
 	
 	  get_term(term$, term).set_precedence(_cur_side, _cur_prec);
@@ -741,47 +741,47 @@ RESULT = start_val;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 48: // start_spec ::= START WITH symbol_id SEMI 
             {
-              java_cup.runtime.Symbol start_name$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol start_name$ = CUP$stack.get(CUP$size - 2);
               String start_name = (String) start_name$.value;
  non_terminal nt = get_nonterm(start_name$, start_name);
 	   if (nt != null) 
 	     grammar.set_start_symbol(nt); 
 	
-              return parser.getSymbolFactory().newSymbol("start_spec", 13, CUP$stack.elementAt(CUP$size - 4), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("start_spec", 13, CUP$stack.get(CUP$size - 4), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 49: // start_spec ::= 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("start_spec", 13, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 50: // production_list ::= production_list production 
             {
-              return parser.getSymbolFactory().newSymbol("production_list", 14, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("production_list", 14, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 51: // production_list ::= production 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("production_list", 14, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 52: // production ::= symbol_id NT$1 COLON_COLON_EQUALS rhs_list SEMI 
             {
-              java_cup.runtime.Symbol lhs_id$ = CUP$stack.elementAt(CUP$size - 5);
+              java_cup.runtime.Symbol lhs_id$ = CUP$stack.get(CUP$size - 5);
               String lhs_id = (String) lhs_id$.value;
-              return parser.getSymbolFactory().newSymbol("production", 27, lhs_id$, CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("production", 27, lhs_id$, CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 53: // NT$1 ::= 
             {
-              java_cup.runtime.Symbol lhs_id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol lhs_id$ = CUP$stack.get(CUP$size-1);
               String lhs_id = (String) lhs_id$.value;
 
 	  /* lookup the lhs nt */
@@ -793,19 +793,19 @@ RESULT = start_val;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 54: // production ::= error SEMI 
             {
-              return parser.getSymbolFactory().newSymbol("production", 27, CUP$stack.elementAt(CUP$size - 2), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("production", 27, CUP$stack.get(CUP$size - 2), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 55: // rhs_list ::= rhs_list BAR rhs 
             {
-              return parser.getSymbolFactory().newSymbol("rhs_list", 28, CUP$stack.elementAt(CUP$size - 3), CUP$stack.peek());
+              return parser.getSymbolFactory().newSymbol("rhs_list", 28, CUP$stack.get(CUP$size - 3), CUP$stack.get(CUP$size-1));
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 56: // rhs_list ::= rhs 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("rhs_list", 28, CUP$sym, CUP$sym);
             }
 
@@ -813,10 +813,10 @@ RESULT = start_val;
           case 57: // prod_precedence ::= PERCENT_PREC symbol_id 
             {
               symbol RESULT = null;
-              java_cup.runtime.Symbol term$ = CUP$stack.peek();
+              java_cup.runtime.Symbol term$ = CUP$stack.get(CUP$size-1);
               String term = (String) term$.value;
  RESULT = get_term(term$, term); 
-              return parser.getSymbolFactory().newSymbol("prod_precedence", 42, CUP$stack.elementAt(CUP$size - 2), term$, RESULT);
+              return parser.getSymbolFactory().newSymbol("prod_precedence", 42, CUP$stack.get(CUP$size - 2), term$, RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
@@ -824,16 +824,16 @@ RESULT = start_val;
             {
               symbol RESULT = null;
  RESULT = null; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("prod_precedence", 42, CUP$sym, CUP$sym, RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 59: // rhs ::= prod_part_list prod_precedence 
             {
-              java_cup.runtime.Symbol precsym$ = CUP$stack.peek();
+              java_cup.runtime.Symbol precsym$ = CUP$stack.get(CUP$size-1);
               symbol precsym = (symbol) precsym$.value;
-              java_cup.runtime.Symbol rhs$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol rhs$ = CUP$stack.get(CUP$size - 2);
               ArrayList<production_part> rhs = (ArrayList<production_part>) rhs$.value;
 
 	  if (lhs_nt != null) 
@@ -849,9 +849,9 @@ RESULT = start_val;
           case 60: // prod_part_list ::= prod_part_list prod_part 
             {
               ArrayList<production_part> RESULT = null;
-              java_cup.runtime.Symbol prod$ = CUP$stack.peek();
+              java_cup.runtime.Symbol prod$ = CUP$stack.get(CUP$size-1);
               production_part prod = (production_part) prod$.value;
-              java_cup.runtime.Symbol list$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol list$ = CUP$stack.get(CUP$size - 2);
               ArrayList<production_part> list = (ArrayList<production_part>) list$.value;
  RESULT = list; if (prod != null) RESULT.add(prod); 
               return parser.getSymbolFactory().newSymbol("prod_part_list", 41, list$, prod$, RESULT);
@@ -862,7 +862,7 @@ RESULT = start_val;
             {
               ArrayList<production_part> RESULT = null;
  RESULT = new ArrayList<production_part>(); 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("prod_part_list", 41, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -870,9 +870,9 @@ RESULT = start_val;
           case 62: // prod_part ::= symbol_id opt_label_id 
             {
               production_part RESULT = null;
-              java_cup.runtime.Symbol labid$ = CUP$stack.peek();
+              java_cup.runtime.Symbol labid$ = CUP$stack.get(CUP$size-1);
               String labid = (String) labid$.value;
-              java_cup.runtime.Symbol symid$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol symid$ = CUP$stack.get(CUP$size - 2);
               String symid = (String) symid$.value;
  
 	  /* try to look up the id */
@@ -899,7 +899,7 @@ RESULT = start_val;
           case 63: // prod_part ::= CODE_STRING 
             {
               production_part RESULT = null;
-              java_cup.runtime.Symbol code_str$ = CUP$stack.peek();
+              java_cup.runtime.Symbol code_str$ = CUP$stack.get(CUP$size-1);
               String code_str = (String) code_str$.value;
  
 	  /* add a new production part */
@@ -912,10 +912,10 @@ RESULT = start_val;
           case 64: // opt_label_id ::= COLON robust_id 
             {
               String RESULT = null;
-              java_cup.runtime.Symbol labid$ = CUP$stack.peek();
+              java_cup.runtime.Symbol labid$ = CUP$stack.get(CUP$size-1);
               String labid = (String) labid$.value;
  RESULT = labid; 
-              return parser.getSymbolFactory().newSymbol("opt_label_id", 32, CUP$stack.elementAt(CUP$size - 2), labid$, RESULT);
+              return parser.getSymbolFactory().newSymbol("opt_label_id", 32, CUP$stack.get(CUP$size - 2), labid$, RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
@@ -923,7 +923,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = null; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("opt_label_id", 32, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -931,9 +931,9 @@ RESULT = start_val;
           case 66: // multipart_id ::= multipart_id DOT robust_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol another_id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol another_id$ = CUP$stack.get(CUP$size-1);
               String another_id = (String) another_id$.value;
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 3);
               StringBuilder id = (StringBuilder) id$.value;
  id.append('.').append(another_id); RESULT=id; 
               return parser.getSymbolFactory().newSymbol("multipart_id", 34, id$, another_id$, RESULT);
@@ -943,7 +943,7 @@ RESULT = start_val;
           case 67: // multipart_id ::= robust_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol an_id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol an_id$ = CUP$stack.get(CUP$size-1);
               String an_id = (String) an_id$.value;
  RESULT = new StringBuilder(an_id); 
               return parser.getSymbolFactory().newSymbol("multipart_id", 34, an_id$, an_id$, RESULT);
@@ -953,17 +953,17 @@ RESULT = start_val;
           case 68: // import_id ::= multipart_id DOT STAR 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 3);
               StringBuilder id = (StringBuilder) id$.value;
  id.append(".*"); RESULT = id; 
-              return parser.getSymbolFactory().newSymbol("import_id", 35, id$, CUP$stack.peek(), RESULT);
+              return parser.getSymbolFactory().newSymbol("import_id", 35, id$, CUP$stack.get(CUP$size-1), RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 69: // import_id ::= multipart_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size-1);
               StringBuilder id = (StringBuilder) id$.value;
  RESULT = id; 
               return parser.getSymbolFactory().newSymbol("import_id", 35, id$, id$, RESULT);
@@ -973,7 +973,7 @@ RESULT = start_val;
           case 70: // type_id ::= multipart_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size-1);
               StringBuilder id = (StringBuilder) id$.value;
  RESULT = id; 
               return parser.getSymbolFactory().newSymbol("type_id", 36, id$, id$, RESULT);
@@ -983,30 +983,30 @@ RESULT = start_val;
           case 71: // type_id ::= type_id LBRACK RBRACK 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 3);
               StringBuilder id = (StringBuilder) id$.value;
  id.append("[]"); RESULT = id; 
-              return parser.getSymbolFactory().newSymbol("type_id", 36, id$, CUP$stack.peek(), RESULT);
+              return parser.getSymbolFactory().newSymbol("type_id", 36, id$, CUP$stack.get(CUP$size-1), RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 72: // type_id ::= multipart_id LT typearglist GT 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol types$ = CUP$stack.elementAt(CUP$size - 2);
+              java_cup.runtime.Symbol types$ = CUP$stack.get(CUP$size - 2);
               StringBuilder types = (StringBuilder) types$.value;
-              java_cup.runtime.Symbol id$ = CUP$stack.elementAt(CUP$size - 4);
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size - 4);
               StringBuilder id = (StringBuilder) id$.value;
  id.append('<').append(types).append('>');
             RESULT=id; 
-              return parser.getSymbolFactory().newSymbol("type_id", 36, id$, CUP$stack.peek(), RESULT);
+              return parser.getSymbolFactory().newSymbol("type_id", 36, id$, CUP$stack.get(CUP$size-1), RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 73: // typearglist ::= typeargument 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol arg$ = CUP$stack.peek();
+              java_cup.runtime.Symbol arg$ = CUP$stack.get(CUP$size-1);
               StringBuilder arg = (StringBuilder) arg$.value;
  RESULT = arg; 
               return parser.getSymbolFactory().newSymbol("typearglist", 37, arg$, arg$, RESULT);
@@ -1016,9 +1016,9 @@ RESULT = start_val;
           case 74: // typearglist ::= typearglist COMMA typeargument 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol arg$ = CUP$stack.peek();
+              java_cup.runtime.Symbol arg$ = CUP$stack.get(CUP$size-1);
               StringBuilder arg = (StringBuilder) arg$.value;
-              java_cup.runtime.Symbol list$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol list$ = CUP$stack.get(CUP$size - 3);
               StringBuilder list = (StringBuilder) list$.value;
  RESULT = list.append(",").append(arg); 
               return parser.getSymbolFactory().newSymbol("typearglist", 37, list$, arg$, RESULT);
@@ -1028,7 +1028,7 @@ RESULT = start_val;
           case 75: // typeargument ::= type_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size-1);
               StringBuilder id = (StringBuilder) id$.value;
  RESULT = id; 
               return parser.getSymbolFactory().newSymbol("typeargument", 38, id$, id$, RESULT);
@@ -1038,7 +1038,7 @@ RESULT = start_val;
           case 76: // typeargument ::= wildcard 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol w$ = CUP$stack.peek();
+              java_cup.runtime.Symbol w$ = CUP$stack.get(CUP$size-1);
               StringBuilder w = (StringBuilder) w$.value;
  RESULT = w; 
               return parser.getSymbolFactory().newSymbol("typeargument", 38, w$, w$, RESULT);
@@ -1049,7 +1049,7 @@ RESULT = start_val;
             {
               StringBuilder RESULT = null;
  RESULT = new StringBuilder("?"); 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("wildcard", 39, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1057,9 +1057,9 @@ RESULT = start_val;
           case 78: // wildcard ::= wildcard EXTENDS type_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size-1);
               StringBuilder id = (StringBuilder) id$.value;
-              java_cup.runtime.Symbol w$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol w$ = CUP$stack.get(CUP$size - 3);
               StringBuilder w = (StringBuilder) w$.value;
  RESULT = w.append(" extends ").append(id); 
               return parser.getSymbolFactory().newSymbol("wildcard", 39, w$, id$, RESULT);
@@ -1069,9 +1069,9 @@ RESULT = start_val;
           case 79: // wildcard ::= wildcard SUPER type_id 
             {
               StringBuilder RESULT = null;
-              java_cup.runtime.Symbol id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol id$ = CUP$stack.get(CUP$size-1);
               StringBuilder id = (StringBuilder) id$.value;
-              java_cup.runtime.Symbol w$ = CUP$stack.elementAt(CUP$size - 3);
+              java_cup.runtime.Symbol w$ = CUP$stack.get(CUP$size - 3);
               StringBuilder w = (StringBuilder) w$.value;
  RESULT = w.append(" super ").append(id); 
               return parser.getSymbolFactory().newSymbol("wildcard", 39, w$, id$, RESULT);
@@ -1081,7 +1081,7 @@ RESULT = start_val;
           case 80: // symbol_id ::= ID 
             {
               String RESULT = null;
-              java_cup.runtime.Symbol the_id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol the_id$ = CUP$stack.get(CUP$size-1);
               String the_id = (String) the_id$.value;
  RESULT = the_id; 
               return parser.getSymbolFactory().newSymbol("symbol_id", 31, the_id$, the_id$, RESULT);
@@ -1092,7 +1092,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "option"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("symbol_id", 31, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1101,7 +1101,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "super"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("symbol_id", 31, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1110,7 +1110,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "extends"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("symbol_id", 31, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1118,7 +1118,7 @@ RESULT = start_val;
           case 84: // robust_id ::= ID 
             {
               String RESULT = null;
-              java_cup.runtime.Symbol the_id$ = CUP$stack.peek();
+              java_cup.runtime.Symbol the_id$ = CUP$stack.get(CUP$size-1);
               String the_id = (String) the_id$.value;
  RESULT = the_id; 
               return parser.getSymbolFactory().newSymbol("robust_id", 33, the_id$, the_id$, RESULT);
@@ -1129,7 +1129,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "option"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1138,7 +1138,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "code"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1147,7 +1147,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "action"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1156,7 +1156,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "parser"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1165,7 +1165,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "terminal"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1174,7 +1174,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "non"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1183,7 +1183,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "nonterminal"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1192,7 +1192,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "init"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1201,7 +1201,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "scan"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1210,7 +1210,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "with"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1219,7 +1219,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "start"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1228,7 +1228,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "precedence"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1237,7 +1237,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "left"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1246,7 +1246,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "right"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1255,7 +1255,7 @@ RESULT = start_val;
             {
               String RESULT = null;
  RESULT = "nonassoc"; 
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
@@ -1267,21 +1267,21 @@ RESULT = start_val;
 		ErrorManager.getManager().emit_error("Illegal use of reserved word");
 		RESULT="ILLEGAL";
 	
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("robust_id", 33, CUP$sym, CUP$sym, RESULT);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 101: // opt_semi ::= 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("opt_semi", 10, CUP$sym, CUP$sym);
             }
 
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 102: // opt_semi ::= SEMI 
             {
-              java_cup.runtime.Symbol CUP$sym = CUP$stack.peek();
+              java_cup.runtime.Symbol CUP$sym = CUP$stack.get(CUP$size-1);
               return parser.getSymbolFactory().newSymbol("opt_semi", 10, CUP$sym, CUP$sym);
             }
 

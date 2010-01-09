@@ -1,7 +1,8 @@
 
 package java_cup.runtime;
 
-import java.util.Stack;
+import java.util.ArrayList;
+import java.util.List;
 
 /** This class implements a temporary or "virtual" parse stack that 
  *  replaces the top portion of the actual parse stack (the part that 
@@ -25,7 +26,7 @@ public class virtual_parse_stack {
   /*-----------------------------------------------------------*/
 
   /** Constructor to build a virtual stack out of a real stack. */
-  public virtual_parse_stack(Stack<Symbol> shadowing_stack) throws java.lang.Exception
+  public virtual_parse_stack(List<Symbol> shadowing_stack) throws java.lang.Exception
     {
       /* sanity check */
       if (shadowing_stack == null)
@@ -34,7 +35,7 @@ public class virtual_parse_stack {
 
       /* set up our internals */
       real_stack = shadowing_stack;
-      vstack     = new Stack<Integer>();
+      vstack     = new ArrayList<Integer>();
       real_top   = shadowing_stack.size();
       get_from_real();
     }
@@ -47,7 +48,7 @@ public class virtual_parse_stack {
    *  the bottom of the virtual portion of the stack, but is always left
    *  unmodified.
    */
-  private Stack<Symbol> real_stack;
+  private List<Symbol> real_stack;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -66,7 +67,7 @@ public class virtual_parse_stack {
    *  on the virtual stack).  When this portion of the stack becomes empty we 
    *  transfer elements from the underlying stack onto this stack. 
    */
-  private Stack<Integer> vstack;
+  private ArrayList<Integer> vstack;
 
   /*-----------------------------------------------------------*/
   /*--- General Methods ---------------------------------------*/
@@ -83,10 +84,10 @@ public class virtual_parse_stack {
       if (real_top == 0) return;
 
       /* get a copy of the first Symbol we have not transfered */
-      stack_sym = (Symbol)real_stack.elementAt(--real_top);
+      stack_sym = (Symbol)real_stack.get(--real_top);
 
       /* put the state number from the Symbol onto the virtual stack */
-      vstack.push(stack_sym.parse_state);
+      vstack.add(stack_sym.parse_state);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -96,7 +97,7 @@ public class virtual_parse_stack {
     {
       /* if vstack is empty then we were unable to transfer onto it and 
 	 the whole thing is empty. */
-      return vstack.empty();
+      return vstack.isEmpty();
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -104,11 +105,11 @@ public class virtual_parse_stack {
   /** Return value on the top of the stack (without popping it). */
   public int top() throws java.lang.Exception
     {
-      if (vstack.empty())
+      if (vstack.isEmpty())
 	throw new Exception(
 		  "Internal parser error: top() called on empty virtual stack");
 
-      return ((Integer)vstack.peek()).intValue();
+      return vstack.get(vstack.size()-1).intValue();
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -116,14 +117,14 @@ public class virtual_parse_stack {
   /** Pop the stack. */
   public void pop()
     {
-      assert !vstack.empty() :
+      assert !vstack.isEmpty() :
 		  "Internal parser error: pop from empty virtual stack";
 
       /* pop it */
-      vstack.pop();
+      vstack.remove(vstack.size()-1);
 
       /* if we are now empty transfer an element (if there is one) */
-      if (vstack.empty())
+      if (vstack.isEmpty())
         get_from_real();
     }
   
@@ -131,11 +132,14 @@ public class virtual_parse_stack {
   public void pop(int num_elems)
     {
       int vsize = vstack.size();
-      if (vsize > num_elems)
-	vstack.setSize(vsize - num_elems);
+      if (vsize > num_elems) 
+	{
+	  while (num_elems-- > 0)
+	    vstack.remove(--vsize);
+	}
       else 
 	{
-	  vstack.setSize(0);
+	  vstack.clear();
 	  real_top -= (num_elems - vsize);
 	  get_from_real();
 	}
@@ -146,7 +150,7 @@ public class virtual_parse_stack {
   /** Push a state number onto the stack. */
   public void push(int state_num)
     {
-      vstack.push(state_num);
+      vstack.add(state_num);
     }
 
   /*-----------------------------------------------------------*/

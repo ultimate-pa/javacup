@@ -430,7 +430,7 @@ public class lalr_state {
       for (Entry<lr_item,lookaheads> itm : items().entrySet()) 
 	{
 	  /* do not print the kernel */
-	  if (itm.getKey().dot_pos == 0)
+	  if (itm.getKey().dot_pos != 0)
 	    continue;
 	  result.append("  [").append(itm.getKey()).append(", ");
 	  result.append(itm.getValue()).append("]\n");
