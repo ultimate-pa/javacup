@@ -2,7 +2,6 @@
 package java_cup.runtime;
 
 import java.util.ArrayList;
-import java.util.Stack;
 
 /** This class implements a skeleton table driven LR parser.  In general,
  *  LR parsers are a form of bottom up shift-reduce parsers.  Shift-reduce
