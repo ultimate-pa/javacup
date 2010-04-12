@@ -31,7 +31,7 @@ public class parse_action_table {
 
   /** Constants for action type -- reduce action. */
   public static final int REDUCE = 2;
-
+  
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
@@ -47,7 +47,7 @@ public class parse_action_table {
       int _num_terminals = grammar.num_terminals();
 
       /* allocate the array and fill it in with empty rows */
-      table = new int[_num_states][_num_terminals];
+      table = new int[_num_states][_num_terminals+1];
     }
 
   /*-----------------------------------------------------------*/
@@ -101,62 +101,6 @@ public class parse_action_table {
 	return "REDUCE("+index(code)+")";
     }
   
-  /** Compute the default (reduce) action for this row and return it. 
-   *  In the case of non-zero default we will have the 
-   *  effect of replacing all errors by that reduction.  This may cause 
-   *  us to do erroneous reduces, but will never cause us to shift past 
-   *  the point of the error and never cause an incorrect parse.  0 will 
-   *  be used to encode the fact that no reduction can be used as a 
-   *  default (in which case error will be used).
-   *  @param row the action row.
-   *  @param compact_reduces whether we should compact reduces even if 
-   *         it changes error recovery behavior.
-   *  @return the action code of the reduce action.
-   */
-  private static int compute_default(int[] row, boolean compact_reduces)
-    {
-	/* Check if there is already an action for the error symbol.
-	 * This must be the default action.
-	 */
-	int action = row[terminal.error.index()]; 
-	if (action != ERROR)
-	  {
-	    if (isReduce(action))
-	      return action;
-	    return ERROR;
-	  }
-	if (!compact_reduces)
-	  return ERROR;
-
-	/* allocate the count table */
-	HashMap<Integer, Integer> reduction_count
-	  = new HashMap<Integer, Integer>();
-
-	/* clear the reduction count table and maximums */
-	int max_count = 0;
-	int default_action = ERROR;
-
-	/* walk down the row and look at the reduces */
-	for (int i = 0; i < row.length; i++)
-	  {
-	    if (isReduce(row[i]))
-	      {
-		/* count the reduce in the proper production slot and keep the 
-		       max up to date */
-		int prod = index(i);
-		Integer oldcount = reduction_count.get(prod);
-		int count = oldcount == null ? 1 : oldcount+1; 
-		reduction_count.put(prod, count);
-		if (count > max_count)
-		  {
-		    default_action = row[i];
-		    max_count = count;
-		  }
-	      }
-	  }
-	return default_action;
-    }
-  
   /**
    * Compress the action table into it's runtime form.  This returns
    * an array act_tab and initializes base_table, such that for all
@@ -169,17 +113,17 @@ public class parse_action_table {
    * act_tab[state] == default_action[state]
    * </pre>
    */
-  public short[] compress(boolean compact_reduces, int[] base_table)
+  public short[] compress(int[] base_table)
     {
       int[] default_actions = new int[table.length];
       TreeSet<CombRow> rows = new TreeSet<CombRow>();
       for (int i = 0; i < table.length; i++)
 	{
 	  int[] row = table[i];
-	  default_actions[i] = compute_default(row, compact_reduces);
+	  default_actions[i] = row[row.length-1];
 	  int len = 0;
-	  for (int j = 0; j < row.length; j++)
-	    if (row[j] != ERROR && row[j] != default_actions[i])
+	  for (int j = 0; j < row.length-1; j++) 
+	    if (row[j] != default_actions[i]) 
 	      len++;
 	  if (len == 0)
 	    continue;
@@ -187,7 +131,7 @@ public class parse_action_table {
 	  int[] comb = new int[len];
 	  len = 0;
 	  for (int j = 0; j < row.length; j++)
-	    if (row[j] != ERROR && row[j] != default_actions[i])
+	    if (row[j] != default_actions[i])
 	      comb[len++] = j;
 	  rows.add(new CombRow(i, comb));
 	}

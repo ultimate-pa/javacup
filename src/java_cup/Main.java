@@ -719,7 +719,7 @@ public class Main {
       /* build the LR parser action and reduce-goto tables */
       if (opt_do_debug || print_progress)
 	System.err.println("  Filling in tables...");
-      grammar.build_tables();
+      grammar.build_tables(opt_compact_red);
 
       table_end = System.currentTimeMillis();
 
@@ -748,7 +748,7 @@ public class Main {
     {
       emit.symbols(symbol_class_file, grammar, include_non_terms, sym_interface);
       emit.parser(parser_class_file, grammar,
-	  opt_compact_red, suppress_scanner,
+	  suppress_scanner,
 	  opt_lr_values, opt_old_lr_values, opt_java15);
     }
 

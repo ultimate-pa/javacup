@@ -231,7 +231,7 @@ public class lalr_state {
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
+  
   /** Fill in the parse table entries for this state.  There are two 
    *  parse tables that encode the viable prefix recognition machine, an 
    *  action table and a reduce-goto table.  The rows in each table 
@@ -255,10 +255,15 @@ public class lalr_state {
    */
   public void build_table_entries(Grammar grammar,
     parse_action_table act_table, 
-    parse_reduce_table reduce_table)
+    parse_reduce_table reduce_table,
+    boolean compact_reduces)
     {
       int     act;
       symbol  sym;
+      
+      int        default_lasize = 0;
+      int	 default_action = parse_action_table.ERROR;
+      boolean    default_prodisempty = false;
 
       /* pull out our rows from the tables */
       int[] our_act_row = act_table.table[index()];
@@ -273,12 +278,14 @@ public class lalr_state {
 	      boolean conflict = false;
 	      act = parse_action_table.action(parse_action_table.REDUCE,
 		  itm.getKey().the_production.index());
+	      int lasize = 0;
 
 	      /* consider each lookahead symbol */
 	      for (int t = 0; t < grammar.num_terminals(); t++)
 		{
 		  /* skip over the ones not in the lookahead */
 		  if (!itm.getValue().contains(t)) continue;
+		  lasize++;
 
 	          /* if we don't already have an action put this one in */
 	          if (our_act_row[t] == parse_action_table.ERROR)
@@ -312,6 +319,21 @@ public class lalr_state {
 			    /* report a reduce/reduce conflict */
 			    grammar.report_reduce_reduce(this, compare, itm);
 			}
+		    }
+		}
+	      
+	      /* if we compact reduce tables make this action the default
+	       * action if it has the most lookahead symbols
+	       */
+	      if (compact_reduces && lasize > default_lasize) 
+		{
+		  production prod = itm.getKey().the_production;
+		  /* don't make it default if it doesn't save a rule */ 
+		  if (prod.rhs_length() != 0 || lasize > 1)
+		    {
+		      default_prodisempty = prod.rhs_length() == 0;
+		      default_lasize = lasize;
+		      default_action = act; 
 		    }
 		}
 	    }
@@ -351,6 +373,31 @@ public class lalr_state {
 	    {
 	      /* for non terminals add an entry to the reduce-goto table */
 	      our_red_row[idx] = trans.to_state;
+	    }
+	}
+      
+      /* Check if there is already an action for the error symbol.
+       * This must be the default action.
+       */
+      act = our_act_row[terminal.error.index()]; 
+      if (act != parse_action_table.ERROR)
+	{
+	  default_action = parse_action_table.isReduce(act) ? act 
+		: parse_action_table.ERROR; 
+	  default_prodisempty = false;
+	}
+      our_act_row[grammar.num_terminals()] = default_action;
+      if (default_action != parse_action_table.ERROR)
+	{
+	  for (int i = 0; i < grammar.num_terminals(); i++)
+	    {
+	      /* map everything to default action, except the error transition
+	       * if default_action reduces an empty production.
+	       * The latter may otherwise lead to infinite loops.
+	       */
+	      if (our_act_row[i] == parse_action_table.ERROR
+		  && (i != terminal.error.index() || !default_prodisempty))
+		our_act_row[i] = default_action;
 	    }
 	}
     }

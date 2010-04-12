@@ -555,13 +555,14 @@ public class Grammar {
       ErrorManager.getManager().emit_warning(message.toString());
     }
 
-  public void build_tables()
+  public void build_tables(boolean compact_reduces)
     {
       action_table = new parse_action_table(this);
       reduce_table = new parse_reduce_table(this);
       for (lalr_state lst : lalr_states())
 	{
-	  lst.build_table_entries(this, action_table, reduce_table);
+	  lst.build_table_entries(this, action_table, reduce_table,
+	      compact_reduces);
 	}
     }
 

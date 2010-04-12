@@ -524,13 +524,12 @@ public class emit {
    * @param compact_reduces do we use the most frequent reduce as default?
    */
   private String do_action_table(
-    Grammar            grammar,
-    boolean            compact_reduces)
+    Grammar            grammar)
     {
       long start_time = System.currentTimeMillis();
       parse_action_table act_tab = grammar.action_table();
       int[] base_tab = new int[act_tab.table.length];
-      short[] action_tab = act_tab.compress(compact_reduces, base_tab);
+      short[] action_tab = act_tab.compress(base_tab);
       String result = do_array_as_string(base_tab) + do_array_as_string(action_tab);
       action_table_time = System.currentTimeMillis() - start_time;
       return result;
@@ -639,7 +638,6 @@ public class emit {
   public void parser(
     PrintWriter        out, 
     Grammar            grammar,
-    boolean            compact_reduces,
     boolean            suppress_scanner,
     boolean            lr_values,
     boolean            old_lr_values,
@@ -690,7 +688,7 @@ public class emit {
 
       /* emit the various tables */
       String tables = do_production_table(grammar) + 
-      	do_action_table(grammar, compact_reduces) +
+      	do_action_table(grammar) +
       	do_reduce_table(grammar);
 
       /* instance of the action encapsulation class */
