@@ -130,7 +130,7 @@ public class parse_action_table {
 
 	  int[] comb = new int[len];
 	  len = 0;
-	  for (int j = 0; j < row.length; j++)
+	  for (int j = 0; j < row.length-1; j++)
 	    if (row[j] != default_actions[i])
 	      comb[len++] = j;
 	  rows.add(new CombRow(i, comb));
