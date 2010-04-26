@@ -2,7 +2,6 @@
 package java_cup;
 
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.TreeSet;
 
 /** This class represents the complete "action" table of the parser. 
@@ -187,10 +186,13 @@ public class parse_action_table {
 	{
 	  result.append("From state #").append(row).append("\n");
 	  cnt = 0;
+	  int default_act = table[row][table[row].length-1];
+	  result.append(" [default:").append(toString(default_act))
+	  	.append("]\n");
 	  for (int col = 0; col < table[row].length; col++)
 	    {
-	      /* if the action is not an error print it */ 
-	      if (table[row][col] != ERROR)
+	      /* if the action is not the default, print it */ 
+	      if (table[row][col] != default_act)
 		{
 		  result.append(" [term ").append(col).append(":")
 		    .append(toString(table[row][col])).append("]");
