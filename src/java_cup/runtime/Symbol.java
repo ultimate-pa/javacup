@@ -74,7 +74,7 @@ public class Symbol {
 /***********************************
   Constructor to give a start state
 ***********************************/
-  Symbol(int sym_num, int state)
+  protected Symbol(int sym_num, int state)
     {
       sym = sym_num;
       parse_state = state;
