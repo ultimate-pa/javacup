@@ -177,6 +177,7 @@ public class Main {
       if (print_progress)
 	System.err.println("Parsing specification...");
       Grammar grammar = parse_grammar_spec();
+      grammar.add_wildcard_rules();
 
       parse_end = System.currentTimeMillis();
 

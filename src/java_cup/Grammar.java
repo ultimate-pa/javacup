@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -137,20 +138,55 @@ public class Grammar {
       return nt;
     }
   
+  public non_terminal star_symbol(symbol sym)
+    {
+      if (sym._star_symbol == null)
+	{
+	  String type = sym._stack_type == null ? null : sym._stack_type+"[]";
+	  sym._star_symbol = add_non_terminal(sym._name+"*", type);
+	}
+      return sym._star_symbol;
+    }
+  
+  public non_terminal plus_symbol(symbol sym)
+    {
+      if (sym._plus_symbol == null)
+	{
+	  String type = sym._stack_type == null ? null : sym._stack_type+"[]";
+	  sym._plus_symbol = add_non_terminal(sym._name+"+", type);
+	}
+      return sym._plus_symbol;
+    }
+  
+  public non_terminal opt_symbol(symbol sym)
+    {
+      if (sym._opt_symbol == null)
+	{
+	  sym._opt_symbol = add_non_terminal(sym._name+"?", sym._stack_type);
+	}
+      return sym._opt_symbol;
+    }
+  
   /** set start non terminal symbol */
   public void set_start_symbol(non_terminal start_nt)
     {
       /* build a special start production */
       symbol_part[] rhs = new symbol_part[2];
       action_part action = null;
+      String result;
       if (start_nt.stack_type() != null)
 	{
-	  rhs[0] = new symbol_part(start_nt, "start_val");
-	  action = new action_part("RESULT = start_val;");
+	  rhs[0] = new symbol_part(start_nt, "CUP$rhs");
+	  result = "CUP$rhs";
 	}
       else
-	rhs[0] = new symbol_part(start_nt);
+	{
+	  rhs[0] = new symbol_part(start_nt);
+	  result = "null";
+	}
       rhs[1] = new symbol_part(terminal.EOF);
+      action = new action_part("RESULT = " + result +
+      		";\n/* ACCEPT */\nparser.done_parsing();");
       _start_production = 
 	  new production(0, 0, non_terminal.START_nt, rhs, -1, action, null);
       _productions.add(_start_production);
@@ -190,7 +226,7 @@ public class Grammar {
    * actions at the end where they can be handled as part of a reduce by the
    * parser.
    */
-  public void build_production(non_terminal lhs, ArrayList<production_part> rhs_parts, terminal precedence)
+  public production build_production(non_terminal lhs, List<production_part> rhs_parts, terminal precedence)
     {
       int i;
 
@@ -327,6 +363,7 @@ public class Grammar {
 	      last_act_loc = i;
 	    }
 	}
+      return prod;
     }
 
   
@@ -656,5 +693,59 @@ public class Grammar {
   public parse_reduce_table reduce_table()
     {
       return reduce_table;
+    }
+
+  public void add_star_production(non_terminal lhs, non_terminal sym_star, symbol sym)
+    {
+      ArrayList<production_part> rhs = new ArrayList<production_part>(2);
+      rhs.add(new symbol_part(sym_star));
+      rhs.add(new symbol_part(sym));
+      rhs.add(new action_part("CUP$STAR2"));
+      build_production(lhs, rhs, null);
+    }
+  
+  public void add_wildcard_rules(symbol sym)
+    {
+      ArrayList<production_part> rhs;
+      if (sym._opt_symbol != null)
+	{
+	  rhs = new ArrayList<production_part>(1);
+	  if (sym.stack_type() != null)
+	    rhs.add(new action_part("RESULT=null;"));
+	  build_production(sym._opt_symbol, rhs, null);
+	  
+	  rhs = new ArrayList<production_part>(1);
+	  rhs.add(new symbol_part(sym));
+	  build_production(sym._opt_symbol, rhs, null);
+	}
+      
+      if (sym._star_symbol != null)
+	{
+	  rhs = new ArrayList<production_part>(1);
+	  rhs.add(new action_part("CUP$STAR0"));
+	  build_production(sym._star_symbol, rhs, null);
+
+	  add_star_production(sym._star_symbol, sym._star_symbol, sym);
+	  
+	  if (sym._plus_symbol != null)
+	    add_star_production(sym._plus_symbol, sym._star_symbol, sym);
+	}
+      else if (sym._plus_symbol != null)
+	{
+	  rhs = new ArrayList<production_part>(1);
+	  rhs.add(new symbol_part(sym));
+	  rhs.add(new action_part("CUP$STAR1"));
+	  build_production(sym._plus_symbol, rhs, null);
+
+	  add_star_production(sym._plus_symbol, sym._plus_symbol, sym);
+	}
+    }
+  
+  public void add_wildcard_rules()
+    {
+      for (symbol sym : terminals())
+	add_wildcard_rules(sym);
+      for (symbol sym : non_terminals())
+	add_wildcard_rules(sym);
     }
 }

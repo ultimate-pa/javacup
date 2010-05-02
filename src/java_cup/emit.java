@@ -197,7 +197,7 @@ public class emit {
   /** Build a string with the standard prefix. 
    * @param str string to prefix.
    */
-  protected String pre(String str) {
+  protected final static String pre(String str) {
     return prefix + str;
   }
 
@@ -296,6 +296,194 @@ public class emit {
 
       symbols_time = System.currentTimeMillis() - start_time;
     }
+  
+  private void emit_action(PrintWriter out, Grammar grammar, production prod,
+      boolean lr_values, boolean old_lr_values, boolean is_java15)
+    {
+      boolean is_star_action = 
+	prod.action() != null && prod.action().code_string().startsWith("CUP$STAR");
+      String result = "";
+      if (prod.lhs().stack_type() != null && !is_star_action)
+	{
+	  int lastResult = prod.getIndexOfIntermediateResult();
+	  String init_result = "";
+	  if (lastResult!=-1)
+	    {
+	      init_result =  " = (" + prod.lhs().stack_type() + ") " +
+	      stackelem(prod.rhs_stackdepth() - lastResult, is_java15)+".value";
+	    }
+	  else if (prod instanceof action_production)
+	    {
+	      init_result = " = null";
+	    }
+	  /* create the result symbol */
+	  /* make the variable RESULT which will point to the new Symbol 
+	   * (see below) and be changed by action code
+	   * 6/13/96 frankf */
+	  out.println("              " +  prod.lhs().stack_type() +
+	      " RESULT"+init_result+";");
+
+	  result = ", RESULT";
+	}
+
+      production baseprod;
+      if (prod instanceof action_production)
+	baseprod = ((action_production)prod).base_production();
+      else
+	baseprod = prod;
+      String leftsym = null, rightsym = null;
+      /* Add code to propagate RESULT assignments that occur in
+       * action code embedded in a production (ie, non-rightmost
+       * action code). 24-Mar-1998 CSA
+       */
+      for (int i=prod.rhs_stackdepth()-1; i>=0; i--) 
+	{
+	  symbol_part symbol = baseprod.rhs(i);
+	  String label = symbol.label;
+	  String symtype = symbol.the_symbol.stack_type(); 
+	  boolean is_wildcard = !is_star_action && symtype != null
+	  	&& (symbol.the_symbol.name().endsWith("*")
+		    || symbol.the_symbol.name().endsWith("+"));
+
+	  if (is_wildcard && label == null)
+	    label = pre(""+i);
+	  
+	  if (label != null)
+	    {
+	      if (i == 0)
+		leftsym = label+"$";
+	      if (i == prod.rhs_stackdepth()-1)
+		rightsym = label+"$";
+
+	      out.println("              java_cup.runtime.Symbol " + 
+		  label + "$ = " +
+		  stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
+
+	      /* Put in the left/right value labels */
+	      if (symbol.label != null && old_lr_values)
+		{
+		  out.println("              int "+label+"left = "+
+		      label + "$.left;");
+		  out.println("              int "+label+"right = "+
+		      label + "$.right;");
+		}
+	      if (symtype != null)
+		{
+		  if (is_wildcard)
+		    {
+		      String basetype = symtype.substring(0, symtype.length() - 2);
+		      String symbollen = pre("len$" + label);
+		      out.println("              int " + symbollen +
+			  " = ((Integer) " + label + "$.value).intValue();");
+		      if (symbol.label != null)
+			{
+			  out.println("              " + symtype + " " + label + 
+			      " = new " + basetype + "[" + symbollen + "];");
+			}
+		      out.println("              while (" + symbollen + "-- > 0)");
+		      out.println("                {");
+		      out.println("                  " + pre("stack") + 
+			  ".remove(--" + pre("size") + ");");
+		      if (symbol.label != null)
+			{
+			  out.println("                  " + label + 
+			      "[" + symbollen + "] = (" + basetype + ") " + 
+			      stackelem(prod.rhs_stackdepth() - i, is_java15) + 
+			  ".value;");
+			}
+		      out.println("                }");
+		    }
+		  else
+		    {
+		      out.println("              " + symtype +
+			  " " + label + " = (" + symtype + ") " +
+			  label + "$.value;");
+		    }
+		}
+	    }
+	}
+
+      /* if there is an action string, emit it */
+      if (prod.action() != null)
+	{
+	  if (prod.action().code_string().equals("CUP$STAR0"))
+	    {
+	      if (prod.lhs().stack_type() != null)
+		result = ", Integer.valueOf(0)";
+	    }
+	  else if (prod.action().code_string().equals("CUP$STAR1"))
+	    {
+	      leftsym = rightsym = pre("0");
+	      out.println("              java_cup.runtime.Symbol " +
+		  rightsym + " = " +
+		  stackelem(prod.rhs_stackdepth(), is_java15) + ";");
+	      out.println("              " +
+		  rightsym + ".parse_state = " + 
+		  stackelem(prod.rhs_stackdepth() + 1, is_java15) + ".parse_state;");
+	      out.println("              " +
+		  pre("stack") + ".add(" + rightsym + ");");
+	      if (prod.lhs().stack_type() != null)
+		result = ", Integer.valueOf(1)";
+	    }
+	  else if (prod.action().code_string().equals("CUP$STAR2"))
+	    {
+	      if (prod.lhs().stack_type() != null)
+		{
+		  leftsym = pre("0");
+		  rightsym = pre("1");
+		  out.println("              java_cup.runtime.Symbol " +
+		      rightsym + " = " +
+		      stackelem(prod.rhs_stackdepth() - 1, is_java15) + ";");
+		  out.println("              java_cup.runtime.Symbol " +
+		      leftsym + " = " +
+		      stackelem(prod.rhs_stackdepth() - 0, is_java15) + ";");
+		  out.println("              " +
+		      rightsym + ".parse_state = " + 
+		      stackelem(prod.rhs_stackdepth() + 1, is_java15) + ".parse_state;");
+		  out.println("              " +
+		      pre("stack") + ".set(" + pre("size") + " - 2, " + 
+		      rightsym + ");");
+		  out.println("              " +
+		      pre("stack") + ".add(" +  
+		      leftsym + ");");
+		  result = ", Integer.valueOf(((Integer)CUP$0.value).intValue()+1)";
+		}
+	    }
+	  else 
+	    {
+	      out.println(prod.action().code_string());
+	    }
+	}
+
+      /* here we have the left and right values being propagated.  
+		must make this a command line option.
+	     frankf 6/18/96 */
+
+      /* Create the code that assigns the left and right values of
+        the new Symbol that the production is reducing to */
+      String leftright = "";
+      if (lr_values)
+	{
+	  if (prod.rhs_length() <= 1 && rightsym == null)
+	    {
+	      leftsym = rightsym = pre("sym");
+	      out.println("              java_cup.runtime.Symbol " + rightsym + " = " +
+		  stackelem(1, is_java15) + ";");
+	    }
+	  else
+	    {
+	      if (rightsym == null)
+		rightsym = stackelem(1, is_java15);
+	      if (leftsym == null)
+		leftsym = stackelem(prod.rhs_stackdepth(), is_java15);
+	    }
+	  leftright = ", " + leftsym + ", " + rightsym;
+	}
+	  /* code to return lhs symbol */
+	  out.println("              return parser.getSymbolFactory().newSymbol(" + 
+	      "\"" + prod.lhs().name() +  "\", " +
+	      prod.lhs().index() + leftright + result + ");");
+    }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -368,112 +556,10 @@ public class emit {
 		out.println("          // " + p2.toString());
 	    }
           out.println("          case " + prod.action_index() + ":");
-
 	  /* give them their own block to work in */
 	  out.println("            {");
-
-	  if (prod.lhs().stack_type() != null)
-	    {
-	      int lastResult = prod.getIndexOfIntermediateResult();
-	      String result = "null";
-	      if (lastResult!=-1)
-		{
-		  result =  "(" + prod.lhs().stack_type() + ") " +
-		  stackelem(prod.rhs_stackdepth() - lastResult, is_java15)+".value";
-		}
-
-	      /* create the result symbol */
-	      /* make the variable RESULT which will point to the new Symbol 
-	       * (see below) and be changed by action code
-	       * 6/13/96 frankf */
-	      out.println("              " +  prod.lhs().stack_type() +
-		  " RESULT = "+result+";");
-	    }
-	  production baseprod;
-	  if (prod instanceof action_production)
-	    baseprod = ((action_production)prod).base_production();
-	  else
-	    baseprod = prod;
-	  String leftsym = null, rightsym = null;
-	  /* Add code to propagate RESULT assignments that occur in
-	   * action code embedded in a production (ie, non-rightmost
-	   * action code). 24-Mar-1998 CSA
-	   */
-	  for (int i=prod.rhs_stackdepth()-1; i>=0; i--) 
-	    {
-	      symbol_part symbol = baseprod.rhs(i);
-	      if (symbol.label != null)
-		{
-		  if (i == 0)
-		    leftsym = symbol.label+"$";
-		  if (i == prod.rhs_stackdepth()-1)
-		    rightsym = symbol.label+"$";
-		  
-		  out.println("              java_cup.runtime.Symbol " + 
-		      symbol.label + "$ = " +
-		      stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
-	      		
-		  /* Put in the left/right value labels */
-		  if (old_lr_values)
-		    {
-		      out.println("              int "+symbol.label+"left = "+
-			  symbol.label + "$.left;");
-		      out.println("              int "+symbol.label+"right = "+
-			  symbol.label + "$.right;");
-		    }
-
-		  String symtype = symbol.the_symbol.stack_type(); 
-		  if (symtype != null)
-		    {
-		      out.println("              " + symtype +
-			  " " + symbol.label + " = (" + symtype + ") " +
-			  symbol.label + "$.value;");
-		    }
-		}
-	    }
-
-	  /* if there is an action string, emit it */
-          if (prod.action() != null)
-            out.println(prod.action().code_string());
-
-	  /* here we have the left and right values being propagated.  
-		must make this a command line option.
-	     frankf 6/18/96 */
-
-         /* Create the code that assigns the left and right values of
-            the new Symbol that the production is reducing to */
-          String leftright = "";
-	  if (lr_values)
-	    {
-	      if (prod.rhs_length() <= 1 && rightsym == null)
-		{
-		  leftsym = rightsym = pre("sym");
-		  out.println("              java_cup.runtime.Symbol " + rightsym + " = " +
-		      stackelem(1, is_java15) + ";");
-		}
-	      else
-		{
-		  if (rightsym == null)
-		    rightsym = stackelem(1, is_java15);
-		  if (leftsym == null)
-		    leftsym = stackelem(prod.rhs_stackdepth(), is_java15);
-		}
-	      leftright = ", " + leftsym + ", " + rightsym;
-	    }
-	  String result = prod.lhs().stack_type() != null 
-	  	? ", RESULT" : "";
-
-	  /* if this was the start production, do action for accept */
-	  if (prod == grammar.start_production())
-	    {
-	      out.println("              /* ACCEPT */");
-	      out.println("              parser.done_parsing();");
-	    }
-
-	  /* code to return lhs symbol */
-	  out.println("              return parser.getSymbolFactory().newSymbol(" + 
-	      "\"" + prod.lhs().name() +  "\", " +
-	      prod.lhs().index() + leftright + result + ");");
+	  
+	  emit_action(out, grammar, prod, lr_values, old_lr_values, is_java15);
 	  
 	  /* end of their block */
 	  out.println("            }");

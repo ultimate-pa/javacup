@@ -101,5 +101,7 @@ public abstract class symbol implements Comparable<symbol> {
     }
 
   /*-----------------------------------------------------------*/
+  
+  non_terminal _star_symbol, _plus_symbol, _opt_symbol;
 
 }

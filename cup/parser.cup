@@ -86,6 +86,7 @@
 	    word if you like.
     v0.11a  Added support for generic types on symbols.
     v0.12a  Clean up, added options, added parser name.
+    v0.14   Added support for *, +, ? after symbols.
 */
 /*================================================================*/ 
 
@@ -193,7 +194,7 @@ terminal
   PACKAGE, IMPORT, CODE, ACTION, PARSER, TERMINAL, NON, INIT, SCAN, WITH, 
   START, SEMI, COMMA, STAR, DOT, COLON, COLON_COLON_EQUALS, BAR, PRECEDENCE,
   LEFT, RIGHT, NONASSOC, PERCENT_PREC, LBRACK, RBRACK, NONTERMINAL, GT, LT,
-  QUESTION, SUPER, EXTENDS, EQUALS, OPTION;
+  QUESTION, SUPER, EXTENDS, EQUALS, OPTION, PLUS;
 
 terminal String  ID, CODE_STRING;
 
@@ -212,6 +213,7 @@ non terminal Grammar spec;
 non terminal String  symbol_id, opt_label_id, robust_id;
 non terminal StringBuilder multipart_id, import_id, type_id,
 			   typearglist, typeargument, wildcard;
+non terminal symbol wild_symbol_id;
 
 non terminal production_part prod_part;
 non terminal ArrayList<production_part> prod_part_list;
@@ -487,24 +489,10 @@ prod_part_list ::= prod_part_list:list prod_part:prod
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 prod_part ::=
-	symbol_id:symid opt_label_id:labid
+	wild_symbol_id:symb opt_label_id:labid
 	{: 
-	  /* try to look up the id */
-	  symbol symb = symbols.get(symid);
-
-	  /* if that fails, symbol is undeclared */
-	  if (symb == null)
-	    {
-	      if (ErrorManager.getManager().getErrorCount() == 0)
-	        ErrorManager.getManager().emit_error("java_cup.runtime.Symbol \"" + symid + 
-			       "\" has not been declared");
-	      RESULT = null;
-	    }
-	  else
-	    {
-	      /* add a labeled production part */
-	      RESULT = new symbol_part(symb, labid);
-	    }
+	  /* add a labeled production part */
+	  RESULT = new symbol_part(symb, labid);
 	:}
 	|
 	CODE_STRING:code_str
@@ -514,7 +502,36 @@ prod_part ::=
 	:}
 	;
 
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
+/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+
+wild_symbol_id ::=
+    wild_symbol_id:s STAR 
+    {: RESULT = grammar.star_symbol(s); :} 
+    |
+    wild_symbol_id:s PLUS 
+    {: RESULT = grammar.plus_symbol(s); :} 
+    |
+    wild_symbol_id:s QUESTION
+    {: RESULT = grammar.opt_symbol(s); :} 
+    |
+    symbol_id : symid
+    {: /* try to look up the id */
+	   symbol symb = symbols.get(symid);
+
+	   /* if that fails, symbol is undeclared */
+	   if (symb == null)
+	     {
+	       if (ErrorManager.getManager().getErrorCount() == 0)
+	         ErrorManager.getManager().emit_error("java_cup.runtime.Symbol \"" + symid + 
+			        "\" has not been declared");
+	       RESULT = null;
+	     }
+	   else
+	     {
+           RESULT = symb; 
+         }
+    :}
+    ;
 
 opt_label_id ::=
 	COLON robust_id:labid
