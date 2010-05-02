@@ -23,6 +23,7 @@ public class Grammar {
   private final ArrayList<terminal>     _terminals;
   private final ArrayList<non_terminal> _nonterminals;
   private final ArrayList<production>   _productions;
+  private final ArrayList<production>   _actions;
   
   private production _start_production;
 
@@ -47,20 +48,12 @@ public class Grammar {
   /** Resulting reduce-goto table. */
   private parse_reduce_table reduce_table;
 
-  public Grammar(ArrayList<terminal> t, ArrayList<non_terminal> nt, ArrayList<production> p,
-      production start)
-    {
-      _nonterminals = nt;
-      _terminals = t;
-      _productions =p;
-      _start_production = start;
-    }
-
   public Grammar()
     {
       _terminals = new ArrayList<terminal>();
       _nonterminals = new ArrayList<non_terminal>();
       _productions = new ArrayList<production>();
+      _actions = new ArrayList<production>();
       
       _terminals.add(terminal.error);
       _terminals.add(terminal.EOF);
@@ -98,6 +91,10 @@ public class Grammar {
     {
       return _productions.size();
     }
+  public int num_actions()
+    {
+      return _actions.size();
+    }
   
   public Iterable<terminal> terminals()
     {
@@ -113,6 +110,11 @@ public class Grammar {
   {
     return _productions;
   }
+
+  public Iterable<production> actions()
+    {
+      return _actions;
+    }
 
   public int num_conflicts()
     {
@@ -150,8 +152,9 @@ public class Grammar {
 	rhs[0] = new symbol_part(start_nt);
       rhs[1] = new symbol_part(terminal.EOF);
       _start_production = 
-	  new production(0, non_terminal.START_nt, rhs, -1, action, null);
+	  new production(0, 0, non_terminal.START_nt, rhs, -1, action, null);
       _productions.add(_start_production);
+      _actions.add(_start_production);
       non_terminal.START_nt.note_use();
     }
   
@@ -238,6 +241,20 @@ public class Grammar {
 	{
 	  action = (action_part) rhs_parts.remove(rhs_parts.size()-1);
 	}
+      /* Create a proxy action if appropriate */
+      else if (rhs_parts.size() == 1
+	        && lhs.stack_type() != null
+	        && lhs.stack_type().equals(((symbol_part) rhs_parts.get(0)).the_symbol.stack_type()))
+	{
+	  symbol_part rhs = (symbol_part) rhs_parts.get(0);
+	  /* create a label if not already present */
+	  if (rhs.label == null)
+	    {
+	      rhs = new symbol_part(rhs.the_symbol, "CUP$rhs");
+	      rhs_parts.set(0, rhs);
+	    }
+	  action = new action_part("RESULT = "+rhs.label+";");
+	}
 
       /* allocate and copy over the right-hand-side */
       symbol_part[] rhs = new symbol_part[rhs_parts.size()];
@@ -260,9 +277,41 @@ public class Grammar {
 	    }
 	}
       
+      int action_index = _actions.size();
+      
+      /* check if there is a production with exactly the same action and reuse it.*/
+      for (production prod : lhs.productions()) 
+	{
+	  if ((action == null ? prod.action() == null :
+	      prod.action() != null && 
+	      action.code_string().equals(prod.action().code_string()))
+	      && prod.rhs_length() == rhs.length)
+	    {
+	      boolean match = true;
+	      for (int idx = 0; idx < rhs.length; idx++)
+		{
+		  if (rhs[idx].label == null ? prod.rhs(idx).label != null :
+		    !rhs[idx].label.equals(prod.rhs(idx).label))
+		    {
+		      match = false; 
+		      break;
+		    }
+		}
+	      if (match)
+		{
+		  action_index = prod.action_index();
+		  break;
+		}
+	    }
+	}
+      
       /* put the production in the production list of the lhs non terminal */
-      production prod = new production(_productions.size(), lhs, rhs, last_act_loc, action, precedence);
+      production prod = new production(_productions.size(), action_index, lhs, rhs, last_act_loc, action, precedence);
       _productions.add(prod);
+      if (action_index == _actions.size())
+	{
+	  _actions.add(prod);
+	}
       last_act_loc = -1;
       for (i = 0; i < rhs.length; i++)
 	{
@@ -270,9 +319,11 @@ public class Grammar {
 	  if (part instanceof action_part)
 	    {
 	      production actprod = new action_production
-	      	(_productions.size(), prod, (non_terminal) rhs[i].the_symbol, 
+	      	(_productions.size(), _actions.size(),
+	      	    prod, (non_terminal) rhs[i].the_symbol, 
 	      	    (action_part) part, i, last_act_loc);
 	      _productions.add(actprod);
+	      _actions.add(actprod);
 	      last_act_loc = i;
 	    }
 	}
@@ -585,10 +636,10 @@ public class Grammar {
 	}
 
       /* now go across every production and make sure we hit it */
-      for (production prod : productions())
+      for (production prod : actions())
 	{
 	  /* if we didn't hit it give a warning */
-	  if (!used_productions[prod.index()])
+	  if (!used_productions[prod.action_index()])
 	    {
 	      /* give a warning if they haven't been turned off */
 	      ErrorManager.getManager().emit_warning("*** Production \"" + 

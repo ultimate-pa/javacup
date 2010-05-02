@@ -21,13 +21,14 @@ public class action_production extends production {
    */ 
   public action_production(
     int             index,
+    int	            action_index,
     production      base,
     non_terminal    lhs_sym, 
     action_part     action,
     int             indexOfAction,
     int             last_act_loc)
     {
-      super(index, lhs_sym, new symbol_part[0], last_act_loc, action, null);
+      super(index, action_index, lhs_sym, new symbol_part[0], last_act_loc, action, null);
       _base_production = base;
       this.indexOfAction = indexOfAction;
     }

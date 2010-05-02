@@ -57,7 +57,7 @@ public class production {
    * actions at the end where they can be handled as part of a reduce by the
    * parser.
    */
-  public production(int index, non_terminal lhs_sym, symbol_part rhs[], 
+  public production(int index, int action_index, non_terminal lhs_sym, symbol_part rhs[], 
       	int last_act_loc, action_part action, terminal precedence)
     {
       if (precedence != null)
@@ -69,6 +69,7 @@ public class production {
       _rhs = rhs;
       _action = action;
       _index = index;
+      _action_index = action_index;
       for (int i = 0; i < rhs.length; i++)
 	{
 	  symbol rhs_sym = rhs[i].the_symbol;
@@ -101,10 +102,10 @@ public class production {
   /*-----------------------------------------------------------*/
 
   /** The left hand side non-terminal. */
-  private final symbol _lhs;
+  private final non_terminal _lhs;
 
   /** The left hand side non-terminal. */
-  public symbol lhs()
+  public non_terminal lhs()
     {
       return _lhs;
     }
@@ -168,12 +169,18 @@ public class production {
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /** Index number of the production. */
-  private final int _index;
+  private final int _index, _action_index;
 
   /** Index number of the production. */
   public int index()
     {
       return _index;
+    }
+
+  /** Index number of the action for this production. */
+  public int action_index()
+    {
+      return _action_index;
     }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */

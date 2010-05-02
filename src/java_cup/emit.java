@@ -359,12 +359,15 @@ public class emit {
       out.println("        {");
 
       /* emit action code for each production as a separate case */
-      for (production prod : grammar.productions())
+      for (production prod : grammar.actions())
 	{
 	  /* case label */
-          out.println("          /*. . . . . . . . . . . . . . . . . . . .*/");
-          out.println("          case " + prod.index() + ": // " + 
-					  prod.toString());
+	  for (production p2 : prod.lhs().productions())
+	    {
+	      if (p2.action_index() == prod.action_index())
+		out.println("          // " + p2.toString());
+	    }
+          out.println("          case " + prod.action_index() + ":");
 
 	  /* give them their own block to work in */
 	  out.println("            {");
@@ -505,11 +508,11 @@ public class emit {
     {
       long start_time = System.currentTimeMillis();
 
-      short[] prod_table = new short[2*grammar.num_productions()];
-      for (production prod : grammar.productions())
+      short[] prod_table = new short[2*grammar.num_actions()];
+      for (production prod : grammar.actions())
 	{
-	  prod_table[2*prod.index()+0] = (short) prod.lhs().index();
-	  prod_table[2*prod.index()+1] = (short) prod.rhs_length();
+	  prod_table[2*prod.action_index()+0] = (short) prod.lhs().index();
+	  prod_table[2*prod.action_index()+1] = (short) prod.rhs_length();
 	}
       String result = do_array_as_string(prod_table);
       production_table_time = System.currentTimeMillis() - start_time;

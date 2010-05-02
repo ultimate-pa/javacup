@@ -799,8 +799,10 @@ public class Main {
 	  + plural(grammar.num_non_terminals()) + ", and ");
       System.err.println(grammar.num_productions() + " production"
 	  + plural(grammar.num_productions()) + " declared, ");
-      System.err.println("  producing " + grammar.lalr_states().size()
-	  + " unique parse states.");
+      System.err.print("  producing " + grammar.lalr_states().size()
+	  + " unique parse states,");
+      System.err.println(" " + grammar.num_actions() + " unique action"
+	  + plural(grammar.num_actions()) + ". ");
 
       /* unused symbols */
       System.err.println("  " + emit.unused_term + " terminal"

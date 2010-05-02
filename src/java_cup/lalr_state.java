@@ -277,7 +277,7 @@ public class lalr_state {
 	    {
 	      boolean conflict = false;
 	      act = parse_action_table.action(parse_action_table.REDUCE,
-		  itm.getKey().the_production.index());
+		  itm.getKey().the_production.action_index());
 	      int lasize = 0;
 
 	      /* consider each lookahead symbol */
