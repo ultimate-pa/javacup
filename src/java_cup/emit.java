@@ -413,17 +413,20 @@ public class emit {
 	    }
 	  else if (prod.action().code_string().equals("CUP$STAR1"))
 	    {
-	      leftsym = rightsym = pre("0");
-	      out.println("              java_cup.runtime.Symbol " +
-		  rightsym + " = " +
-		  stackelem(prod.rhs_stackdepth(), is_java15) + ";");
-	      out.println("              " +
-		  rightsym + ".parse_state = " + 
-		  stackelem(prod.rhs_stackdepth() + 1, is_java15) + ".parse_state;");
-	      out.println("              " +
-		  pre("stack") + ".add(" + rightsym + ");");
 	      if (prod.lhs().stack_type() != null)
-		result = ", Integer.valueOf(1)";
+		{
+		  leftsym = rightsym = pre("0");
+		  out.println("              java_cup.runtime.Symbol " +
+		      rightsym + " = " +
+		      stackelem(prod.rhs_stackdepth(), is_java15) + ";");
+		  out.println("              " +
+		      rightsym + ".parse_state = " + 
+		      stackelem(prod.rhs_stackdepth() + 1, is_java15) + ".parse_state;");
+		  out.println("              " +
+		      pre("stack") + ".add(" + rightsym + ");");
+		  if (prod.lhs().stack_type() != null)
+		    result = ", Integer.valueOf(1)";
+		}
 	    }
 	  else if (prod.action().code_string().equals("CUP$STAR2"))
 	    {
