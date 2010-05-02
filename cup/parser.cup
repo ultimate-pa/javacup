@@ -94,6 +94,7 @@ package java_cup;
 import java_cup.runtime.*;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 /*----------------------------------------------------------------*/ 
 
 option java15, compact_red, interface, newpositions;
@@ -199,10 +200,10 @@ terminal
 terminal String  ID, CODE_STRING;
 
 non terminal
-  package_spec, import_list, parser_spec,
+  package_spec, parser_spec,
   option_spec, option_list, option_, action_code_part, 
   code_parts, code_part, opt_semi, 
-  parser_code_part, symbol_list, start_spec, production_list, 
+  parser_code_part, start_spec, 
   import_spec, init_code, scan_code, symbol, 
   terminal_non_terminal, decl_symbol_list, new_symbol_id,  
   precedence_list, preced, assoc, precterminal_list, precterminal_id,
@@ -216,7 +217,6 @@ non terminal StringBuilder multipart_id, import_id, type_id,
 non terminal symbol wild_symbol_id;
 
 non terminal production_part prod_part;
-non terminal ArrayList<production_part> prod_part_list;
 non terminal symbol prod_precedence; 
 
 /*----------------------------------------------------------------*/ 
@@ -227,12 +227,12 @@ start with spec;
 
 spec ::= 
 	package_spec
-	import_list
+	import_spec*
 	code_parts
-	symbol_list
+	symbol+
 	precedence_list
 	start_spec
-	production_list
+	production+
         {: RESULT = grammar; :}
 	|
 	/* error recovery assuming something went wrong before symbols 
@@ -241,10 +241,10 @@ spec ::=
 	   production_list 
 	*/
 	error 
-	symbol_list
+	symbol+
 	precedence_list
 	start_spec
-	production_list
+	production+
         {: RESULT = grammar; :}
 	;
 
@@ -256,15 +256,6 @@ package_spec ::=
 	  /* save the package name */
 	  parser.main.setOption("package", id.toString());
 	:}
-	|
-	/* empty */
-	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-import_list ::=
-	import_list
-	import_spec
 	|
 	/* empty */
 	;
@@ -354,8 +345,6 @@ scan_code ::=
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-symbol_list ::= symbol_list symbol | symbol;
-
 symbol ::= 
 	terminal_non_terminal
 	type_id:id  {: _cur_symbol_type = id.toString(); :}
@@ -440,10 +429,6 @@ start_spec ::=
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-production_list ::= production_list production | production;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
 production ::=
 	symbol_id:lhs_id
 	{:
@@ -469,22 +454,18 @@ prod_precedence ::= PERCENT_PREC symbol_id:term
 	      
 
 rhs ::= 
-	prod_part_list:rhs prod_precedence:precsym 
+	prod_part*:rhs prod_precedence:precsym 
 	{:
 	  if (lhs_nt != null) 
 	    {
 	      /* build the production */
-	      grammar.build_production(lhs_nt, rhs, (terminal) precsym);
+	      ArrayList<production_part> rhs_list = 
+	      	new ArrayList<production_part>(rhs.length);
+	      rhs_list.addAll(Arrays.asList(rhs));
+	      grammar.build_production(lhs_nt, rhs_list, (terminal) precsym);
 	    }
 	:}
 	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-prod_part_list ::= prod_part_list:list prod_part:prod
-	{: RESULT = list; if (prod != null) RESULT.add(prod); :}
-      | /* empty */ {: RESULT = new ArrayList<production_part>(); :}
-      ;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 

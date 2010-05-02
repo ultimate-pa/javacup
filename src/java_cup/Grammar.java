@@ -327,7 +327,11 @@ public class Grammar {
 	      for (int idx = 0; idx < rhs.length; idx++)
 		{
 		  if (rhs[idx].label == null ? prod.rhs(idx).label != null :
-		    !rhs[idx].label.equals(prod.rhs(idx).label))
+		    !rhs[idx].label.equals(prod.rhs(idx).label)
+		    && rhs[idx].the_symbol.stack_type() == null ?
+			prod.rhs(idx).the_symbol.stack_type() == null :
+			  rhs[idx].the_symbol.stack_type()
+			  .equals(prod.rhs(idx).the_symbol.stack_type()))
 		    {
 		      match = false; 
 		      break;
