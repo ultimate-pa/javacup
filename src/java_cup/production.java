@@ -264,6 +264,11 @@ public class production {
       _nullable = v;
       return v;
     }
+  
+  public boolean is_proxy()
+    {
+      return _rhs.length == 1 && action() == null;
+    }
 
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 

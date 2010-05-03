@@ -277,20 +277,6 @@ public class Grammar {
 	{
 	  action = (action_part) rhs_parts.remove(rhs_parts.size()-1);
 	}
-      /* Create a proxy action if appropriate */
-      else if (rhs_parts.size() == 1
-	        && lhs.stack_type() != null
-	        && lhs.stack_type().equals(((symbol_part) rhs_parts.get(0)).the_symbol.stack_type()))
-	{
-	  symbol_part rhs = (symbol_part) rhs_parts.get(0);
-	  /* create a label if not already present */
-	  if (rhs.label == null)
-	    {
-	      rhs = new symbol_part(rhs.the_symbol, "CUP$rhs");
-	      rhs_parts.set(0, rhs);
-	    }
-	  action = new action_part("RESULT = "+rhs.label+";");
-	}
 
       /* allocate and copy over the right-hand-side */
       symbol_part[] rhs = new symbol_part[rhs_parts.size()];
@@ -312,8 +298,11 @@ public class Grammar {
 	      rhs[i] = (symbol_part) prod;
 	    }
 	}
-      
       int action_index = _actions.size();
+
+      /* proxy productions are optimized away; they need no action */
+      if (rhs.length == 1 && action == null)
+	action_index = -1;
       
       /* check if there is a production with exactly the same action and reuse it.*/
       for (production prod : lhs.productions()) 

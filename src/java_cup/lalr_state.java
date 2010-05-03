@@ -188,28 +188,53 @@ public class lalr_state {
 	}
       
       /* now create a transition out for each individual symbol */
-      for (Entry<symbol,ArrayList<lr_item>> out : outgoing.entrySet() )
+      for (symbol out : outgoing.keySet() )
 	{
 	  /* gather up shifted versions of all the items that have this
 		 symbol before the dot */
 	  TreeMap<lr_item, terminal_set> new_items = new TreeMap<lr_item, terminal_set>();
-	  for (lr_item itm : out.getValue())
+
+	  /* find proxy symbols on the way */
+	  ArrayList<symbol> proxy_symbols = new ArrayList<symbol>();
+	  proxy_symbols.add(out);	  
+	  for (int i = 0; i < proxy_symbols.size(); i++)
 	    {
-	      /* add to the kernel of the new state */
-	      new_items.put(itm.shift_item(), items().get(itm));
+	      symbol sym = proxy_symbols.get(i);
+	      for (lr_item itm : outgoing.get(sym))
+		{
+		  /* add to the kernel of the new state */
+		  if (itm.the_production.is_proxy())
+		    {
+		      symbol proxy = itm.the_production.lhs();
+		      if (!proxy_symbols.contains(proxy))
+			{
+			  proxy_symbols.add(proxy);
+			}
+		    }
+		  else
+		    {
+		      new_items.put(itm.shift_item(), items().get(itm));
+		    }
+		}
 	    }
 
 	  /* create/get successor state */
 	  lalr_state new_st = grammar.get_lalr_state(new_items);
-	  for (lr_item itm : out.getValue())
+	  for (symbol sym : proxy_symbols)
 	    {
-	      /* ... remember that itm has propagate link to it */
-	      items().get(itm).add_listener(
-		  new_st.items().get(itm.shift_item()));
+	      for (lr_item itm : outgoing.get(sym))
+		{
+		  /* ... remember that itm has propagate link to it */
+		  if (!itm.the_production.is_proxy())
+		    {
+		      items().get(itm).add_listener(
+			  new_st.items().get(itm.shift_item()));
+		    }
+		}
 	    }
 
 	  /* add a transition from current state to that state */
-	  _transitions = new lalr_transition(out.getKey(), new_st, _transitions);
+	  _transitions = new lalr_transition(out, new_st, _transitions);
 	}
     }
  
