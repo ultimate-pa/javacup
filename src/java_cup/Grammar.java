@@ -323,21 +323,7 @@ public class Grammar {
 	      action.code_string().equals(prod.action().code_string()))
 	      && prod.rhs_length() == rhs.length)
 	    {
-	      boolean match = true;
-	      for (int idx = 0; idx < rhs.length; idx++)
-		{
-		  if ((rhs[idx].label == null ? prod.rhs(idx).label != null :
-		    !rhs[idx].label.equals(prod.rhs(idx).label))
-		    && (rhs[idx].the_symbol.stack_type() == null ?
-			prod.rhs(idx).the_symbol.stack_type() == null :
-			  rhs[idx].the_symbol.stack_type()
-			  .equals(prod.rhs(idx).the_symbol.stack_type())))
-		    {
-		      match = false; 
-		      break;
-		    }
-		}
-	      if (match)
+	      if (productions_match(prod, rhs))
 		{
 		  action_index = prod.action_index();
 		  break;
@@ -371,6 +357,29 @@ public class Grammar {
     }
 
   
+  private boolean productions_match(production prod, symbol_part[] rhs)
+    {
+      for (int idx = 0; idx < rhs.length; idx++)
+	{
+	  if (rhs[idx].label == null)
+	    {
+	      if (prod.rhs(idx).label != null)
+		return false;
+	    }
+	  else
+	    {
+	      if (!rhs[idx].label.equals(prod.rhs(idx).label))
+		return false;
+	      if (rhs[idx].the_symbol.stack_type() == null ?
+		  prod.rhs(idx).the_symbol.stack_type() != null :
+		  !rhs[idx].the_symbol.stack_type()
+		  .equals(prod.rhs(idx).the_symbol.stack_type()))
+		return false;
+	    }
+	}
+      return true;
+    }
+
   public lalr_state get_lalr_state(Map<lr_item, terminal_set> kernel)
     {
       Collection<lr_item> key = kernel.keySet();
