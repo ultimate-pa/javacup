@@ -702,7 +702,8 @@ public class Grammar {
       ArrayList<production_part> rhs = new ArrayList<production_part>(2);
       rhs.add(new symbol_part(sym_star));
       rhs.add(new symbol_part(sym));
-      rhs.add(new action_part("CUP$STAR2"));
+      if (sym.stack_type() != null)
+	rhs.add(new action_part("CUP$STAR2"));
       build_production(lhs, rhs, null);
     }
   
@@ -724,23 +725,34 @@ public class Grammar {
       if (sym._star_symbol != null)
 	{
 	  rhs = new ArrayList<production_part>(1);
-	  rhs.add(new action_part("CUP$STAR0"));
+	  if (sym.stack_type() != null)
+	    rhs.add(new action_part("CUP$STAR0"));
 	  build_production(sym._star_symbol, rhs, null);
 
-	  add_star_production(sym._star_symbol, sym._star_symbol, sym);
-	  
 	  if (sym._plus_symbol != null)
-	    add_star_production(sym._plus_symbol, sym._star_symbol, sym);
+	    {
+	      rhs = new ArrayList<production_part>(1);
+	      rhs.add(new symbol_part(sym._plus_symbol));
+	      build_production(sym._star_symbol, rhs, null);
+	      
+	      add_star_production(sym._plus_symbol, sym._star_symbol, sym);
+	    } 
+	  else 
+	    {
+	      add_star_production(sym._star_symbol, sym._star_symbol, sym);
+	    }
 	}
       else if (sym._plus_symbol != null)
 	{
 	  rhs = new ArrayList<production_part>(1);
 	  rhs.add(new symbol_part(sym));
-	  rhs.add(new action_part("CUP$STAR1"));
+	  if (sym.stack_type() != null)
+	    rhs.add(new action_part("CUP$STAR1"));
 	  build_production(sym._plus_symbol, rhs, null);
 
 	  add_star_production(sym._plus_symbol, sym._plus_symbol, sym);
 	}
+      
     }
   
   public void add_wildcard_rules()

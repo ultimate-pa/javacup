@@ -369,29 +369,21 @@ public class emit {
 		}
 	      if (symtype != null)
 		{
-		  if (is_wildcard)
+		  if (is_wildcard && symbol.label != null)
 		    {
-		      String basetype = symtype.substring(0, symtype.length() - 2);
-		      String symbollen = pre("len$" + label);
-		      out.println("              int " + symbollen +
-			  " = ((Integer) " + label + "$.value).intValue();");
-		      if (symbol.label != null)
-			{
-			  out.println("              " + symtype + " " + label + 
-			      " = new " + basetype + "[" + symbollen + "];");
-			}
-		      out.println("              while (" + symbollen + "-- > 0)");
-		      out.println("                {");
-		      out.println("                  " + pre("stack") + 
-			  ".remove(--" + pre("size") + ");");
-		      if (symbol.label != null)
-			{
-			  out.println("                  " + label + 
-			      "[" + symbollen + "] = (" + basetype + ") " + 
-			      stackelem(prod.rhs_stackdepth() - i, is_java15) + 
-			  ".value;");
-			}
-		      out.println("                }");
+		      String basetype = symtype.substring(0, symtype.length()-2);
+		      String listtype = "java.util.ArrayList";
+		      String cast = "";
+		      if (is_java15)
+			listtype += "<" + basetype + ">";
+		      else
+			cast = "(" + basetype + "[]) ";
+		      String symbollist = pre("list$" + label);
+		      out.println("              " + listtype + " " + symbollist +
+			  " = (" + listtype + ") " + label + "$.value;");
+		      out.println("              " + symtype + " " + label + 
+			  " = " + cast + symbollist + ".toArray(" +
+			  "new " + basetype + "[" + symbollist + ".size()]);");
 		    }
 		  else
 		    {
@@ -406,51 +398,47 @@ public class emit {
       /* if there is an action string, emit it */
       if (prod.action() != null)
 	{
-	  if (prod.action().code_string().equals("CUP$STAR0"))
+	  if (prod.action().code_string().startsWith("CUP$STAR"))
 	    {
-	      if (prod.lhs().stack_type() != null)
-		result = ", Integer.valueOf(0)";
-	    }
-	  else if (prod.action().code_string().equals("CUP$STAR1"))
-	    {
-	      if (prod.lhs().stack_type() != null)
-		{
-		  leftsym = rightsym = pre("0");
-		  out.println("              java_cup.runtime.Symbol " +
-		      rightsym + " = " +
-		      stackelem(prod.rhs_stackdepth(), is_java15) + ";");
-		  out.println("              " +
-		      rightsym + ".parse_state = " + 
-		      stackelem(prod.rhs_stackdepth() + 1, is_java15) + ".parse_state;");
-		  out.println("              " +
-		      pre("stack") + ".add(" + rightsym + ");");
-		  if (prod.lhs().stack_type() != null)
-		    result = ", Integer.valueOf(1)";
-		}
-	    }
-	  else if (prod.action().code_string().equals("CUP$STAR2"))
-	    {
-	      if (prod.lhs().stack_type() != null)
-		{
-		  leftsym = pre("0");
-		  rightsym = pre("1");
-		  out.println("              java_cup.runtime.Symbol " +
-		      rightsym + " = " +
-		      stackelem(prod.rhs_stackdepth() - 1, is_java15) + ";");
-		  out.println("              java_cup.runtime.Symbol " +
-		      leftsym + " = " +
-		      stackelem(prod.rhs_stackdepth() - 0, is_java15) + ";");
-		  out.println("              " +
-		      rightsym + ".parse_state = " + 
-		      stackelem(prod.rhs_stackdepth() + 1, is_java15) + ".parse_state;");
-		  out.println("              " +
-		      pre("stack") + ".set(" + pre("size") + " - 2, " + 
-		      rightsym + ");");
-		  out.println("              " +
-		      pre("stack") + ".add(" +  
-		      leftsym + ");");
-		  result = ", Integer.valueOf(((Integer)CUP$0.value).intValue()+1)";
-		}
+	      assert(prod.lhs().stack_type() != null);
+	      String symtype = prod.lhs().stack_type();
+	      String basetype = symtype.substring(0, symtype.length()-2);
+	      String listtype = "java.util.ArrayList";
+	      if (is_java15)
+		listtype += "<" + basetype + ">";
+
+	      switch (prod.action().code_string().charAt(8))
+	      	{
+	      	  case '0':
+	      	    result = ", new "+listtype+"()";
+	      	    break;
+	      	  case '1':
+	      	    leftsym = rightsym = pre("0");
+	      	    out.println("              java_cup.runtime.Symbol " +
+	      		rightsym + " = " +
+	      		stackelem(prod.rhs_stackdepth(), is_java15) + ";");
+	      	    out.println("              " + listtype +  
+	      		" RESULT = new "+listtype+"();");
+	      	    out.println("              " +   
+	      		"RESULT.add((" + basetype + ") " + rightsym +".value);");
+	      	    result = ", RESULT";
+	      	    break;
+	      	  case '2': 
+	      	    leftsym = pre("0");
+	      	    rightsym = pre("1");
+	      	    out.println("              java_cup.runtime.Symbol " +
+	      			rightsym + " = " +
+	      			stackelem(prod.rhs_stackdepth() - 1, is_java15) + ";");
+	      	    out.println("              java_cup.runtime.Symbol " +
+			      	leftsym + " = " +
+			      	stackelem(prod.rhs_stackdepth() - 0, is_java15) + ";");
+	      	    out.println("              " + listtype +  
+	      		" RESULT = ("+listtype+") " + leftsym + ".value;");
+	      	    out.println("              " +   
+	      		"RESULT.add((" + basetype + ") " + rightsym +".value);");
+	      	    result = ", RESULT";
+	      	    break;
+	      	}
 	    }
 	  else 
 	    {
