@@ -202,16 +202,16 @@ terminal String  ID, CODE_STRING;
 non terminal
   package_spec, parser_spec,
   option_spec, option_list, option_, action_code_part, 
-  code_parts, code_part, opt_semi, 
+  code_parts, code_part, 
   parser_code_part, start_spec, 
   import_spec, init_code, scan_code, symbol, 
   terminal_non_terminal, decl_symbol_list, new_symbol_id,  
-  precedence_list, preced, assoc, precterminal_list, precterminal_id,
+  preced, assoc, precterminal_list, precterminal_id,
   production, rhs_list, rhs;
   
 non terminal Grammar spec;
 
-non terminal String  symbol_id, opt_label_id, robust_id;
+non terminal String  symbol_id, label_id, robust_id;
 non terminal StringBuilder multipart_id, import_id, type_id,
 			   typearglist, typeargument, wildcard;
 non terminal symbol wild_symbol_id;
@@ -230,7 +230,7 @@ spec ::=
 	import_spec*
 	code_parts
 	symbol+
-	precedence_list
+	preced*
 	start_spec
 	production+
         {: RESULT = grammar; :}
@@ -242,7 +242,7 @@ spec ::=
 	*/
 	error 
 	symbol+
-	precedence_list
+	preced*
 	start_spec
 	production+
         {: RESULT = grammar; :}
@@ -298,7 +298,7 @@ option_ ::= robust_id:opt {: parser.main.setOption(opt); :}
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 action_code_part ::= 
-	ACTION CODE CODE_STRING:user_code opt_semi
+	ACTION CODE CODE_STRING:user_code SEMI?
 	{:
 	  if (parser.emit.action_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant action code (skipping)");
@@ -310,7 +310,7 @@ action_code_part ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 parser_code_part ::= 
-	PARSER CODE CODE_STRING:user_code opt_semi
+	PARSER CODE CODE_STRING:user_code SEMI?
 	{:
 	  if (parser.emit.parser_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant parser code (skipping)");
@@ -322,7 +322,7 @@ parser_code_part ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 init_code ::= 
-	INIT WITH CODE_STRING:user_code opt_semi
+	INIT WITH CODE_STRING:user_code SEMI?
 	{: 
 	  if (parser.emit.init_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant init code (skipping)");
@@ -334,7 +334,7 @@ init_code ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 scan_code ::=
-	SCAN WITH CODE_STRING:user_code opt_semi
+	SCAN WITH CODE_STRING:user_code SEMI?
 	{: 
 	  if (parser.emit.scan_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant scan code (skipping)");
@@ -393,8 +393,6 @@ new_symbol_id ::=
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-precedence_list ::= precedence_list preced | /* empty */; 
 
 preced ::= PRECEDENCE assoc precterminal_list SEMI;
 
@@ -470,7 +468,7 @@ rhs ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 prod_part ::=
-	wild_symbol_id:symb opt_label_id:labid
+	wild_symbol_id:symb label_id?:labid
 	{: 
 	  /* add a labeled production part */
 	  RESULT = new symbol_part(symb, labid);
@@ -514,12 +512,9 @@ wild_symbol_id ::=
     :}
     ;
 
-opt_label_id ::=
+label_id ::=
 	COLON robust_id:labid
 	{: RESULT = labid; :}
-	|
-	/* empty */
-	{: RESULT = null; :}
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -538,12 +533,12 @@ import_id ::=
 	multipart_id:id DOT STAR
 	{: id.append(".*"); RESULT = id; :}
 	|
-	multipart_id:id {: RESULT = id; :}
+	multipart_id
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
-type_id ::= multipart_id:id {: RESULT = id; :}
+type_id ::= multipart_id
 	| type_id:id LBRACK RBRACK
 	{: id.append("[]"); RESULT = id; :}
 	|multipart_id:id 
@@ -555,17 +550,14 @@ type_id ::= multipart_id:id {: RESULT = id; :}
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 typearglist ::= 
-            typeargument:arg
-            {: RESULT = arg; :}
+            typeargument
             | typearglist:list COMMA typeargument:arg
             {: RESULT = list.append(",").append(arg); :}
             ;
 
 typeargument ::=
-              type_id:id
-              {: RESULT = id; :}
-              | wildcard:w
-              {: RESULT = w; :}
+              type_id
+              | wildcard
               ;
 
 wildcard ::=
@@ -580,44 +572,38 @@ wildcard ::=
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 symbol_id ::=
-	ID:the_id       {: RESULT = the_id; :}
-	| OPTION	{: RESULT = "option"; :}
-	| SUPER		{: RESULT = "super"; :}
-	| EXTENDS	{: RESULT = "extends"; :}
+	ID
+	| OPTION
+	| SUPER
+	| EXTENDS
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 robust_id ::= /* all ids that aren't reserved words in Java */
-	ID:the_id	{: RESULT = the_id; :}
+	ID
 	/* package is reserved. */
 	/* import is reserved. */
-	| OPTION	{: RESULT = "option"; :}
-	| CODE		{: RESULT = "code"; :}
-	| ACTION	{: RESULT = "action"; :}
-	| PARSER	{: RESULT = "parser"; :}
-	| TERMINAL	{: RESULT = "terminal"; :}
-	| NON		{: RESULT = "non"; :}
-	| NONTERMINAL   {: RESULT = "nonterminal"; :}
-	| INIT		{: RESULT = "init"; :}
-	| SCAN		{: RESULT = "scan"; :}
-	| WITH		{: RESULT = "with"; :}
-	| START		{: RESULT = "start"; :}
-	| PRECEDENCE	{: RESULT = "precedence"; :}
-	| LEFT		{: RESULT = "left"; :}
-	| RIGHT		{: RESULT = "right"; :}
-	| NONASSOC	{: RESULT = "nonassoc"; :}
+	| OPTION
+	| CODE
+	| ACTION
+	| PARSER
+	| TERMINAL
+	| NON
+	| INIT
+	| SCAN
+	| WITH
+	| START
+	| PRECEDENCE
+	| LEFT
+	| RIGHT
+	| NONASSOC
 	| error
 	{:
 		ErrorManager.getManager().emit_error("Illegal use of reserved word");
 		RESULT="ILLEGAL";
 	:}
 	;
-
-/*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
-
-opt_semi ::= /* nothing */
-	| SEMI;
 
 /*----------------------------------------------------------------*/ 
 

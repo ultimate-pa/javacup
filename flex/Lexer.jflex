@@ -72,39 +72,39 @@ ident = ([:jletter:] | "_" ) ([:jletterdigit:] | [:jletter:] | "_" )*
   "["           { return symbol("LBRACK",LBRACK);              }
   "]"           { return symbol("RBRACK",RBRACK);              }
   ":"           { return symbol("COLON",COLON);                }
-  "="      	{ return symbol("EQUALS",EQUALS);              }
+  "="      	    { return symbol("EQUALS",EQUALS);              }
   "::="         { return symbol("COLON_COLON_EQUALS",COLON_COLON_EQUALS);   }
   "%prec"       { return symbol("PERCENT_PREC",PERCENT_PREC);  }
   ">"           { return symbol("GT",GT);                      }
   "<"           { return symbol("LT",LT);                      }
   {Comment}     {                                              }
-  "{:"          { sb = new StringBuffer(); csline=yyline+1; cscolumn=yycolumn+1; yybegin(CODESEG);    }
-  "package"     { return symbol("PACKAGE",PACKAGE);            } 
-  "import"      { return symbol("IMPORT",IMPORT);	       }
-  "option"      { return symbol("OPTION",OPTION);	       }
-  "code"        { return symbol("CODE",CODE);		       }
-  "action"      { return symbol("ACTION",ACTION);	       }
-  "parser"      { return symbol("PARSER",PARSER);	       }
-  "terminal"    { return symbol("PARSER",TERMINAL);	       }
-  "non"         { return symbol("NON",NON);		       }
-  "nonterminal" { return symbol("NONTERMINAL",NONTERMINAL);    }
-  "init"        { return symbol("INIT",INIT);		       }
-  "scan"        { return symbol("SCAN",SCAN);		       }
-  "with"        { return symbol("WITH",WITH);		       }
-  "start"       { return symbol("START",START);		       }
-  "precedence"  { return symbol("PRECEDENCE",PRECEDENCE);      }
-  "left"        { return symbol("LEFT",LEFT);		       }
-  "right"       { return symbol("RIGHT",RIGHT);		       }
-  "nonassoc"    { return symbol("NONASSOC",NONASSOC);          }
-  "extends"     { return symbol("EXTENDS",EXTENDS);            }
-  "super"       { return symbol("SUPER",SUPER);                }
-  {ident}       { return symbol("ID",ID,yytext());             }
+  "{:"          { sb = new StringBuffer(); csline=yyline+1; cscolumn=yycolumn+1; yybegin(CODESEG); }
+  "package"     { return symbol("PACKAGE",PACKAGE,yytext());       } 
+  "import"      { return symbol("IMPORT",IMPORT,yytext());	       }
+  "option"      { return symbol("OPTION",OPTION,yytext());	       }
+  "code"        { return symbol("CODE",CODE,yytext());		       }
+  "action"      { return symbol("ACTION",ACTION,yytext());	       }
+  "parser"      { return symbol("PARSER",PARSER,yytext());	       }
+  "terminal"    { return symbol("PARSER",TERMINAL,yytext());	   }
+  "non"         { return symbol("NON",NON,yytext());		       }
+  "nonterminal" { return symbol("NONTERMINAL",NONTERMINAL,yytext()); }
+  "init"        { return symbol("INIT",INIT,yytext());		       }
+  "scan"        { return symbol("SCAN",SCAN,yytext());		       }
+  "with"        { return symbol("WITH",WITH,yytext());		       }
+  "start"       { return symbol("START",START,yytext());		   }
+  "precedence"  { return symbol("PRECEDENCE",PRECEDENCE,yytext()); }
+  "left"        { return symbol("LEFT",LEFT,yytext());		       }
+  "right"       { return symbol("RIGHT",RIGHT,yytext());		   }
+  "nonassoc"    { return symbol("NONASSOC",NONASSOC,yytext());     }
+  "extends"     { return symbol("EXTENDS",EXTENDS,yytext());       }
+  "super"       { return symbol("SUPER",SUPER,yytext());           }
+  {ident}       { return symbol("ID",ID,yytext());                 }
   
 }
 
 <CODESEG> {
-  ":}"         { yybegin(YYINITIAL); return symbolFactory.newSymbol("CODE_STRING",CODE_STRING, new Location(csline, cscolumn),new Location(yyline+1,yycolumn+1+yylength()), sb.toString()); }
-  .|\n            { sb.append(yytext()); }
+  ":}"          { yybegin(YYINITIAL); return symbolFactory.newSymbol("CODE_STRING",CODE_STRING, new Location(csline, cscolumn),new Location(yyline+1,yycolumn+1+yylength()), sb.toString()); }
+  .|\n          { sb.append(yytext()); }
 }
 
 // error fallback
