@@ -29,7 +29,7 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The update letter. */
-  public static final String update = "joho 20081115";
+  public static final String update = "joho 20110608";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -45,7 +45,7 @@ public class version {
 
   /** Name of the author */
   public static final String author_str =
-      "Scott E. Hudson, Frank Flannery, Andrea Flexeder, Michael Petter and C. Scott Ananian";
+      "Scott E. Hudson, Frank Flannery, Andrea Flexeder, Michael Petter, C. Scott Ananian and Jochen Hoenicke";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

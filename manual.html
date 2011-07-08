@@ -16,7 +16,8 @@ Flannery</a>, <a href="http://www.pdos.lcs.mit.edu/%7Ecananian/">C. Scott Anania
 <a href="http://www.cs.princeton.edu/%7Edanwang">Dan Wang</a> with advice from 
 <a href="http://www.cs.princeton.edu/%7Eappel">Andrew W. Appel</a><br>
 Now actualized by <a href="http://www2.cs.tum.edu/%7Epetter">Michael Petter</a><br>
-Last updated March 2006 (v0.11a)
+and further by <a href="http://hoenicke.ath.cx/">Jochen Hoenicke</a>.
+Last updated June 2011 (v0.12joho)
 <hr>
 
 <h3>Table of Contents</h3>
@@ -29,6 +30,7 @@ Last updated March 2006 (v0.11a)
   <dt> 2.3 </dt><dd> <a href="#symbol_list">symbol (terminal and non-terminal) lists</a></dd>
   <dt> 2.4 </dt><dd> <a href="#precedence">Precedence</a></dd>
   <dt> 2.5 </dt><dd> <a href="#production_list">The grammar</a></dd>
+  <dt> 2.6 </dt><dd> <a href="#wildcard">Optional and Iterated Symbols</a></dd>
   <dt> 3.1 </dt><dd> <a href="#running">Running CUP</a></dd>
   <dt> 3.2 </dt><dd> <a href="#ant">CUP and ANT</a></dd>
   <dt> 4.  </dt><dd> <a href="#parser">Customizing the Parser</a></dd>
@@ -631,7 +633,11 @@ executed by the parser at the point when the portion of the production
 to the left of the action has been recognized.  Note that the scanner
 will have returned the token one past the point of the action since
 the parser needs this extra
-<i>lookahead</i> token for resolving ambiguities.</p>
+<i>lookahead</i> token for resolving ambiguities.
+If no action is given and the right-hand-side consists of a single 
+(terminal or non-terminal) symbol, the default action is to return 
+the value of this symbol.  This default action is handled very efficiently in
+the parser.</p>
 
 <p><a name="cpp">
 Contextual</a> precedence assignments follow all the symbols and actions of
@@ -653,6 +659,33 @@ shown in the above sample parser specification:</p>
 <p>Here, there production is declared as having the precedence of UMINUS.
 Hence, the parser can give the MINUS sign two different precedences,
 depending on whether it is a unary minus or a subtraction operation. </p>
+
+<h4><a name="wildcard">2.6.</a> Optional and Iterated Symbols</h4>
+
+For every terminal or non-terminal symbol, one can use the symbol
+followed by a question mark (?), star (*), or plus (+) to denote that
+this symbol is optional or may appear several times.  E.g. for a symbol
+declared as
+<pre><tt> 
+      terminal String sym
+</tt></pre>
+one can use <tt>sym?</tt>, <tt>sym*</tt> or <tt>sym+</tt>, as if the 
+following definitions and rules would have been added:
+<pre><tt>
+      nonterminal String sym?
+      nonterminal String[] sym*, sym+
+
+      sym? ::= {: RESULT = null; :} | sym;
+      sym* ::= {: RESULT = new String[0]; :} | sym+;
+      sym+ ::= sym:s {: RESULT = new String[] { s }; :}
+             | sym+:list sym:s
+               {: RESULT = new String[list.length+1];
+                  System.arraycopy(list, 0, RESULT, 0, nts.length);
+                  RESULT[list.length] = s; :};
+</tt></pre>
+
+These definitions are only added when needed and they are implemented more
+efficiently internally (e.g. the array is only created once).
 
 
 <h3><a name="running">3. Running CUP</a></h3>

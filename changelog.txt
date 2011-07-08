@@ -1,4 +1,33 @@
 ------------------------------------------------------------------------
+CUP version 0.12joho 20110608
+
+Efficient support for proxy rules.  A proxy rule is a production where the
+right-hand-side is a single terminal or nonterminal and the result should be
+equal to the result of the right-hand-side.  In that case the user can simply
+write "nonterminal ::= symbol" without giving an action.  These rules are
+implemented efficiently without doing anything, not even a reduction step.
+
+Wildcard support, i.e. nonterminal?, nonterminal*, and nonterminal+ are
+now supported.  The first matches either nonterminal, or the empty string,
+has the same type as nonterminal, but is null if the nonterminal is not set.
+The latter two have array types; nonterminal* stands for zero or more 
+occurences of nonterminal, nonterminal+ stands for one or more occurences.
+These have the same effect as if the user had introduced the rules
+  nonterminal? ::= {: RESULT = null; :} | nonterminal;
+  nonterminal* ::= {: RESULT = new Type[0]; :} | nonterminal+;
+  nonterminal+ ::= nonterminal:nt {: RESULT = new Type[] { nt }; :}
+                 | nonterminal+:nts nonterminal:nt 
+                   {: RESULT = new Type[nts.length+1];
+                      System.arraycopy(nts, 0, RESULT, 0, nts.length);
+                      RESULT[nts.length] = nt; :};
+except that it is a bit more efficient (it uses ArrayList which are converted
+transparently into arrays in the end).
+
+J. Hoenicke
+Universität Freiburg
+2011-06-08
+
+------------------------------------------------------------------------
 CUP version 0.12joho 20081112
 
 INCOMPATIBILITIES:
