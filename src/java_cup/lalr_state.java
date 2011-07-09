@@ -383,7 +383,7 @@ public class lalr_state {
 		{
 		  /* this is a shift_reduce conflict */
 		  int pindex = parse_action_table.index(our_act_row[idx]);
-		  production p = grammar.get_production(pindex);
+		  production p = grammar.get_action(pindex);
 
 		  /* check if precedence can fix it */
 		  if (!fix_with_precedence(p, (terminal) sym, our_act_row, act))

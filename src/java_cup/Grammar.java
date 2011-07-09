@@ -71,6 +71,11 @@ public class Grammar {
       return _terminals.get(i);
     }
   
+  public production get_action(int i)
+    {
+      return _actions.get(i);
+    }
+  
   public production get_production(int i)
     {
       return _productions.get(i);
