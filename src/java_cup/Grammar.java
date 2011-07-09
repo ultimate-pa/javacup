@@ -147,6 +147,8 @@ public class Grammar {
     {
       if (sym._star_symbol == null)
 	{
+	  /* create plus symbol as * is defined via +. */
+	  plus_symbol(sym);
 	  String type = sym._stack_type == null ? null : sym._stack_type+"[]";
 	  sym._star_symbol = add_non_terminal(sym._name+"*", type);
 	}
@@ -729,25 +731,18 @@ public class Grammar {
       
       if (sym._star_symbol != null)
 	{
+	  assert sym._plus_symbol != null;
 	  rhs = new ArrayList<production_part>(1);
 	  if (sym.stack_type() != null)
 	    rhs.add(new action_part("CUP$STAR0"));
 	  build_production(sym._star_symbol, rhs, null);
 
-	  if (sym._plus_symbol != null)
-	    {
-	      rhs = new ArrayList<production_part>(1);
-	      rhs.add(new symbol_part(sym._plus_symbol));
-	      build_production(sym._star_symbol, rhs, null);
-	      
-	      add_star_production(sym._plus_symbol, sym._star_symbol, sym);
-	    } 
-	  else 
-	    {
-	      add_star_production(sym._star_symbol, sym._star_symbol, sym);
-	    }
+	  rhs = new ArrayList<production_part>(1);
+	  rhs.add(new symbol_part(sym._plus_symbol));
+	  build_production(sym._star_symbol, rhs, null);
 	}
-      else if (sym._plus_symbol != null)
+      
+      if (sym._plus_symbol != null)
 	{
 	  rhs = new ArrayList<production_part>(1);
 	  rhs.add(new symbol_part(sym));
