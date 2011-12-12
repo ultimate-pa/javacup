@@ -292,6 +292,7 @@ public class lalr_state {
 
       /* pull out our rows from the tables */
       int[] our_act_row = act_table.table[index()];
+      production[] productions = new production[grammar.num_terminals()+1];
       lalr_state[] our_red_row = reduce_table.table[index()];
 
       /* consider each item in our state */
@@ -316,6 +317,7 @@ public class lalr_state {
 	          if (our_act_row[t] == parse_action_table.ERROR)
 		    {
 	              our_act_row[t] = act;
+	              productions[t] = itm.getKey().the_production;
 		    }
 	          else
 		    {
@@ -382,8 +384,7 @@ public class lalr_state {
 	      else
 		{
 		  /* this is a shift_reduce conflict */
-		  int pindex = parse_action_table.index(our_act_row[idx]);
-		  production p = grammar.get_action(pindex);
+		  production p = productions[idx];
 
 		  /* check if precedence can fix it */
 		  if (!fix_with_precedence(p, (terminal) sym, our_act_row, act))
