@@ -932,7 +932,7 @@ public abstract class LRParser {
 	}
 
       /* continue until we accept or have read all lookahead input */
-      while(lookahead_pos < lookaheads.length)
+      while(!_done_parsing && lookahead_pos < lookaheads.length)
 	{
 	  /* current state is always on the top of the stack */
 
