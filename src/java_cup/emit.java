@@ -372,18 +372,23 @@ public class emit {
 		  if (is_wildcard && symbol.label != null)
 		    {
 		      String basetype = symtype.substring(0, symtype.length()-2);
+		      int arraySuffix = basetype.length();
+		      while (basetype.charAt(arraySuffix-2) == '[')
+			arraySuffix -= 2;
 		      String listtype = "java.util.ArrayList";
 		      String cast = "";
 		      if (is_java15)
 			listtype += "<" + basetype + ">";
 		      else
-			cast = "(" + basetype + "[]) ";
+			cast = "(" + symtype + ") ";
 		      String symbollist = pre("list$" + label);
 		      out.println("              " + listtype + " " + symbollist +
 			  " = (" + listtype + ") " + label + "$.value;");
 		      out.println("              " + symtype + " " + label + 
 			  " = " + cast + symbollist + ".toArray(" +
-			  "new " + basetype + "[" + symbollist + ".size()]);");
+			  "new " + basetype.substring(0, arraySuffix) + 
+			  "[" + symbollist + ".size()]" + 
+			  basetype.substring(arraySuffix) + ");");
 		    }
 		  else
 		    {
