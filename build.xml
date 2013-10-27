@@ -13,8 +13,6 @@
   <!-- initialize the workspace -->
   <target name="init">
     <tstamp />
-    <mkdir dir="${java}" />
-    <mkdir dir="${bootstrap}" />
     <mkdir dir="${classes}" />
     <mkdir dir="${dist}" />    
   </target>
@@ -41,34 +39,31 @@
     <delete dir="${dist}" />
   </target>
 
-  <target name="bootstrap" depends="init">
-    <javac includeantruntime="false" srcdir="${src}" destdir="${bootstrap}" verbose="off" listfiles="off" debug="on" source="1.5" target="1.5">
-    </javac>
-  </target>
-
   <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="JFlex.jar" />
 
-  <target name="cup" depends="bootstrap">
-    <java fork="true" classpath="${bootstrap}" 
-	  classname="java_cup.Main" dir="${java}">
+  <target name="bootstrap" depends="init">
+    <mkdir dir="${bootstrap}" />
+    <javac includeantruntime="false" srcdir="${src}" destdir="${bootstrap}" source="1.5" target="1.5">
+      <exclude name="java_cup/anttask/**"/>
+    </javac>
+    <mkdir dir="${java}" />
+    <copy todir="${java}">
+      <fileset dir="${src}">
+        <exclude name="java_cup/Parser.java"/>
+        <exclude name="java_cup/Lexer.java"/>
+        <exclude name="java_cup/sym.java"/>
+      </fileset>
+    </copy>
+    <java fork="true" classpath="${bootstrap}" classname="java_cup.Main">
+      <arg value="-destdir"/>
+      <arg value="${java}/java_cup"/>
       <arg value="${cup}/parser.cup"/>
     </java>
-  </target>
-
-  <target name="jflex" depends="bootstrap">
     <jflex file="${flex}/Lexer.jflex" destdir="${java}" />
   </target>
 
-  <target name="compile" depends="jflex">
-    <copy todir="${java}"><fileset dir="${src}"></fileset></copy>
-    <javac includeantruntime="false" srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="off" source="1.5" target="jsr14">
-      <include name="java_cup.anttask.**"/>
-      <include name="java_cup.runtime.**"/>
-    </javac>
-    <javac includeantruntime="false" srcdir="${java}" destdir="${classes}" verbose="off" listfiles="off" debug="off" source="1.5" target="1.5">
-      <exclude name="java_cup.anttask.**"/>
-      <exclude name="java_cup.runtime.**"/>
-    </javac>
+  <target name="compile" depends="bootstrap">
+    <javac includeantruntime="true" srcdir="${java}" destdir="${classes}" source="1.5" target="1.5" />
   </target>
 
   <target name="dist" depends="compile">
@@ -86,7 +81,6 @@
 
   <target name="test" depends="dist">
     <java jar="${dist}/java-cup-12joho.jar" fork="true">
-        <arg value="-interface" />
         <arg value="${cup}/parser.cup" />
     </java>  
     
