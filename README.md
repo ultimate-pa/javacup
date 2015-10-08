@@ -4,17 +4,17 @@ CUP Parser Generator for Java
 Java Cup is an LALR Parser Generator for Java.
 
 This version is maintained by Jochen Hoenicke at 
-https://github.com/jhoenicke/javacup/
+https://github.com/ultimate-pa/javacup/
 
-* [User Manual](https://rawgithub.com/jhoenicke/javacup/master/manual.html)
-* [Change Log](https://rawgithub.com/jhoenicke/javacup/master/changelog.txt)
+* [User Manual](https://rawgithub.com/ultimate-pa/javacup/master/manual.html)
+* [Change Log](https://rawgithub.com/ultimate-pa/javacup/master/changelog.txt)
 
 Copyright Notice, License, and Disclaimer
 -----------------------------------------
 
 CUP Parser Generator Copyright Notice, License, and Disclaimer
 
-Copyright 2008-2014 by Jochen Hoenicke
+Copyright 2008-2015 by Jochen Hoenicke
 
 Copyright 2005-2006 by Michael Petter
 
