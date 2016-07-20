@@ -1388,38 +1388,33 @@ The following gives a simplified grammar (no error handling, no robust id)
 of the java cup parser:
 
 <hr>
-<pre><tt>javacup_spec       ::= package_spec import_list code_parts
-                       symbol_list precedence_list start_spec 
-                       production_list
+<pre><tt>javacup_spec       ::= package_spec import_spec* code_parts
+                       symbol+ preced* start_spec 
+                       production+
 package_spec       ::= PACKAGE multipart_id SEMI | empty
-import_list        ::= import_list import_spec | empty
 import_spec        ::= IMPORT import_id SEMI
 code_parts         ::= code_parts code_part | empty
-code_part          ::= ACTION CODE CODE_STRING opt_semi |
-                       PARSER CODE CODE_STRING opt_semi |
-                       INIT WITH CODE_STRING opt_semi |
-                       SCAN WITH CODE_STRING opt_semi
-symbol_list        ::= symbol_list symbol | symbol
+code_part          ::= ACTION CODE CODE_STRING SEMI? |
+                       PARSER CODE CODE_STRING SEMI? |
+                       INIT WITH CODE_STRING SEMI? |
+                       SCAN WITH CODE_STRING SEMI?
 symbol             ::= TERMINAL opt_type_id terminal_list SEMI |
                        non_terminal opt_type_id non_terminal_list SEMI
 non_terminal       ::= NON TERMINAL | NONTERMINAL
-precedence_list    ::= precedence_l preced | empty
 preced             ::= PRECEDENCE LEFT terminal_list SEMI |
                        PRECEDENCE RIGHT terminal_list SEMI |
                        PRECEDENCE NONASSOC terminal_list SEMI
 start_spec         ::= START WITH nt_id SEMI | empty
-production_list    ::= production_list production | production
 production         ::= nt_id COLON_COLON_EQUALS rhs_list SEMI opt_context_prec
 rhs_list           ::= rhs_list BAR rhs | rhs
-rhs                ::= prod_part_list PERCENT_PREC term_id |
-                       prod_part_list
-prod_part_list     ::= prod_part_list prod_part | empty
+rhs                ::= prod_part* PERCENT_PREC term_id |
+                       prod_part*
 prod_part          ::= symbol_id opt_label | CODE_STRING
 opt_label          ::= COLON label_id | empty
 opt_type_id        ::= type_id | empty
 import_id          ::= multipart_id DOT STAR | multipart_id
 type_id            ::= multipart_id | type_id LBRACK RBRACK
-                       multipart_id LANGLE type_id_list RANGLE
+                       multipart_id LANGLE type_arg_list RANGLE
 type_arg_list      ::= type_arg_list COMMA type_arg | type_arg
 type_arg           ::= type_id | wildcard
 wildcard           ::= QUESTION | wildcard EXTENDS type_id | 
@@ -1431,7 +1426,6 @@ term_id            ::= symbol_id
 non_term_id        ::= ID
 symbol_id          ::= ID
 label_id           ::= ID
-opt_semi           ::= SEMI | empty
 </tt></pre>
 <hr>
 
