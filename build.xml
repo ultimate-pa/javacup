@@ -44,19 +44,19 @@
   <target name="bootstrap" depends="init">
     <mkdir dir="${bootstrap}" />
     <javac includeantruntime="false" srcdir="${src}" destdir="${bootstrap}" source="1.5" target="1.5">
-      <exclude name="java_cup/anttask/**"/>
+      <exclude name="com/github/jhoenicke/javacup/anttask/**"/>
     </javac>
     <mkdir dir="${java}" />
     <copy todir="${java}">
       <fileset dir="${src}">
-        <exclude name="java_cup/Parser.java"/>
-        <exclude name="java_cup/Lexer.java"/>
-        <exclude name="java_cup/sym.java"/>
+        <exclude name="com/github/jhoenicke/javacup/Parser.java"/>
+        <exclude name="com/github/jhoenicke/javacup/Lexer.java"/>
+        <exclude name="com/github/jhoenicke/javacup/sym.java"/>
       </fileset>
     </copy>
-    <java fork="true" classpath="${bootstrap}" classname="java_cup.Main">
+    <java fork="true" classpath="${bootstrap}" classname="com.github.jhoenicke.javacup.Main">
       <arg value="-destdir"/>
-      <arg value="${java}/java_cup"/>
+      <arg value="${java}/com/github/jhoenicke/javacup"/>
       <arg value="${cup}/parser.cup"/>
     </java>
     <jflex file="${flex}/Lexer.jflex" destdir="${java}" />
@@ -68,14 +68,14 @@
 
   <target name="dist" depends="compile">
    <jar jarfile="${dist}/java-cup-12joho.jar" basedir="${classes}"
-        excludes="java_cup/runtime/lr_parser.class">
+        excludes="com/github/jhoenicke/javacup/runtime/lr_parser.class">
       <manifest>
-        <attribute name="Main-Class" value="java_cup/Main" />
+        <attribute name="Main-Class" value="com/github/jhoenicke/javacup/Main" />
       </manifest>
     </jar>
     <jar jarfile="${dist}/java-cup-12joho-runtime.jar" basedir="${classes}" 
-        includes="java_cup/runtime/*"
-        excludes="java_cup/runtime/lr_parser.class">
+        includes="com/github/jhoenicke/javacup/runtime/*"
+        excludes="com/github/jhoenicke/javacup/runtime/lr_parser.class">
     </jar>
   </target>
 
