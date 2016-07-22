@@ -837,7 +837,7 @@ public abstract class LRParser {
       int act;
 
       /* create a virtual stack from the real parse stack */
-      virtual_parse_stack vstack = new virtual_parse_stack(stack);
+      VirtualParseStack vstack = new VirtualParseStack(stack);
       int parse_state = vstack.top();
       int lookahead_pos = 0;
       cur_token = lookaheads[lookahead_pos++];

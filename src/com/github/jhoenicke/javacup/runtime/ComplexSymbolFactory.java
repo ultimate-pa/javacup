@@ -1,8 +1,8 @@
 package com.github.jhoenicke.javacup.runtime;
 
 /**
- * Default Implementation for SymbolFactory, creates
- * plain old Symbols
+ * Implementation for SymbolFactory, creates
+ * complex Symbols with line/column information.
  *
  * @version last updated 27-03-2006
  * @author Michael Petter

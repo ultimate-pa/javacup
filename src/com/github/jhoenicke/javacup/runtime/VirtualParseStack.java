@@ -20,13 +20,13 @@ import java.util.List;
  * @author  Frank Flannery
  */
 
-public class virtual_parse_stack {
+class VirtualParseStack {
   /*-----------------------------------------------------------*/
   /*--- Constructor(s) ----------------------------------------*/
   /*-----------------------------------------------------------*/
 
   /** Constructor to build a virtual stack out of a real stack. */
-  public virtual_parse_stack(List<Symbol> shadowing_stack) throws java.lang.Exception
+  public VirtualParseStack(List<Symbol> shadowing_stack) throws java.lang.Exception
     {
       /* sanity check */
       if (shadowing_stack == null)
@@ -37,7 +37,7 @@ public class virtual_parse_stack {
       real_stack = shadowing_stack;
       vstack     = new ArrayList<Integer>();
       real_top   = shadowing_stack.size();
-      get_from_real();
+      getFromReal();
     }
 
   /*-----------------------------------------------------------*/
@@ -76,7 +76,7 @@ public class virtual_parse_stack {
   /** Transfer an element from the real to the virtual stack.  This assumes 
    *  that the virtual stack is currently empty.  
    */
-  protected void get_from_real()
+  private void getFromReal()
     {
       Symbol stack_sym;
 
@@ -125,7 +125,7 @@ public class virtual_parse_stack {
 
       /* if we are now empty transfer an element (if there is one) */
       if (vstack.isEmpty())
-        get_from_real();
+        getFromReal();
     }
   
   /** Pop several elements from the stack */
@@ -141,7 +141,7 @@ public class virtual_parse_stack {
 	{
 	  vstack.clear();
 	  real_top -= (num_elems - vsize);
-	  get_from_real();
+	  getFromReal();
 	}
     }
 

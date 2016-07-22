@@ -19,27 +19,27 @@ package com.github.jhoenicke.javacup;
 
 public class version {
   /** The major version number. */
-  public static final int major = 0;
+  public static final int major = 1;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The minor version number. */
-  public static final int minor = 12;
+  public static final int minor = 0;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The update letter. */
-  public static final String update = "joho 20110608";
+  public static final String update = " 20160720";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** String for the current version. */
-  public static final String version_str = "v" + major + "." + minor + update;
+  public static final String version_str = "" + major + "." + minor + update;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Full title of the system */
-  public static final String title_str = "CUP " + version_str;
+  public static final String title_str = "jh-javacup-" + version_str;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -50,5 +50,5 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The command name normally used to invoke this program */ 
-  public static final String program_name = "com.github.jhoenicke.javacup";
+  public static final String program_name = "java -jar jh-javacup" + major + "." + minor + ".jar";
 }
