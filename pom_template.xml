@@ -1,0 +1,50 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.jhoenicke</groupId>
+    <artifactId>jh-javacup</artifactId>
+    <version>VERSION</version>
+	<packaging>jar</packaging>
+
+    <name>Java-Cup</name>
+    <description>Java Cup is an LALR Parser Generator for Java.</description>
+    <url>https://github.com/ultimate-pa/javacup/</url>
+
+    <licenses>
+        <license>
+            <name>Standard ML of New Jersey</name>
+            <url>https://www.smlnj.org/license.html</url>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>Ultimate</name>
+        <url>https://ultimate.informatik.uni-freiburg.de</url>
+    </organization>
+
+    <scm>
+        <connection>scm:git:https://github.com/ultimate-pa/javacup.git</connection>
+        <developerConnection>scm:git:git@github.com:ultimate-pa/javacup.git</developerConnection>
+        <url>https://github.com/ultimate-pa/javacup</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>Jochen Hoenicke</name>
+            <email>hoenicke@informatik.uni-freiburg.de</email>
+        </developer>
+        <developer>
+            <name>Michael Petter</name>
+        </developer>
+        <developer>
+            <name>Scott Hudson</name>
+        </developer>
+        <developer>
+            <name>Frank Flannery</name>
+        </developer>
+        <developer>
+            <name>C. Scott Ananian</name>
+        </developer>
+    </developers>
+</project>
