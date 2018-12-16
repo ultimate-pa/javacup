@@ -82,6 +82,7 @@ import java.util.Date;
    init_code               - user supplied code to be executed as the parser 
 			     is being initialized.
    scan_code               - user supplied code to get the next Symbol.
+   after_reduce_code       - user code that will run after every reduce
    start_production        - the start production for the grammar.
    import_list             - list of imports for use with action class.
    num_conflicts           - number of conflicts detected. 
@@ -145,6 +146,11 @@ public class emit {
 
   /** User code for scan() which is called to get the next Symbol. */
   public String scan_code = null;
+
+  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
+
+  /** User code that will be inserted after every reduce call. */
+  public String after_reduce_code = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -348,6 +354,17 @@ public class emit {
 	  	&& (symbol.the_symbol.name().endsWith("*")
 		    || symbol.the_symbol.name().endsWith("+"));
 
+	  if (i == 0) {
+            out.println("              " + RUNTIME_PACKAGE + ".Symbol " +
+                    "$first = " +
+                    stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
+	  }
+	  if (i == prod.rhs_stackdepth() - 1) {
+            out.println("              " + RUNTIME_PACKAGE + ".Symbol " +
+                    "$last = " +
+                    stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
+	  }
+
 	  if (label != null)
 	    {
 	      if (i == 0)
@@ -475,6 +492,9 @@ public class emit {
 	    }
 	  leftright = ", " + leftsym + ", " + rightsym;
 	}
+    if (after_reduce_code != null) {
+       out.println(after_reduce_code);
+    }
 	  /* code to return lhs symbol */
 	  out.println("              return parser.getSymbolFactory().newSymbol(" + 
 	      "\"" + prod.lhs().name() +  "\", " +
