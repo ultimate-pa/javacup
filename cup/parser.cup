@@ -600,6 +600,8 @@ symbol_id ::=
 	| LEFT
 	| RIGHT
 	| NONASSOC
+	| AFTER
+	| REDUCE
 	;
 
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
@@ -623,6 +625,8 @@ robust_id ::= /* all ids that aren't reserved words in Java */
 	| LEFT
 	| RIGHT
 	| NONASSOC
+	| AFTER
+	| REDUCE
 	| error
 	{:
 		ErrorManager.getManager().emit_error("Illegal use of reserved word");
