@@ -148,10 +148,10 @@ public class emit {
   public String scan_code = null;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-  
+
   /** User code that will be called after every reduce call. */
   public String after_reduce_code = null;
-  
+
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** List of imports (Strings containing class names) to go with actions. */
@@ -346,8 +346,9 @@ public class emit {
        * action code). 24-Mar-1998 CSA
        */
       if (after_reduce_code != null)
-  out.println("              " + RUNTIME_PACKAGE + ".Symbol[] $symbols_array = new " + 
-      RUNTIME_PACKAGE + ".Symbol[" + prod.rhs_stackdepth() + "];");
+	out.println("              " + RUNTIME_PACKAGE + ".Symbol[] " +
+		    pre("symbols_array") + " = new " +
+		    RUNTIME_PACKAGE + ".Symbol[" + prod.rhs_stackdepth() + "];");
       for (int i=prod.rhs_stackdepth()-1; i>=0; i--) 
 	{
 	  symbol_part symbol = baseprod.rhs(i);
@@ -356,11 +357,11 @@ public class emit {
 	  boolean is_wildcard = !is_star_action && symtype != null
 	  	&& (symbol.the_symbol.name().endsWith("*")
 		    || symbol.the_symbol.name().endsWith("+"));
-    if (after_reduce_code != null)
-      {
-      out.println("              " + "$symbols_array[" + i +"] = " +
-          stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
-      }
+	  if (after_reduce_code != null)
+	    {
+	      out.println("              " + pre("symbols_array") + "[" + i + "] = " +
+			  stackelem(prod.rhs_stackdepth() - i, is_java15) + ";");
+	    }
 	  if (label != null)
 	    {
 	      if (i == 0)
@@ -488,13 +489,14 @@ public class emit {
 	    }
 	  leftright = ", " + leftsym + ", " + rightsym;
 	}
-    /* code to call the after reduce user code */
+      /* code to call the after reduce user code */
       if (after_reduce_code != null)
-  out.println("              "+prefix+"after_reduce(RESULT, $symbols_array);");        
-	  /* code to return lhs symbol */
-	  out.println("              return parser.getSymbolFactory().newSymbol(" + 
-	      "\"" + prod.lhs().name() +  "\", " +
-	      prod.lhs().index() + leftright + result + ");");
+	out.println("              " + pre("after_reduce") + "(RESULT, " +
+		    pre("symbols_array") + ");");
+      /* code to return lhs symbol */
+      out.println("              return parser.getSymbolFactory().newSymbol(" +
+		  "\"" + prod.lhs().name() +  "\", " +
+		  prod.lhs().index() + leftright + result + ");");
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -592,14 +594,15 @@ public class emit {
 
       /* user supplied code for after reduce code */
       if (after_reduce_code != null)
-      {
-        out.println();
-        out.println("    /** After reduce code */");
-        out.println("    public void "+prefix+"after_reduce(Object RESULT, "+RUNTIME_PACKAGE + ".Symbol[] symbols) throws java.lang.Exception");
-        out.println("    {");
-        out.println(after_reduce_code);
-        out.println("    }");
-      }
+	{
+	  out.println();
+	  out.println("    /** After reduce code */");
+	  out.println("    public void " + prefix + "after_reduce(Object RESULT, "
+		      + RUNTIME_PACKAGE + ".Symbol[] symbols) throws java.lang.Exception");
+	  out.println("    {");
+	  out.println(after_reduce_code);
+	  out.println("    }");
+	}
 
       /* end of class */
       out.println("}");
