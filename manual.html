@@ -620,6 +620,24 @@ As of CUP 0.10j the action code, parser code, init code, and scan with
 sections may appear in any order. They must, however, precede the
 symbol lists.</p>
 
+<pre><tt>    after reduce {: ... :};</tt></pre>
+
+<p>Defines code that is executed whenever a production rule is
+reduced.  The arrays symbols contains all terminal and non-terminal
+symbols of the current production rule.  RESULT can be used to access
+and modify the value of the nonterminal created by the production
+rule. Example usage:
+</p>
+
+<pre>
+  after reduce {:
+    int lineNumber = symbols[0].left + 1;
+    if (RESULT instanceof AST_Node) {
+       ((AST_Node) RESULT).lineNumber = lineNumber
+    }
+  :}
+</pre>
+
 <h4><a name="symbol_list">2.3.</a> Symbol Lists</h4>
 
 <p>Following user supplied code comes the first required part of the
