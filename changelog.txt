@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 CUP version jh-javacup 1.x
 
-New feature by Yoav Sternberg:
+- New feature by Yoav Sternberg:
 
 The new keyword after reduce defines code that is executed whenever a
 production rule is reduced.  The arrays symbols contains all terminal
@@ -15,6 +15,9 @@ the production rule. Example usage:
        ((AST_Node) RESULT).lineNumber = lineNumber
     }
   :}
+
+- New SimpleSymbolFactory that supports line/column number without the
+  extra overhead of the Location objects.
 
 ------------------------------------------------------------------------
 CUP version jh-javacup 1.0
