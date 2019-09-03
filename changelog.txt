@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
-CUP version jh-javacup 1.x
+CUP version jh-javacup 1.1 (2019-09-01)
 
 - New feature by Yoav Sternberg:
 
