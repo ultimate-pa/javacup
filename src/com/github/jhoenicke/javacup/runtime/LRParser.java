@@ -121,6 +121,9 @@ public abstract class LRParser {
   public LRParser(Scanner s, SymbolFactory symfac) {
     symbolFactory = symfac;
     setScanner(s);
+
+    /* unpack action/reduce tables */
+    unpackStrings(action_table());
   }
   public SymbolFactory symbolFactory;// = new DefaultSymbolFactory();
   /**
@@ -381,9 +384,6 @@ public abstract class LRParser {
 
       /* do user initialization */
       user_init();
-
-      /* unpack action/reduce tables */
-      unpackStrings(action_table());
 
       /* get the first token */
       cur_token = scan(); 
