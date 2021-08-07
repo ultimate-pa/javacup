@@ -1,4 +1,10 @@
 ------------------------------------------------------------------------
+CUP version jh-javacup 1.2 (2021-08-07)
+
+- The strings for the ParseTable are only parsed once in the static
+  constructor.
+
+------------------------------------------------------------------------
 CUP version jh-javacup 1.1 (2019-09-01)
 
 - New feature by Yoav Sternberg:
