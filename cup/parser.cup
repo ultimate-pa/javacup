@@ -139,7 +139,6 @@ action code {:
       /* if it wasn't declared of the right type, emit a message */
       if (!(sym instanceof terminal))
 	{
-	  if (ErrorManager.getManager().getErrorCount() == 0)
 	    ErrorManager.getManager().emit_warning("Terminal \"" + id + 
 	    "\" has not been declared", location);
 	  return null;
@@ -154,7 +153,6 @@ action code {:
       /* if it wasn't declared of the right type, emit a message */
       if (!(sym instanceof non_terminal))
 	{
-	  if (ErrorManager.getManager().getErrorCount() == 0)
 	    ErrorManager.getManager().emit_warning("Non-terminal \"" + id + 
 	    "\" has not been declared", location);
 	  return null;
@@ -166,8 +164,7 @@ action code {:
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */ 
 
 parser code {:
-  Main main;
-  emit emit;
+  Options options;
   
  /* override error routines */
   public void report_fatal_error(
@@ -177,7 +174,7 @@ parser code {:
       done_parsing();
       if (info instanceof Symbol) ErrorManager.getManager().emit_fatal(message+ "\nCan't recover from previous error(s), giving up.",(Symbol)info);
       else ErrorManager.getManager().emit_fatal(message + "\nCan't recover from previous error(s), giving up.",cur_token);
-      System.exit(1);
+      throw new RuntimeException("jcup fatal error parsing grammar");
     }
 
     public void report_error(String message, Object info)
@@ -257,7 +254,7 @@ package_spec ::=
 	PACKAGE	multipart_id:id SEMI
 	{:
 	  /* save the package name */
-	  parser.main.setOption("package", id.toString());
+	  parser.options.setOption("package", id.toString());
 	:}
 	|
 	/* empty */
@@ -269,7 +266,7 @@ import_spec ::=
 	IMPORT import_id:id SEMI
 	{:
 	  /* save this import on the imports list */
-	  parser.emit.import_list.add(id.toString());
+	  parser.options.import_list.add(id.toString());
 	:}
 	;
 
@@ -286,27 +283,27 @@ code_parts ::=
 
 parser_spec ::=
 	  PARSER multipart_id:name SEMI
-         {: parser.main.setOption("parser", name.toString()); :}
+         {: parser.options.setOption("parser", name.toString()); :}
 	| PARSER multipart_id:name LT typearglist:types GT SEMI
-         {: parser.main.setOption("parser", name.toString());
-	    parser.main.setOption("typearg", types.toString()); :}
+         {: parser.options.setOption("parser", name.toString());
+	    parser.options.setOption("typearg", types.toString()); :}
        	;
 
 
 option_spec ::= OPTION option_list SEMI;
 option_list ::= option_list COMMA option_ | option_;
-option_ ::= robust_id:opt {: parser.main.setOption(opt); :}
+option_ ::= robust_id:opt {: parser.options.setOption(opt); :}
 	| robust_id:opt EQUALS robust_id:val
-          {: parser.main.setOption(opt, val); :};
+          {: parser.options.setOption(opt, val); :};
 /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
 
 action_code_part ::=
 	ACTION CODE CODE_STRING:user_code SEMI?
 	{:
-	  if (parser.emit.action_code!=null)
+	  if (parser.options.action_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant action code (skipping)");
 	  else /* save the user included code string */
-	    parser.emit.action_code = user_code;
+	    parser.options.action_code = user_code;
 	:}
 	;
 
@@ -315,10 +312,10 @@ action_code_part ::=
 parser_code_part ::=
 	PARSER CODE CODE_STRING:user_code SEMI?
 	{:
-	  if (parser.emit.parser_code!=null)
+	  if (parser.options.parser_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant parser code (skipping)");
 	  else /* save the user included code string */
-	    parser.emit.parser_code = user_code;
+	    parser.options.parser_code = user_code;
 	:}
 	;
 
@@ -327,10 +324,10 @@ parser_code_part ::=
 init_code ::=
 	INIT WITH CODE_STRING:user_code SEMI?
 	{:
-	  if (parser.emit.init_code!=null)
+	  if (parser.options.init_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant init code (skipping)");
 	  else /* save the user code */
-	    parser.emit.init_code = user_code;
+	    parser.options.init_code = user_code;
 	:}
 	;
 
@@ -339,10 +336,10 @@ init_code ::=
 scan_code ::=
 	SCAN WITH CODE_STRING:user_code SEMI?
 	{:
-	  if (parser.emit.scan_code!=null)
+	  if (parser.options.scan_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant scan code (skipping)");
 	  else /* save the user code */
-	    parser.emit.scan_code = user_code;
+	    parser.options.scan_code = user_code;
 	:}
 	;
 
@@ -351,10 +348,10 @@ scan_code ::=
 after_reduce_code ::=
 	AFTER REDUCE CODE_STRING:user_code SEMI?
 	{:
-	  if (parser.emit.after_reduce_code!=null)
+	  if (parser.options.after_reduce_code!=null)
 	    ErrorManager.getManager().emit_warning("Redundant after reduce code (skipping)");
 	  else /* save the user code */
-	    parser.emit.after_reduce_code = user_code;
+	    parser.options.after_reduce_code = user_code;
 	:}
 	;
 
@@ -515,9 +512,8 @@ wild_symbol_id ::=
 	   /* if that fails, symbol is undeclared */
 	   if (symb == null)
 	     {
-	       if (ErrorManager.getManager().getErrorCount() == 0)
 	         ErrorManager.getManager().emit_error("Symbol \"" + symid + 
-			        "\" has not been declared");
+			        "\" has not been declared", symid$);
 	       RESULT = null;
 	     }
 	   else
@@ -627,9 +623,9 @@ robust_id ::= /* all ids that aren't reserved words in Java */
 	| NONASSOC
 	| AFTER
 	| REDUCE
-	| error
+	| error:e
 	{:
-		ErrorManager.getManager().emit_error("Illegal use of reserved word");
+		ErrorManager.getManager().emit_error("Illegal use of reserved word", e$);
 		RESULT="ILLEGAL";
 	:}
 	;

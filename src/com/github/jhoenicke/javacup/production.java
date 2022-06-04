@@ -73,7 +73,7 @@ public class production {
       for (int i = 0; i < rhs.length; i++)
 	{
 	  symbol rhs_sym = rhs[i].the_symbol;
-	  rhs_sym.note_use();
+	  if (rhs_sym != null) rhs_sym.note_use();
 	  if (precedence == null && rhs_sym instanceof terminal)
 	    {
 	      terminal term = (terminal) rhs_sym;

@@ -54,8 +54,24 @@ public class ComplexSymbolFactory implements SymbolFactory{
             this.name=name;
         }
         public String toString(){
-            if (xleft==null || xright==null) return "Symbol: "+name;
-            return "#"+sym+"["+name+"]("+xleft+" - "+xright+")";
+        	StringBuilder tmp = new StringBuilder();
+        	tmp.append("Symbol: ");
+        	tmp.append(name);
+        	tmp.append("#");
+        	tmp.append(sym);
+        	if (value != null) {
+            	tmp.append("==\"");
+            	tmp.append(value);
+            	tmp.append("\"");
+        	}
+            if (xleft!=null && xright!=null) {
+            	tmp.append("(");
+            	tmp.append(xleft);
+            	tmp.append(" - ");
+            	tmp.append(xright);
+            	tmp.append(")");
+            }
+            return tmp.toString();
         }
         public ComplexSymbol(String name, int id, int state) {
             super(id,state);

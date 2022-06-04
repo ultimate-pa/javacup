@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 %%
 
 %class Lexer
-%implements sym, com.github.jhoenicke.javacup.runtime.Scanner
+%implements Sym, com.github.jhoenicke.javacup.runtime.Scanner
 %function next_token
 %type com.github.jhoenicke.javacup.runtime.Symbol
 %eofclose
@@ -54,7 +54,7 @@ ident = ([:jletter:] | "_" ) ([:jletterdigit:] | [:jletter:] | "_" )*
 
 
 %eofval{
-    return symbolFactory.newSymbol("EOF",sym.EOF);
+    return symbolFactory.newSymbol("EOF",Sym.EOF);
 %eofval}
 
 %state CODESEG

@@ -1,7 +1,5 @@
 package com.github.jhoenicke.javacup;
 
-import com.github.jhoenicke.javacup.assoc;
-
 /** This class represents a terminal symbol in the grammar.  Each terminal 
  *  has a textual name, an index, and a string which indicates the type of 
  *  object it will be implemented with at runtime (i.e. the class of object 

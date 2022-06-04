@@ -44,10 +44,10 @@ public class Grammar {
   /* . . . . . . . . . . . . . . . . . . . . . . . . . */
 
   /** Resulting parse action table. */
-  private parse_action_table action_table;
+  public parse_action_table action_table;
 
   /** Resulting reduce-goto table. */
-  private parse_reduce_table reduce_table;
+  public parse_reduce_table reduce_table;
 
   public Grammar()
     {
@@ -525,69 +525,6 @@ public class Grammar {
       return start_state;
     }
   
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Produce a human readable dump of the grammar. */
-  public void dump_grammar()
-    {
-      System.err.println("===== Terminals =====");
-      int cnt = 0;
-      for (terminal t : terminals())
-	{
-	  System.err.print("[" + t.index() + "]" + t.name() + " ");
-	  if ((++cnt) % 5 == 0)
-	    System.err.println();
-	}
-      System.err.println();
-      System.err.println();
-
-      System.err.println("===== Non terminals =====");
-      cnt = 0;
-      for (non_terminal nt : non_terminals())
-	{
-	  System.err.print("[" + nt.index() + "]" + nt.name()
-	      + " ");
-	  if ((++cnt) % 5 == 0)
-	    System.err.println();
-	}
-      System.err.println();
-      System.err.println();
-
-      System.err.println("===== Productions =====");
-      for (production prod : productions())
-	{
-	  System.err.println("[" + prod.index() + "] " + prod);
-	}
-      System.err.println();
-    }
-  
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /**
-   * Produce a (semi-) human readable dump of the complete viable prefix
-   * recognition state machine.
-   */
-  public void dump_machine()
-    {
-      System.err.println("===== Viable Prefix Recognizer =====");
-      for (lalr_state st : lalr_states())
-	{
-	  System.err.println(st);
-	  System.err.println("-------------------");
-	}
-    }
-
-  /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-
-  /** Produce a (semi-) human readable dumps of the parse tables */
-  public void dump_tables()
-    {
-      System.err.println(action_table);
-      System.err.println(reduce_table);
-    }
-  
-  /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
-
   /** Produce a warning message for one reduce/reduce conflict. 
    *
    * @param itm1 first item in conflict.

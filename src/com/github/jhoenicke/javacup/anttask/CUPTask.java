@@ -177,10 +177,12 @@ public class CUPTask extends Task
 		{
 		    String result = line.substring(8,line.indexOf(";"));
 		    result = result.replace('.',System.getProperty("file.separator").charAt(0));
+		    br.close();
 		    return System.getProperty("file.separator") + result;
 		}
 	    
 	}
+    br.close();
 	}catch (IOException ioe){
 	}
 	return "";
