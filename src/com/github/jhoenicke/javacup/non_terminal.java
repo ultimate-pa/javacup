@@ -41,8 +41,27 @@ public class non_terminal extends symbol {
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
+  /*
+   * as ever static is devil. Sad use case, in the same JRE !!
+   * first run with an error, start_nt accumulates sad informations
+   * second run without an error, exception forwarded by the wrong accumulated informations
+   * 
+   * clue :
+   *   + still static to have the same symbol for a run 
+   *   + get with a lazy constructor
+   *   + a clear to clear at the beginning of the process so a new one is generated per run.
+   */
   /** special non-terminal for start symbol */
-  public static final non_terminal START_nt = new non_terminal("$START", "Object", 0);
+  private static non_terminal START_nt = null;
+
+  public static non_terminal getSTART_nt() {
+	  if (START_nt == null) START_nt = new non_terminal("$START", "Object", 0);
+      return START_nt;
+  }
+
+  public static void clear() {
+	  START_nt = null;
+  }
 
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/

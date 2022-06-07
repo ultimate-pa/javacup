@@ -123,7 +123,7 @@ public class Main {
 
 		timer.pushTimer();
 		/* don't proceed unless we are error free */
-		if (ErrorManager.getManager().getErrorCount() == 0) {
+		if (ErrorManager.getManager().getFatalCount() == 0 && ErrorManager.getManager().getErrorCount() == 0) {
 
 			/* build the state machine and parse tables */
 			timer.pushTimer();

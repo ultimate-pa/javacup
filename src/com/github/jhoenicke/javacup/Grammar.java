@@ -58,7 +58,8 @@ public class Grammar {
       
       _terminals.add(terminal.error);
       _terminals.add(terminal.EOF);
-      _nonterminals.add(non_terminal.START_nt);
+      non_terminal.clear();
+      _nonterminals.add(non_terminal.getSTART_nt());
     }
   
   public non_terminal get_nonterminal(int i)
@@ -195,10 +196,10 @@ public class Grammar {
       action = new action_part("RESULT = " + result +
       		";\n/* ACCEPT */\nparser.done_parsing();");
       _start_production = 
-	  new production(0, 0, non_terminal.START_nt, rhs, -1, action, null);
+	  new production(0, 0, non_terminal.getSTART_nt(), rhs, -1, action, null);
       _productions.add(_start_production);
       _actions.add(_start_production);
-      non_terminal.START_nt.note_use();
+      non_terminal.getSTART_nt().note_use();
     }
   
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
@@ -552,7 +553,7 @@ public class Grammar {
 
       /* count the conflict */
       _num_conflicts++;
-      ErrorManager.getManager().emit_warning(message.toString());
+      ErrorManager.getManager().emit_error(message.toString());
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
