@@ -11,7 +11,7 @@
   <property name="cup"       location="cup"       />
 
   <property name="package"    value="com/github/jhoenicke/javacup" />
-  <property name="version"    value="1.2"/>
+  <property name="version"    value="1.3"/>
   <property name="jar"        value="jh-javacup-${version}"/>
   <property name="runtimejar" value="${jar}-runtime"/>
 
@@ -56,12 +56,12 @@
       <fileset dir="${src}">
         <exclude name="${package}/Parser.java"/>
         <exclude name="${package}/Lexer.java"/>
-        <exclude name="${package}/sym.java"/>
+        <exclude name="${package}/Sym.java"/>
       </fileset>
     </copy>
     <java fork="true" classpath="${bootstrap}" classname="com.github.jhoenicke.javacup.Main">
       <arg value="-destdir"/>
-      <arg value="${java}/${package}"/>
+      <arg value="${java}"/>
       <arg value="${cup}/parser.cup"/>
     </java>
     <jflex file="${flex}/Lexer.jflex" destdir="${java}" />
@@ -80,6 +80,9 @@
     <jar jarfile="${dist}/${runtimejar}.jar" basedir="${classes}" 
         includes="${package}/runtime/*">
     </jar>
+  	<zip destfile="${dist}/${runtimejar}.zip" basedir="."
+  		includes="src/${package}/runtime/*">
+	</zip>
   </target>
 
   <target name="test" depends="dist">

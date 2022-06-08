@@ -24,12 +24,12 @@ public class version {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The minor version number. */
-  public static final int minor = 2;
+  public static final int minor = 3;
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** The update letter. */
-  public static final String update = " 20210807";
+  public static final String update = " 20220517";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -45,7 +45,7 @@ public class version {
 
   /** Name of the author */
   public static final String author_str =
-      "Scott E. Hudson, Frank Flannery, Andrea Flexeder, Michael Petter, C. Scott Ananian and Jochen Hoenicke";
+      "Scott E. Hudson, Frank Flannery, Andrea Flexeder, Michael Petter, C. Scott Ananian, Jochen Hoenicke and Michel Hassenforder";
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

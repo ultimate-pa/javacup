@@ -73,7 +73,7 @@ public class production {
       for (int i = 0; i < rhs.length; i++)
 	{
 	  symbol rhs_sym = rhs[i].the_symbol;
-	  rhs_sym.note_use();
+	  if (rhs_sym != null) rhs_sym.note_use();
 	  if (precedence == null && rhs_sym instanceof terminal)
 	    {
 	      terminal term = (terminal) rhs_sym;
@@ -290,9 +290,14 @@ public class production {
       StringBuilder result = new StringBuilder();
 
       result.append(lhs().name()).append(" ::= ");
-      for (int i = 0; i < rhs_length(); i++)
-	result.append(rhs(i).the_symbol.name()).append(" ");
-
+      for (int i = 0; i < rhs_length(); i++) {
+    	  symbol s = rhs(i).the_symbol;
+    	  //MH 07/07/2022 the_symbol can be null if a terminal is not declared
+    	  if (s == null) result.append("***UNDECLARED***");
+    	  else result.append(s.name());
+    	  result.append(" ");
+      }
+      
       return result.toString();
     }
 

@@ -41,9 +41,6 @@ public class non_terminal extends symbol {
   /*--- (Access to) Static (Class) Variables ------------------*/
   /*-----------------------------------------------------------*/
 
-  /** special non-terminal for start symbol */
-  public static final non_terminal START_nt = new non_terminal("$START", "Object", 0);
-
   /*-----------------------------------------------------------*/
   /*--- (Access to) Instance Variables ------------------------*/
   /*-----------------------------------------------------------*/
