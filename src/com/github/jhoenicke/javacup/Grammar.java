@@ -58,8 +58,6 @@ public class Grammar {
       
       _terminals.add(terminal.error);
       _terminals.add(terminal.EOF);
-      non_terminal.clear();
-      _nonterminals.add(non_terminal.getSTART_nt());
     }
   
   public non_terminal get_nonterminal(int i)
@@ -195,11 +193,15 @@ public class Grammar {
       rhs[1] = new symbol_part(terminal.EOF);
       action = new action_part("RESULT = " + result +
       		";\n/* ACCEPT */\nparser.done_parsing();");
+
+      non_terminal start = new non_terminal("$START", "Object", 0);
+      _nonterminals.add(start);
+
       _start_production = 
-	  new production(0, 0, non_terminal.getSTART_nt(), rhs, -1, action, null);
+	  new production(0, 0, start, rhs, -1, action, null);
       _productions.add(_start_production);
       _actions.add(_start_production);
-      non_terminal.getSTART_nt().note_use();
+      start.note_use();
     }
   
   /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
